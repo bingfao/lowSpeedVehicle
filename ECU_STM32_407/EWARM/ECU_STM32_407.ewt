@@ -1475,6 +1475,9 @@
             <group>
                 <name>Core</name>
                 <file>
+                    <name>$PROJ_DIR$\..\Core\Src\dma.c</name>
+                </file>
+                <file>
                     <name>$PROJ_DIR$\..\Core\Src\freertos.c</name>
                 </file>
                 <file>
@@ -1488,6 +1491,9 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\Core\Src\stm32f4xx_it.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Core\Src\usart.c</name>
                 </file>
             </group>
         </group>
@@ -1546,6 +1552,72 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_tim_ex.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_uart.c</name>
+            </file>
+        </group>
+    </group>
+    <group>
+        <name>ECU_CTL</name>
+        <group>
+            <name>app</name>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\app\ecu_unit.c</name>
+            </file>
+        </group>
+        <group>
+            <name>devices</name>
+        </group>
+        <group>
+            <name>drivers</name>
+            <group>
+                <name>EC800M</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\EC800M\ec800m_drv_at.c</name>
+                </file>
+            </group>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\console.c</name>
+            </file>
+        </group>
+        <group>
+            <name>middlewares</name>
+            <group>
+                <name>at_com</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\at_com\at_com.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\at_com\at_com.h</name>
+                </file>
+            </group>
+            <group>
+                <name>EasyLogger</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\EasyLogger\src\elog.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\EasyLogger\port\elog_port.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\EasyLogger\src\elog_utils.c</name>
+                </file>
+            </group>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\fault.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\logo.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\ring_buffer.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\user_comm.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\user_list.c</name>
             </file>
         </group>
     </group>

@@ -25,7 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "ecu_unit.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -128,9 +128,12 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
+  ecu_unit_init();
   for(;;)
   {
-    osDelay(1);
+    ecu_unit_start();
+    osDelay(1000);
+    osThreadSuspend(osThreadGetId());
   }
   /* USER CODE END StartDefaultTask */
 }
