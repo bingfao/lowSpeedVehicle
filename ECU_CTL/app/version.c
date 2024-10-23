@@ -1,29 +1,8 @@
 /*
- * @Author: your name
- * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2024-10-23 16:20:05
- * @LastEditors: DESKTOP-SPAS98O
- * @Description: In User Settings Edit
- * @FilePath: \ECU_CTL\app\ecu_unit.c
- */
-
-/*
  * ****************************************************************************
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#define LOG_TAG "ECU_UNIT"
-#define LOG_LVL ELOG_LVL_DEBUG
-#include "ecu_unit.h"
-
-#include <FreeRTOS.h>
-#include <cmsis_os.h>
-#include <error_code.h>
-#include <task.h>
-
-#include "console.h"
-#include "elog.h"
-#include "shell_port.h"
 #include "version.h"
 /*
  * ****************************************************************************
@@ -36,7 +15,6 @@
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
-osThreadId g_ecu_unit_handle;
 
 /*
  * ****************************************************************************
@@ -49,55 +27,49 @@ osThreadId g_ecu_unit_handle;
  * ******** Private global variables                                   ********
  * ****************************************************************************
  */
+const char *logo =
+        "\r\n"
+        "\033[2J\033[1H"
+        "       ##     ## #### ##    ##    ########   #######  ##    ##  ######\r\n"
+        "        ##   ##   ##  ###   ##    ##     ## ##     ## ###   ## ##    ##\r\n"
+        "         ## ##    ##  ####  ##    ##     ## ##     ## ####  ## ##\r\n"
+        "          ###     ##  ## ## ##    ##     ## ##     ## ## ## ## ##   ####\r\n"
+        "         ## ##    ##  ##  ####    ##     ## ##     ## ##  #### ##    ##\r\n"
+        "        ##   ##   ##  ##   ###    ##     ## ##     ## ##   ### ##    ##\r\n"
+        "       ##     ## #### ##    ##    ########   #######  ##    ##  ######\r\n"
+        "\r\n"
+        "Copyright\t: (c) 2024 Dec\r\n"
+        "\n\r";
 
+const char *build =
+#ifndef NDEBUG
+        "Build\t\t: "__DATE__" "__TIME__"\r\n"
+#endif
+        "";
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
  * ****************************************************************************
  */
-static int32_t ecu_unit_prepare(void);
-static void ecu_unit_task(void const *argument);
 
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********
  * ****************************************************************************
  */
-int32_t ecu_unit_init(void)
+void print_system_inf(void)
 {
-    console_init();
-    print_system_inf();
-
-    return 0;
+    printf("%s", logo);
+    printf("Version\t\t: %d.%d.%d.%d.%c\n\r", VERSION_MAJOR, VERSION_MINOR, VERSION_SUB, VERSION_BUILD,
+           VERSION_RELEASE);
+    printf("%s", build);
 }
 
-int32_t ecu_unit_start(void)
-{
-    osThreadDef(ecu_unit, ecu_unit_task, osPriorityNormal, 0, 1024);
-    g_ecu_unit_handle = osThreadCreate(osThread(ecu_unit), NULL);
-
-    return 0;
-}
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
  * ****************************************************************************
  */
-static int32_t ecu_unit_prepare(void)
-{
-    shell_port_init();
-    return 0;
-}
-
-static void ecu_unit_task(void const *argument)
-{
-    ecu_unit_prepare();
-
-    log_d("ECU_UNIT task running...\r\n");
-    while (1) {
-        osDelay(1000);
-    }
-}
 
 /*
  * ****************************************************************************

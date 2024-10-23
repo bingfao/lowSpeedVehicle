@@ -1565,9 +1565,15 @@
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\app\ecu_unit.c</name>
             </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\app\version.c</name>
+            </file>
         </group>
         <group>
             <name>devices</name>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\shell_port.c</name>
+            </file>
         </group>
         <group>
             <name>drivers</name>
@@ -1604,11 +1610,38 @@
                     <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\EasyLogger\src\elog_utils.c</name>
                 </file>
             </group>
+            <group>
+                <name>LetterShell</name>
+                <group>
+                    <name>core</name>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\LetterShell\src\shell.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\LetterShell\src\shell_cmd_list.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\LetterShell\src\shell_companion.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\LetterShell\src\shell_ext.c</name>
+                    </file>
+                </group>
+                <group>
+                    <name>shell_enhance</name>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\LetterShell\extensions\shell_enhance\shell_cmd_group.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\LetterShell\extensions\shell_enhance\shell_passthrough.c</name>
+                    </file>
+                    <file>
+                        <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\LetterShell\extensions\shell_enhance\shell_secure_user.c</name>
+                    </file>
+                </group>
+            </group>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\fault.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\logo.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\ring_buffer.c</name>

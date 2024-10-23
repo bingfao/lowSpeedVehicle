@@ -1,30 +1,19 @@
 /*
- * @Author: your name
- * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2024-10-23 16:20:05
- * @LastEditors: DESKTOP-SPAS98O
- * @Description: In User Settings Edit
- * @FilePath: \ECU_CTL\app\ecu_unit.c
- */
-
-/*
  * ****************************************************************************
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#define LOG_TAG "ECU_UNIT"
-#define LOG_LVL ELOG_LVL_DEBUG
-#include "ecu_unit.h"
+#include "shell_port.h"
 
 #include <FreeRTOS.h>
 #include <cmsis_os.h>
-#include <error_code.h>
 #include <task.h>
 
 #include "console.h"
 #include "elog.h"
-#include "shell_port.h"
-#include "version.h"
+#include "fault.h"
+#include "shell.h"
+#include "util.h"
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
@@ -36,45 +25,53 @@
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
-osThreadId g_ecu_unit_handle;
 
 /*
  * ****************************************************************************
  * ******** Private macro                                              ********
  * ****************************************************************************
  */
-
+#define BUFFER_SIZE 1024
 /*
  * ****************************************************************************
  * ******** Private global variables                                   ********
  * ****************************************************************************
  */
 
+osThreadId g_shell_port_task_handle;
+static Shell shell_data;
+static Shell *shell = &shell_data;
+static char buffer[BUFFER_SIZE];
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
  * ****************************************************************************
  */
-static int32_t ecu_unit_prepare(void);
-static void ecu_unit_task(void const *argument);
+static short shell_port_read(char *data, unsigned short size);
+static short shell_port_write(char *data, unsigned short size);
+static void elog_output_func(const char *log, size_t size);
 
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********
  * ****************************************************************************
  */
-int32_t ecu_unit_init(void)
+void shelltask_handle(void const *argument)
 {
-    console_init();
-    print_system_inf();
-
-    return 0;
+    shellTask((void *)argument);
 }
 
-int32_t ecu_unit_start(void)
+int32_t shell_port_init(void)
 {
-    osThreadDef(ecu_unit, ecu_unit_task, osPriorityNormal, 0, 1024);
-    g_ecu_unit_handle = osThreadCreate(osThread(ecu_unit), NULL);
+    shell_data.read = shell_port_read;
+    shell_data.write = shell_port_write;
+
+    shellInit(shell, buffer, BUFFER_SIZE);
+    /* 启动elog */
+    logger_startup(elog_output_func);
+    osThreadDef(shell_p, shelltask_handle, osPriorityLow, 0, 1024);
+    g_shell_port_task_handle = osThreadCreate(osThread(shell_p), shell);
+    fault_assert(g_shell_port_task_handle != NULL, FAULT_CODE_NORMAL);
 
     return 0;
 }
@@ -83,22 +80,37 @@ int32_t ecu_unit_start(void)
  * ******** Private function Definition                                ********
  * ****************************************************************************
  */
-static int32_t ecu_unit_prepare(void)
+/**
+ * @brief: shell 串口读函数
+ * @param {char} *
+ * @param {unsigned} short
+ * @result:
+ */
+static short shell_port_read(char *data, unsigned short size)
 {
-    shell_port_init();
-    return 0;
+    return (short)console_read((uint8_t *)data, size);
 }
 
-static void ecu_unit_task(void const *argument)
+/**
+ * @brief: shell 串口写函数
+ * @param {char} *
+ * @param {unsigned} short
+ * @result:
+ */
+static short shell_port_write(char *data, unsigned short size)
 {
-    ecu_unit_prepare();
-
-    log_d("ECU_UNIT task running...\r\n");
-    while (1) {
-        osDelay(1000);
-    }
+    return (short)console_write((const uint8_t *)data, size);
 }
 
+/*!
+ * 嵌入式elog输出通道
+ * @param log
+ * @param size
+ */
+static void elog_output_func(const char *log, size_t size)
+{
+    shellWriteEndLine(shell, (char *)log, (int)size);
+}
 /*
  * ****************************************************************************
  * End File
