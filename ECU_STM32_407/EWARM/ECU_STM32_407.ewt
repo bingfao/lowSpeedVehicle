@@ -1566,6 +1566,9 @@
                 <name>$PROJ_DIR$\..\..\ECU_CTL\app\ecu_unit.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\app\test.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\app\version.c</name>
             </file>
         </group>
@@ -1648,6 +1651,12 @@
                         <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\LetterShell\extensions\shell_enhance\shell_secure_user.c</name>
                     </file>
                 </group>
+            </group>
+            <group>
+                <name>soft_aes</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\soft_aes\aes.c</name>
+                </file>
             </group>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\fault.c</name>
