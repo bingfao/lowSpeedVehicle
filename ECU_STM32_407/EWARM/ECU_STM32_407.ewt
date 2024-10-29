@@ -1572,6 +1572,9 @@
         <group>
             <name>devices</name>
             <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\net_port.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\shell_port.c</name>
             </file>
         </group>
@@ -1585,6 +1588,12 @@
             </group>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\console.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\driver_com.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\drv_usart.c</name>
             </file>
         </group>
         <group>

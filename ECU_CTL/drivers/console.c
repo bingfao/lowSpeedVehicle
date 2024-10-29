@@ -65,7 +65,7 @@ void console_init(void)
     sem_tx = xSemaphoreCreateBinaryStatic(&sem_tx_container);
     fault_assert(sem_tx != NULL, FAULT_CODE_CONSOLE);
 
-    MX_USART2_UART_Init();
+    // MX_USART1_UART_Init();
     active = true;
 }
 

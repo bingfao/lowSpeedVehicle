@@ -1,44 +1,34 @@
 /*
  * @Author: your name
- * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2024-10-25 13:35:30
+ * @Date: 2024-10-24 14:58:21
+ * @LastEditTime: 2024-10-24 18:10:50
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
- * @FilePath: \ECU_CTL\app\ecu_unit.c
+ * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
  */
-
 /*
  * ****************************************************************************
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#define LOG_TAG "ECU_UNIT"
+#define LOG_TAG "NET_PORT"
 #define LOG_LVL ELOG_LVL_DEBUG
-#include "ecu_unit.h"
-
-#include <FreeRTOS.h>
-#include <cmsis_os.h>
-#include <error_code.h>
-#include <task.h>
-
-#include "console.h"
-#include "elog.h"
-#include "shell_port.h"
-#include "version.h"
 #include "net_port.h"
+
 #include "driver_com.h"
+#include "elog.h"
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
  * ****************************************************************************
  */
+#define NET_PORT_DRV_NAME "ec800m"
 
 /*
  * ****************************************************************************
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
-osThreadId g_ecu_unit_handle;
 
 /*
  * ****************************************************************************
@@ -51,33 +41,27 @@ osThreadId g_ecu_unit_handle;
  * ******** Private global variables                                   ********
  * ****************************************************************************
  */
-
+DRIVER_OBJ_t *g_driver = NULL;
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
  * ****************************************************************************
  */
-static int32_t ecu_unit_prepare(void);
-static void ecu_unit_task(void const *argument);
 
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********
  * ****************************************************************************
  */
-int32_t ecu_unit_init(void)
+int32_t net_port_init(void)
 {
-    console_init();
-    print_system_inf();
-    driver_register_fun_doing();
-
-    return 0;
-}
-
-int32_t ecu_unit_start(void)
-{
-    osThreadDef(ecu_unit, ecu_unit_task, osPriorityNormal, 0, 1024);
-    g_ecu_unit_handle = osThreadCreate(osThread(ecu_unit), NULL);
+    g_driver = get_driver(NET_PORT_DRV_NAME);
+    if (g_driver == NULL) {
+        log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
+        return -1;
+    }
+    log_d("driver %s found \r\n", NET_PORT_DRV_NAME);
+    driver_init(g_driver);
 
     return 0;
 }
@@ -86,22 +70,6 @@ int32_t ecu_unit_start(void)
  * ******** Private function Definition                                ********
  * ****************************************************************************
  */
-static int32_t ecu_unit_prepare(void)
-{
-    shell_port_init();
-    net_port_init();
-    return 0;
-}
-
-static void ecu_unit_task(void const *argument)
-{
-    ecu_unit_prepare();
-
-    log_d("ECU_UNIT task running...\r\n");
-    while (1) {
-        osDelay(1000);
-    }
-}
 
 /*
  * ****************************************************************************
