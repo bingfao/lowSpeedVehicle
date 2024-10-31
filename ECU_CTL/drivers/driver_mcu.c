@@ -1,22 +1,12 @@
 /*
- * @Author: your name
- * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2024-10-30 15:07:02
- * @LastEditors: DESKTOP-SPAS98O
- * @Description: In User Settings Edit
- * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
- */
-/*
  * ****************************************************************************
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#define LOG_TAG "NET_PORT"
-#define LOG_LVL ELOG_LVL_DEBUG
-#include "net_port.h"
+#include "driver_mcu.h"
 
-#include "driver_com.h"
-#include "elog.h"
+#include "error_code.h"
+
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
@@ -28,7 +18,6 @@
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
-#define NET_PORT_DRV_NAME "ec800m"
 
 /*
  * ****************************************************************************
@@ -41,36 +30,86 @@
  * ******** Private global variables                                   ********
  * ****************************************************************************
  */
-DRIVER_OBJ_t *g_driver = NULL;
+
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
  * ****************************************************************************
  */
+static int32_t mcu_drv_init(DRIVER_OBJ_t *p_driver);
+static int32_t mcu_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag);
+static int32_t get_mcu_id(uint8_t *id);
+static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, int cmd, void *args);
 
+DRIVER_CTL_t g_mcu_driver = {
+    .init = mcu_drv_init,
+    .open = mcu_drv_open,
+    .control = drv_mcu_control,
+};
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********
  * ****************************************************************************
  */
-int32_t net_port_init(void)
-{
-    g_driver = get_driver(NET_PORT_DRV_NAME);
-    if (g_driver == NULL) {
-        log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
-        return -1;
-    }
-    log_d("driver %s found \r\n", NET_PORT_DRV_NAME);
-    driver_init(g_driver);
 
-    return 0;
-}
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
  * ****************************************************************************
  */
+static int32_t mcu_drv_init(DRIVER_OBJ_t *p_driver)
+{
+    return 0;
+}
 
+static int32_t mcu_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag)
+{
+    return 0;
+}
+
+static int32_t get_mcu_id(uint8_t *id)
+{
+    int8_t i, j;
+    uint32_t id_read[3] = {0};
+
+    if (id == NULL) {
+        return -EINVAL;
+    }
+
+    id_read[0] = *(__IO uint32_t *)(0x1FFF7A10);
+    id_read[1] = *(__IO uint32_t *)(0x1FFF7A14);
+    id_read[2] = *(__IO uint32_t *)(0x1FFF7A18);
+
+    for (i = 2; i >= 0; i--) {
+        for (j = 0; j < 4; j++) {
+            *id++ = id_read[i];
+            id_read[i] >>= 8;
+        }
+    }
+
+    return 12;
+}
+
+static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, int cmd, void *args)
+{
+    int32_t ret = 0;
+
+    if (!driver_is_opened(drv)) {
+        return -EACCES;
+    }
+    switch (cmd) {
+        case DRV_CMD_GET_ID:
+            ret = get_mcu_id((uint8_t *)args);
+            break;
+
+        default:
+            return -EINVAL;
+    }
+
+    return ret;
+}
+
+DRIVER_REGISTER(&g_mcu_driver, mcu_407)
 /*
  * ****************************************************************************
  * End File

@@ -22,6 +22,7 @@ extern "C" {
  * ****************************************************************************
  */
 #include <main.h>
+
 #include "driver_com.h"
 
 /*
@@ -35,10 +36,12 @@ extern "C" {
  * ******** Exported constants                                         ********
  * ****************************************************************************
  */
-#define EC800M_DRV_TX_BUF_SIZE 50
-#define EC800M_DRV_RX_BUF_SIZE 1024
+#define EC800M_DRV_TX_BUF_SIZE       50
+#define EC800M_DRV_RX_BUF_SIZE       1024
 
-
+#define EC800M_DRV_POS_BLOCKING      DEV_RXTX_POS_BLOCKING       // driver R/W position blocking
+#define EC800M_DRV_POS_BLOCKING_1000 DEV_RXTX_POS_BLOCKING_1000  // driver R/W position blocking 1000ms
+#define EC800M_DRV_POS_NONBLOCKING   DEV_RXTX_POS_NONBLOCKING    // driver R/W position non-blocking
 /*
  * ****************************************************************************
  * ******** Exported macro                                             ********
@@ -56,8 +59,6 @@ extern "C" {
  * ******** Exported Function                                          ********
  * ****************************************************************************
  */
-
-
 
 /* ************************************************************************* */
 #ifdef __cplusplus

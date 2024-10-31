@@ -26,10 +26,10 @@
  * Created on: 2015-04-28
  */
 
-#include <elog.h>
-#include <stdio.h>
 #include <FreeRTOS.h>
+#include <elog.h>
 #include <semphr.h>
+#include <stdio.h>
 
 static elog_output_func_t elog_output_func = NULL;
 
@@ -38,7 +38,8 @@ static elog_output_func_t elog_output_func = NULL;
  *
  * @return result
  */
-ElogErrCode elog_port_init(void) {
+ElogErrCode elog_port_init(void)
+{
     ElogErrCode result = ELOG_NO_ERR;
 
     /* add your code here */
@@ -50,10 +51,9 @@ ElogErrCode elog_port_init(void) {
  * EasyLogger port deinitialize
  *
  */
-void elog_port_deinit(void) {
-
+void elog_port_deinit(void)
+{
     /* add your code here */
-
 }
 
 /**
@@ -62,8 +62,8 @@ void elog_port_deinit(void) {
  * @param log output of log
  * @param size log size
  */
-void elog_port_output(const char *log, size_t size) {
-
+void elog_port_output(const char *log, size_t size)
+{
     /* add your code here */
     if (elog_output_func) {
         elog_output_func((char *)log, (int)size);
@@ -73,19 +73,17 @@ void elog_port_output(const char *log, size_t size) {
 /**
  * output lock
  */
-void elog_port_output_lock(void) {
-
+void elog_port_output_lock(void)
+{
     /* add your code here */
-
 }
 
 /**
  * output unlock
  */
-void elog_port_output_unlock(void) {
-
+void elog_port_output_unlock(void)
+{
     /* add your code here */
-
 }
 
 /**
@@ -93,8 +91,8 @@ void elog_port_output_unlock(void) {
  *
  * @return current time
  */
-const char *elog_port_get_time(void) {
-
+const char *elog_port_get_time(void)
+{
     /* add your code here */
 
     return "";
@@ -105,8 +103,8 @@ const char *elog_port_get_time(void) {
  *
  * @return current process name
  */
-const char *elog_port_get_p_info(void) {
-
+const char *elog_port_get_p_info(void)
+{
     /* add your code here */
     return "CM4";
 }
@@ -116,8 +114,8 @@ const char *elog_port_get_p_info(void) {
  *
  * @return current thread name
  */
-const char *elog_port_get_t_info(void) {
-
+const char *elog_port_get_t_info(void)
+{
     /* add your code here */
     return pcTaskGetName(NULL);
 }
@@ -130,9 +128,9 @@ void logger_startup(elog_output_func_t output_func)
 
     /* 设置logger工作模式 */
     elog_set_fmt(ELOG_LVL_ASSERT, ELOG_FMT_ALL);
-    elog_set_fmt(ELOG_LVL_ERROR, ELOG_FMT_LVL | ELOG_FMT_TIME | ELOG_FMT_T_INFO);
-    elog_set_fmt(ELOG_LVL_WARN, ELOG_FMT_LVL | ELOG_FMT_T_INFO);
-    elog_set_fmt(ELOG_LVL_INFO, ELOG_FMT_LVL);
+    elog_set_fmt(ELOG_LVL_ERROR, ELOG_FMT_LVL | ELOG_FMT_TIME | ELOG_FMT_T_INFO | ELOG_FMT_DIR | ELOG_FMT_LINE);
+    elog_set_fmt(ELOG_LVL_WARN, ELOG_FMT_LVL | ELOG_FMT_T_INFO | ELOG_FMT_DIR | ELOG_FMT_LINE);
+    elog_set_fmt(ELOG_LVL_INFO, ELOG_FMT_LVL | ELOG_FMT_DIR | ELOG_FMT_LINE);
     elog_set_fmt(ELOG_LVL_DEBUG, ELOG_FMT_ALL & ~ELOG_FMT_FUNC);
 
     /* 打开颜色显示 */

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2024-10-25 13:35:30
+ * @LastEditTime: 2024-10-31 10:21:58
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.c
@@ -27,6 +27,7 @@
 #include "version.h"
 #include "net_port.h"
 #include "driver_com.h"
+#include "mcu_ctl.h"
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
@@ -90,12 +91,23 @@ static int32_t ecu_unit_prepare(void)
 {
     shell_port_init();
     net_port_init();
+    mcu_ctl_init();
     return 0;
 }
+
 
 static void ecu_unit_task(void const *argument)
 {
     ecu_unit_prepare();
+    uint8_t mcuID[18];
+    uint8_t size = 0;
+
+    size = mcu_ctl_get_id(mcuID);
+    printf("CPU ID: 0x");
+    for (int i = 0; i < size; i++) {
+        printf("%02X ", mcuID[i]);
+    }
+    printf("\r\n");
 
     log_d("ECU_UNIT task running...\r\n");
     while (1) {

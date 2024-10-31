@@ -94,9 +94,16 @@ void driver_register_fun_doing(void)
 int32_t register_driver(DRIVER_CTL_t *driver, char *name_in)
 {
     DRIVER_OBJ_t *p_driver_obj;
+    int32_t i;
 
     if (driver == NULL || name_in == NULL) {
         return -EINVAL;
+    }
+    // check the driver name is already exist
+    for (i = 0; i < g_driver_list.index; i++) {
+        if (memcmp(g_driver_list.driver_obj[i].name, name_in, DRIVER_NAME_SIZE) == 0) {
+            return -EEXIST;
+        }
     }
     if (g_driver_list.index < DRIVER_NUM_MAX) {
         p_driver_obj = &g_driver_list.driver_obj[g_driver_list.index];
@@ -142,6 +149,22 @@ int32_t driver_init(DRIVER_OBJ_t *drv)
         return ret;
     }
     DRIVER_STATES_SET(drv, DRIVER_STATES_INITED);
+
+    return 0;
+}
+
+int32_t driver_deinit(DRIVER_OBJ_t *drv)
+{
+    int32_t ret = 0;
+
+    if (drv == NULL || drv->driver == NULL || drv->driver->init == NULL) {
+        return -EINVAL;
+    }
+    ret = drv->driver->deinit(drv);
+    if (ret != 0) {
+        return ret;
+    }
+    DRIVER_STATES_CLR(drv, DRIVER_STATES_INITED);
 
     return 0;
 }
@@ -192,7 +215,11 @@ int32_t driver_read(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size
     if (!DRIVER_STATES_IS(drv, DRIVER_STATES_OPENED)) {
         return -EAGAIN;
     }
-    return drv->driver->read(drv, pos, buffer, size);
+    DRIVER_STATES_SET(drv, DRIVER_STATES_READING);
+    int32_t ret = drv->driver->read(drv, pos, buffer, size);
+    DRIVER_STATES_CLR(drv, DRIVER_STATES_READING);
+
+    return ret;
 }
 
 int32_t driver_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size)
@@ -203,7 +230,11 @@ int32_t driver_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t siz
     if (!DRIVER_STATES_IS(drv, DRIVER_STATES_OPENED)) {
         return -EAGAIN;
     }
-    return drv->driver->write(drv, pos, buffer, size);
+    DRIVER_STATES_SET(drv, DRIVER_STATES_WRITING);
+    int32_t ret = drv->driver->write(drv, pos, buffer, size);
+    DRIVER_STATES_CLR(drv, DRIVER_STATES_WRITING);
+
+    return ret;
 }
 
 int32_t driver_control(DRIVER_OBJ_t *drv, int cmd, void *args)

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:20:51
- * @LastEditTime: 2024-10-28 18:07:26
+ * @LastEditTime: 2024-10-31 16:13:43
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.c
@@ -81,21 +81,6 @@ uint8_t g_usart_6_rx_buffer[DRV_USART_6_RX_BUF_SIZE + 1];
  * ******** Private global variables                                   ********
  * ****************************************************************************
  */
-static int32_t drv_usart_init(DRIVER_OBJ_t *drv);
-static int32_t drv_usart_open(DRIVER_OBJ_t *drv, uint32_t oflag);
-static int32_t drv_usart_close(DRIVER_OBJ_t *drv);
-static int32_t drv_usart_read(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
-static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
-static int32_t drv_usart_control(DRIVER_OBJ_t *drv, int cmd, void *args);
-void uart_it_rx_finish_callback(UART_HandleTypeDef *huart);
-void uart_it_tx_finish_callback(UART_HandleTypeDef *huart);
-
-/*
- * ****************************************************************************
- * ******** Private functions prototypes                               ********
- * ****************************************************************************
- */
-
 DRV_USART_OBJ_t g_usart_obj[DRV_USART_NUM_MAX] = {0};
 
 char *g_usart_name[DRV_USART_NUM_MAX] = {USART_1_NAME, USART_2_NAME, USART_3_NAME,
@@ -114,24 +99,46 @@ UART_HandleTypeDef *g_usart_handle[DRV_USART_NUM_MAX] = {USART_1_HANDLE, USART_2
 UART_INIT_FUN g_usart_init_fun[DRV_USART_NUM_MAX] = {USART_1_INIT, USART_2_INIT, USART_3_INIT,
                                                      USART_4_INIT, USART_5_INIT, USART_6_INIT};
 
+/*
+ * ****************************************************************************
+ * ******** Private functions prototypes                               ********
+ * ****************************************************************************
+ */
+
+static int32_t drv_usart_init(DRIVER_OBJ_t *drv);
+static int32_t drv_usart_deinit(DRIVER_OBJ_t *drv);
+static int32_t drv_usart_open(DRIVER_OBJ_t *drv, uint32_t oflag);
+static int32_t drv_usart_close(DRIVER_OBJ_t *drv);
+static int32_t drv_usart_read(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
+static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
+static int32_t drv_usart_control(DRIVER_OBJ_t *drv, int cmd, void *args);
+void uart_it_rx_finish_callback(UART_HandleTypeDef *huart);
+void uart_it_tx_finish_callback(UART_HandleTypeDef *huart);
+
 DRIVER_CTL_t g_usart_ctl[DRV_USART_NUM_MAX] = {
     {
         .init = drv_usart_init,
+        .deinit = drv_usart_deinit,
     },
     {
         .init = drv_usart_init,
+        .deinit = drv_usart_deinit,
     },
     {
         .init = drv_usart_init,
+        .deinit = drv_usart_deinit,
     },
     {
         .init = drv_usart_init,
+        .deinit = drv_usart_deinit,
     },
     {
         .init = drv_usart_init,
+        .deinit = drv_usart_deinit,
     },
     {
         .init = drv_usart_init,
+        .deinit = drv_usart_deinit,
     },
 };
 /*
@@ -151,7 +158,7 @@ static int32_t drv_usart_init(DRIVER_OBJ_t *drv)
     DRV_USART_OBJ_t *usart_obj = NULL;
 
     for (i = 0; i < DRV_USART_NUM_MAX; i++) {
-        if (memcpy(drv->name, g_usart_name[i], strlen(g_usart_name[i])) != 0) {
+        if (memcmp(drv->name, g_usart_name[i], strlen(g_usart_name[i])) != 0) {
             continue;
         }
         usart_obj = &g_usart_obj[i];
@@ -177,6 +184,22 @@ static int32_t drv_usart_init(DRIVER_OBJ_t *drv)
     return -ENODEV;
 }
 
+static int32_t drv_usart_deinit(DRIVER_OBJ_t *drv)
+{
+    int8_t i = 0;
+    DRV_USART_OBJ_t *usart_obj = NULL;
+
+    for (i = 0; i < DRV_USART_NUM_MAX; i++) {
+        if (memcmp(drv->name, g_usart_name[i], strlen(g_usart_name[i])) != 0) {
+            continue;
+        }
+        usart_obj = &g_usart_obj[i];
+        memset(usart_obj, 0, sizeof(DRV_USART_OBJ_t));
+    }
+
+    return 0;
+}
+
 static int32_t drv_usart_open(DRIVER_OBJ_t *drv, uint32_t oflag)
 {
     DRV_USART_OBJ_t *usart_obj = (DRV_USART_OBJ_t *)drv->driver->drv_priv;
@@ -200,7 +223,7 @@ void uart_it_rx_finish_callback(UART_HandleTypeDef *huart)
             break;
         }
     }
-    RingBuffer_Insert(&usart_obj->rx_ring_buff, &usart_obj->rx_buffer);
+    RingBuffer_Insert(&usart_obj->rx_ring_buff, &usart_obj->rx_byte);
     if (usart_obj->rx_it_call_back != NULL) {
         usart_obj->rx_it_call_back(usart_obj->rx_it_call_back_arg);
     }
@@ -221,7 +244,7 @@ void uart_it_tx_finish_callback(UART_HandleTypeDef *huart)
             break;
         }
     }
-    if (usart_obj->tx_it_call_back != NULL) {
+    if (usart_obj != NULL && usart_obj->tx_it_call_back != NULL) {
         usart_obj->tx_it_call_back(usart_obj->tx_it_call_back_arg);
     }
     driver_clear_writing(drv);
@@ -288,10 +311,8 @@ static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, ui
 
 static int32_t drv_usart_control(DRIVER_OBJ_t *drv, int cmd, void *args)
 {
-    if (cmd != DRV_USART_CMD_SET_TX_IT_DONE_CALLBACK || cmd != DRV_USART_CMD_SET_TX_IT_DONE_CALLBACK_ARG ||
-        cmd != DRV_USART_CMD_SET_RX_IT_DONE_CALLBACK || cmd != DRV_USART_CMD_SET_RX_IT_DONE_CALLBACK_ARG) {
-        return -EINVAL;
-    }
+    int32_t ret = 0;
+
     if (!driver_is_opened(drv)) {
         return -EACCES;
     }
@@ -311,11 +332,14 @@ static int32_t drv_usart_control(DRIVER_OBJ_t *drv, int cmd, void *args)
         case DRV_USART_CMD_SET_TX_IT_DONE_CALLBACK_ARG:
             usart_obj->tx_it_call_back_arg = args;
             break;
+        case DRV_USART_CMD_GET_RX_DATA_SIZE:
+            ret = RingBuffer_GetCount(&usart_obj->rx_ring_buff);
+            break;
         default:
             return -EINVAL;
-            break;
     }
-    return 0;
+
+    return ret;
 }
 
 /**

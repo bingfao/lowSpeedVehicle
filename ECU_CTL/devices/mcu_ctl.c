@@ -1,19 +1,11 @@
 /*
- * @Author: your name
- * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2024-10-30 15:07:02
- * @LastEditors: DESKTOP-SPAS98O
- * @Description: In User Settings Edit
- * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
- */
-/*
  * ****************************************************************************
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#define LOG_TAG "NET_PORT"
+#define LOG_TAG "MCU_CTL"
 #define LOG_LVL ELOG_LVL_DEBUG
-#include "net_port.h"
+#include "mcu_ctl.h"
 
 #include "driver_com.h"
 #include "elog.h"
@@ -28,7 +20,7 @@
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
-#define NET_PORT_DRV_NAME "ec800m"
+#define MCU_DRV_NAME "mcu_407"
 
 /*
  * ****************************************************************************
@@ -41,7 +33,7 @@
  * ******** Private global variables                                   ********
  * ****************************************************************************
  */
-DRIVER_OBJ_t *g_driver = NULL;
+DRIVER_OBJ_t *g_mcu_drv = NULL;
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
@@ -53,18 +45,32 @@ DRIVER_OBJ_t *g_driver = NULL;
  * ******** Extern function Definition                                 ********
  * ****************************************************************************
  */
-int32_t net_port_init(void)
+int32_t mcu_ctl_init(void)
 {
-    g_driver = get_driver(NET_PORT_DRV_NAME);
-    if (g_driver == NULL) {
-        log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
+    g_mcu_drv = get_driver(MCU_DRV_NAME);
+    if (g_mcu_drv == NULL) {
+        log_d("driver %s not found \r\n", MCU_DRV_NAME);
         return -1;
     }
-    log_d("driver %s found \r\n", NET_PORT_DRV_NAME);
-    driver_init(g_driver);
+    driver_init(g_mcu_drv);
 
     return 0;
 }
+
+int32_t mcu_ctl_get_id(uint8_t *id)
+{
+    int32_t ret = 0;
+    if (g_mcu_drv == NULL) {
+        log_e("driver %s not found \r\n", MCU_DRV_NAME);
+        return -1;
+    }
+    driver_open(g_mcu_drv, 0);
+    ret = driver_control(g_mcu_drv, DRV_CMD_GET_ID, id);
+    driver_close(g_mcu_drv);
+
+    return ret;
+}
+
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********

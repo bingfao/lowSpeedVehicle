@@ -51,6 +51,7 @@ struct DRIVER_CTL
     DRIVER_OBJ_t *drv_obj;  // driver object, point the upper-level data(DRIVER_OBJ_t)
     void *drv_priv;         // private data for driver
     int32_t (*init)(DRIVER_OBJ_t *drv);
+    int32_t (*deinit)(DRIVER_OBJ_t *drv);
     int32_t (*open)(DRIVER_OBJ_t *drv, uint32_t oflag);
     int32_t (*close)(DRIVER_OBJ_t *drv);
     int32_t (*read)(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
@@ -59,11 +60,20 @@ struct DRIVER_CTL
 };
 
 typedef enum {
+    DEV_POS_NONE = 0,
+    DEV_RXTX_POS_BLOCKING,       // driver tx position blocking
+    DEV_RXTX_POS_BLOCKING_1000,  // driver tx position blocking 1000ms
+    DEV_RXTX_POS_NONBLOCKING,    // driver tx position non-blocking
+} DRV_RW_POS_t;
+
+typedef enum {
     DRV_CMD_NONE = 0,
     DRV_CMD_SET_WRITE_DONE_CALLBACK,      // set write done callback
     DRV_CMD_SET_WRITE_DONE_CALLBACK_ARG,  // set write done callback arg
     DRV_CMD_SET_READ_DONE_CALLBACK,       // set read done callback
     DRV_CMD_SET_READ_DONE_CALLBACK_ARG,   // set read done callback arg
+    DRV_CMD_GET_SIZE,                     // get size of driver
+    DRV_CMD_GET_ID,                       // get id of driver
     DRV_CMD_MAX,
 } DRV_CMD_t;
 
@@ -129,6 +139,7 @@ void driver_register_fun_doing(void);
 int32_t register_driver(DRIVER_CTL_t *driver, char *name);
 DRIVER_OBJ_t *get_driver(const char *name);
 int32_t driver_init(DRIVER_OBJ_t *drv);
+int32_t driver_deinit(DRIVER_OBJ_t *drv);
 int32_t driver_open(DRIVER_OBJ_t *drv, uint32_t oflag);
 int32_t driver_close(DRIVER_OBJ_t *drv);
 int32_t driver_read(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);

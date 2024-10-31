@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:22:37
- * @LastEditTime: 2024-10-28 18:01:38
+ * @LastEditTime: 2024-10-30 10:52:33
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.h
@@ -116,6 +116,7 @@ extern "C" {
 #define DRV_USART_CMD_SET_TX_IT_DONE_CALLBACK_ARG DRV_CMD_SET_WRITE_DONE_CALLBACK_ARG
 #define DRV_USART_CMD_SET_RX_IT_DONE_CALLBACK     DRV_CMD_SET_READ_DONE_CALLBACK  // set rx interrupt done callback
 #define DRV_USART_CMD_SET_RX_IT_DONE_CALLBACK_ARG DRV_CMD_SET_READ_DONE_CALLBACK_ARG
+#define DRV_USART_CMD_GET_RX_DATA_SIZE            DRV_CMD_GET_SIZE
 
 /*
  * ****************************************************************************
