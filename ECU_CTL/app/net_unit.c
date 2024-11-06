@@ -3,9 +3,18 @@
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#include "driver_mcu.h"
 
-#include "error_code.h"
+#define LOG_TAG "NET_UNIT"
+#define LOG_LVL ELOG_LVL_DEBUG
+#include "net_unit.h"
+
+#include <FreeRTOS.h>
+#include <cmsis_os.h>
+#include <error_code.h>
+#include <task.h>
+
+#include "elog.h"
+#include "net_port.h"
 
 /*
  * ****************************************************************************
@@ -30,86 +39,72 @@
  * ******** Private global variables                                   ********
  * ****************************************************************************
  */
+osThreadId g_net_unit_handle;
+
+uint32_t g_net_connected = 0;
+
 
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
  * ****************************************************************************
  */
-static int32_t mcu_drv_init(DRIVER_OBJ_t *p_driver);
-static int32_t mcu_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag);
-static int32_t get_mcu_id(uint8_t *id);
-static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args);
 
-DRIVER_CTL_t g_mcu_driver = {
-    .init = mcu_drv_init,
-    .open = mcu_drv_open,
-    .control = drv_mcu_control,
-};
+static int32_t net_unit_prepare(void);
+static void net_unit_task(void const *argument);
+
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********
  * ****************************************************************************
  */
+int32_t net_unit_start(void)
+{
+    osThreadDef(net_unit, net_unit_task, osPriorityNormal, 0, 1024);
+    g_net_unit_handle = osThreadCreate(osThread(net_unit), NULL);
 
+    return 0;
+}
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
  * ****************************************************************************
  */
-static int32_t mcu_drv_init(DRIVER_OBJ_t *p_driver)
-{
-    return 0;
-}
 
-static int32_t mcu_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag)
-{
-    return 0;
-}
-
-static int32_t get_mcu_id(uint8_t *id)
-{
-    int8_t i, j;
-    uint32_t id_read[3] = {0};
-
-    if (id == NULL) {
-        return -EINVAL;
-    }
-
-    id_read[0] = *(__IO uint32_t *)(0x1FFF7A10);
-    id_read[1] = *(__IO uint32_t *)(0x1FFF7A14);
-    id_read[2] = *(__IO uint32_t *)(0x1FFF7A18);
-
-    for (i = 2; i >= 0; i--) {
-        for (j = 0; j < 4; j++) {
-            *id++ = id_read[i];
-            id_read[i] >>= 8;
-        }
-    }
-
-    return 12;
-}
-
-static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args)
+static int32_t net_unit_prepare(void)
 {
     int32_t ret = 0;
 
-    if (!driver_is_opened(drv)) {
-        return -EACCES;
+    ret = net_port_init();
+    if (ret!= 0) {
+        log_e("net_port_init failed\r\n");
+        g_net_connected = 0;
+        return ret;
     }
-    switch (cmd) {
-        case DRV_CMD_GET_ID:
-            ret = get_mcu_id((uint8_t *)args);
-            break;
-
-        default:
-            return -EINVAL;
+    ret = net_port_tcp_connect(NET_PORT_TCP_TEST_HOST, NET_PORT_TCP_TEST_PORT);
+    if (ret!= 0) {
+        log_e("net_port_tcp_connect failed\r\n");
+        g_net_connected = 0;
+        return ret;
     }
+    g_net_connected = 1;
 
-    return ret;
+    return 0;
 }
 
-DRIVER_REGISTER(&g_mcu_driver, mcu_407)
+static void net_unit_task(void const *argument)
+{
+    net_unit_prepare();
+
+    log_d("NET_UNIT task running...\r\n");
+    if (g_net_connected == 1) {
+        net_port_send("Hello, world!\r\n", strlen("Hello, world!\r\n"));
+    }
+    while (1) {
+        osDelay(1000);
+    }
+}
+
 /*
  * ****************************************************************************
  * End File

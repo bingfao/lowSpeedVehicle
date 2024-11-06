@@ -256,6 +256,7 @@ void elog_hexdump(const char *name, uint8_t width, const void *buf, uint16_t siz
 #else
     #define log_v(...)       ((void)0);
 #endif
+    #define log_raw(...)     elog_raw(__VA_ARGS__)
 
 /* assert API short definition */
 #if !defined(assert)

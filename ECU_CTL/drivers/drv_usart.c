@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:20:51
- * @LastEditTime: 2024-10-31 16:13:43
+ * @LastEditTime: 2024-11-05 11:39:13
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.c
@@ -111,7 +111,7 @@ static int32_t drv_usart_open(DRIVER_OBJ_t *drv, uint32_t oflag);
 static int32_t drv_usart_close(DRIVER_OBJ_t *drv);
 static int32_t drv_usart_read(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
 static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
-static int32_t drv_usart_control(DRIVER_OBJ_t *drv, int cmd, void *args);
+static int32_t drv_usart_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args);
 void uart_it_rx_finish_callback(UART_HandleTypeDef *huart);
 void uart_it_tx_finish_callback(UART_HandleTypeDef *huart);
 
@@ -254,6 +254,9 @@ static int32_t drv_usart_close(DRIVER_OBJ_t *drv)
 {
     DRV_USART_OBJ_t *usart_obj = (DRV_USART_OBJ_t *)drv->driver->drv_priv;
 
+    if (usart_obj == NULL || usart_obj->ctl_uart == NULL) {
+        return -EACCES;
+    }
     HAL_UART_AbortReceive_IT(usart_obj->ctl_uart);
     driver_clear_opened(drv);
 
@@ -309,7 +312,7 @@ static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, ui
     return size;
 }
 
-static int32_t drv_usart_control(DRIVER_OBJ_t *drv, int cmd, void *args)
+static int32_t drv_usart_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args)
 {
     int32_t ret = 0;
 

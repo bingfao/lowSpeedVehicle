@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2024-10-31 10:21:58
+ * @LastEditTime: 2024-11-04 17:28:34
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.c
@@ -25,9 +25,9 @@
 #include "elog.h"
 #include "shell_port.h"
 #include "version.h"
-#include "net_port.h"
 #include "driver_com.h"
 #include "mcu_ctl.h"
+#include "net_unit.h"
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
@@ -90,8 +90,9 @@ int32_t ecu_unit_start(void)
 static int32_t ecu_unit_prepare(void)
 {
     shell_port_init();
-    net_port_init();
     mcu_ctl_init();
+    net_unit_start();
+
     return 0;
 }
 

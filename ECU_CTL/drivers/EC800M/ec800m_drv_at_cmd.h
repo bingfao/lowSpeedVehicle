@@ -14,8 +14,7 @@
  * ============================================================================
  */
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 /*
  * ****************************************************************************
@@ -34,18 +33,31 @@ extern "C"
  * ******** Exported constants                                         ********
  * ****************************************************************************
  */
-#define EC800M_AT_ACK_OK  "OK"
-#define EC800M_AT_ACK_ERROR "ERROR"
-#define EC800M_AT_CMD_MAX_LEN 128
-#define EC800M_AT_CMD_END "\r\n"
-#define EC800M_AT_CMD_TIMEOUT 1000
+#define EC800M_AT_ACK_OK                     "OK"
+#define EC800M_AT_ACK_ERROR                  "ERROR"
+#define EC800M_AT_ACK_REQUIRE_DATA           ">"        // Require data flg from the modem
+#define EC800M_AT_ACK_SEND_OK                "SEND OK"  // Send data flg from the modem
+#define EC800M_AT_CMD_READY                  "RDY"      // Modem ready to receive data
+#define EC800M_AT_CMD_END                    "\r\n"
+#define EC800M_AT_CMD_TIMEOUT                1000
 
+#define EC800M_AT_CMD_ATI                    "ATI\r\n"
+#define EC800M_AT_CMD_ATI_ACK_DEVICE         "EC800M"
 
-#define EC800M_AT_CMD_ATI   "ATI\r\n"
-#define EC800M_AT_CMD_ATI_ACK_DEVICE "EC800M"
+#define EC800M_AT_CMD_CREG_ASK               "AT+CREG?\r\n"
+#define EC800M_AT_CMD_CREG_ASK_STAT          "+CREG:"
 
+#define EC800M_AT_CMD_QICLOSE                "AT+QICLOSE=0\r\n"
 
+#define EC800M_AT_CMD_QIOPEN                 "AT+QIOPEN"
+#define EC800M_AT_CMD_QIOPEN_TRANSPARENT_ACK "CONNECT"
+#define EC800M_AT_CMD_QIOPEN_NO_CARRIER_ACK  "NO CARRIER"
+#define EC800M_AT_CMD_QIOPEN_STRAIGHT_ACK    "+QIOPEN"
 
+#define EC800M_AT_CMD_QUIT_TCP_TRANSPARENT_1 "+++"
+#define EC800M_AT_CMD_QUIT_TCP_TRANSPARENT_2 "+++\r\n"
+
+#define EC800M_AT_CMD_QISEND                 "AT+QISEND"
 
 /*
  * ****************************************************************************

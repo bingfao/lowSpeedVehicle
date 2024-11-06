@@ -33,13 +33,14 @@ extern "C" {
  * ******** Exported constants                                         ********
  * ****************************************************************************
  */
-#define USER_OK             (0)
-#define USER_ERROR          (-1)
-#define USER_ERROR_STATE    (-2)
-#define USER_ERROR_DATA     (-3)
-#define USER_ERROR_PARAM    (-4)
-#define USER_ERROR_TIME_OUT (-5)
-#define USER_ERROR_SEND     (-6)
+#define USER_OK                 (0)
+#define USER_ERROR              (-1)
+#define USER_ERROR_STATE        (-2)
+#define USER_ERROR_DATA         (-3)
+#define USER_ERROR_PARAM        (-4)
+#define USER_ERROR_TIME_OUT     (-5)
+#define USER_ERROR_SEND         (-6)
+#define USER_ERROR_NO_MATCH_STR (-7)
 
 /*
  * ****************************************************************************
@@ -61,6 +62,7 @@ extern "C" {
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
+#define HEX_TO_DEC(x) (x - '0')
 /*
  * ****************************************************************************
  * ******** Exported variables                                         ********

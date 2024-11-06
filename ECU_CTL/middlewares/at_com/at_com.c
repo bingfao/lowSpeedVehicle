@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-11 15:07:36
- * @LastEditTime: 2024-10-14 14:50:29
+ * @LastEditTime: 2024-11-06 15:33:55
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \e_bike_ctrl_v1\Middlewares\at_com.c
@@ -116,10 +116,20 @@ int32_t at_com_add_cmp_str(AT_COM_t *p_at_com, AT_CMP_STR_NODE_t *p_cmp_str_node
     return 0;
 }
 
-int32_t at_com_send_str(AT_COM_t *p_at_com, char *tx_str)
+int32_t at_com_clr_cmp_str(AT_COM_t *p_at_com)
 {
-    int32_t tx_len = strlen(tx_str);
-    uint32_t data_size = 0;
+    if (p_at_com == NULL) {
+        return USER_ERROR_PARAM;
+    }
+    slist_init(&p_at_com->str_head);
+
+    return 0;
+}
+
+int32_t at_com_send_str(AT_COM_t *p_at_com, char *tx_str, int32_t tx_len, int32_t timeout)
+{
+    int32_t data_size = 0;
+    int32_t send_size = 0;
     int32_t ret = 0;
 
     if (p_at_com == NULL || tx_str == NULL || tx_len == 0) {
@@ -129,22 +139,31 @@ int32_t at_com_send_str(AT_COM_t *p_at_com, char *tx_str)
     if (ret != 0) {
         return ret;
     }
-    data_size = (p_at_com->tx_buffer_size) > tx_len ? tx_len : (p_at_com->tx_buffer_size);
-    memcpy(p_at_com->tx_buffer, tx_str, data_size);
-    if (p_at_com->at_send_func) {
-        p_at_com->at_send_func(p_at_com->tx_buffer, data_size);
-        if (slist_len(&p_at_com->str_head) > 0) {
+    while (data_size < tx_len) {
+        send_size =
+            (p_at_com->tx_buffer_size) > (tx_len - data_size) ? (tx_len - data_size) : (p_at_com->tx_buffer_size);
+        memcpy(p_at_com->tx_buffer, &tx_str[data_size], send_size);
+        if (p_at_com->at_send_func) {
+            ret = p_at_com->at_send_func(p_at_com->tx_buffer, send_size);
             p_at_com->status = AT_COM_TX_DATA;
-            ret = at_wait_idle(p_at_com, 1000);
-            if (ret != 0) {
-                p_at_com->status = AT_COM_IDLE;
-                at_com_log_str(p_at_com, "AT send data timeout");
+            if (ret < 0) {
                 return ret;
             }
         }
+        data_size += send_size;
+    }
+    if (slist_len(&p_at_com->str_head) > 0) {
+        ret = at_wait_idle(p_at_com, timeout);
+        if (ret != 0) {
+            p_at_com->status = AT_COM_IDLE;
+            at_com_log_str(p_at_com, "AT send data timeout");
+            return ret;
+        }
+    } else {
+        p_at_com->status = AT_COM_IDLE;
     }
 
-    return 0;
+    return data_size;
 }
 
 /**
@@ -159,6 +178,7 @@ int32_t at_com_data_process(AT_COM_t *p_at_com, char *p_data, uint32_t length, u
 {
     uint8_t end_f = end_flg;
     uint32_t data_size = 0;
+    int32_t ret = 0;
 
     if (p_at_com == NULL || p_data == NULL || length == 0) {
         return USER_ERROR_PARAM;
@@ -179,9 +199,11 @@ int32_t at_com_data_process(AT_COM_t *p_at_com, char *p_data, uint32_t length, u
         if (p_at_com->rx_buffer_index == p_at_com->rx_buffer_size) {
             p_at_com->rx_buffer[p_at_com->rx_buffer_index - 1] = '\0';
         }
-        at_com_cmp_str(p_at_com, p_at_com->rx_buffer);
+        ret = at_com_cmp_str(p_at_com, p_at_com->rx_buffer);
         p_at_com->rx_buffer_index = 0;
-        p_at_com->status = AT_COM_IDLE;
+        if (ret == 0) {
+            p_at_com->status = AT_COM_IDLE;
+        }
     }
 
     return 0;
@@ -203,18 +225,26 @@ static int32_t at_com_cmp_str(AT_COM_t *p_at_com, char *src_str)
 {
     SLIST_NODE_t *pos = NULL;
     AT_CMP_STR_NODE_t *str_node = NULL;
+    char *str_point = NULL;
+    int8_t has_same_str = 0;
 
     SLIST_FOR_EACH(pos, &p_at_com->str_head)
     {
         str_node = SLIST_ELEMENT_ENTRY(pos, AT_CMP_STR_NODE_t, node);
         if (str_node->cmp_str_func) {  // search the cmp_str_func
-            if (strstr(src_str, str_node->cmp_str)) {
-                str_node->cmp_str_func_ret = str_node->cmp_str_func(str_node->cmp_str_param);
+            str_point = NULL;
+            str_point = strstr(src_str, str_node->cmp_str);
+            if (str_point) {
+                has_same_str += 1;
+                str_node->cmp_str_func_ret = str_node->cmp_str_func(str_node->cmp_str_param, str_point);
             }
         }
     }
-
-    return 0;
+    if (has_same_str > 0) {
+        return 0;
+    } else {
+        return USER_ERROR_NO_MATCH_STR;
+    }
 }
 
 static int32_t at_wait_idle(AT_COM_t *p_at_com, uint32_t timeout)

@@ -56,7 +56,7 @@ struct DRIVER_CTL
     int32_t (*close)(DRIVER_OBJ_t *drv);
     int32_t (*read)(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
     int32_t (*write)(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
-    int32_t (*control)(DRIVER_OBJ_t *drv, int cmd, void *args);
+    int32_t (*control)(DRIVER_OBJ_t *drv, uint32_t cmd, void *args);
 };
 
 typedef enum {
@@ -83,12 +83,20 @@ typedef enum {
  * ****************************************************************************
  */
 
-#define DRIVER_STATES_NONE    0x00000000
-#define DRIVER_STATES_INITED  0x00000001
-#define DRIVER_STATES_OPENED  0x00000002
-#define DRIVER_STATES_WRITING 0x00000004
-#define DRIVER_STATES_READING 0x00000008
-#define DRIVER_STATES_ERROR   0x80000000
+/**
+ * @brief The base CMD of drivers operation command.
+ */
+#define DRV_CMD_NET_PORT_OPERATION_BASE 0x0100  // 0x0100~0x01FF The base CMD of the network port operation command.
+
+/**
+ * @brief the driver states
+ */
+#define DRIVER_STATES_NONE              0x00000000
+#define DRIVER_STATES_INITED            0x00000001
+#define DRIVER_STATES_OPENED            0x00000002
+#define DRIVER_STATES_WRITING           0x00000004
+#define DRIVER_STATES_READING           0x00000008
+#define DRIVER_STATES_ERROR             0x80000000
 
 /*
  * ****************************************************************************
