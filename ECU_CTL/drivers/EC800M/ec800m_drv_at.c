@@ -92,6 +92,9 @@ EC800M_DRV_STRAIGHT_MODE_RX_STATE_t g_ec800m_straight_mode_rx_state = EC800M_DRV
 uint8_t g_ec800m_no_carrier[] = {"NO CARRIER"};
 uint8_t g_ec800m_no_carrier_index = 0;
 
+uint8_t g_ec800m_qiurc_closed[] = {"+QIURC: \"closed\","};
+uint8_t g_ec800m_qiurc_closed_index = 0;
+
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
@@ -288,7 +291,7 @@ static int32_t ec800m_drv_straight_out_mode_save_byte(char byte)
             }
             break;
         case EC800M_DRV_STRAIGHT_MODE_RX_LEN:
-            if (byte != 0x0d) {
+            if (byte != 0x0d && byte != 0x0a) {
                 temp_data = HEX_TO_DEC(byte);
                 if (temp_data < 0 || temp_data > 10) {
                     *index = 0;
@@ -311,6 +314,7 @@ static int32_t ec800m_drv_straight_out_mode_save_byte(char byte)
             if (rx_data_index >= rx_data_size) {
                 g_ec800m_straight_mode_rx_state = EC800M_DRV_STRAIGHT_MODE_RX_HEAD;
                 *index = 0;
+                rx_data_index = 0;
             }
             return 1;
             break;
@@ -360,9 +364,31 @@ static int32_t ec800m_dev_check_tcp_direct_to_disconnect(char *p_buf, uint32_t l
     return 0;
 }
 
+static int32_t ec800m_dev_check_tcp_straight_out_to_disconnect(char *p_buf, uint32_t len)
+{
+    int i = 0;
+
+    for (i = 0; i < len; i++) {
+        if (g_ec800m_qiurc_closed[g_ec800m_qiurc_closed_index] == p_buf[i]) {
+            g_ec800m_qiurc_closed_index++;
+            if (g_ec800m_qiurc_closed_index >= sizeof(g_ec800m_qiurc_closed) - 1) {
+                g_ec800m_qiurc_closed_index = 0;
+                return 1;
+            }
+        } else {
+            g_ec800m_qiurc_closed_index = 0;
+        }
+    }
+
+    return 0;
+}
+
 static int32_t ec800m_drv_save_data(char *p_buf, uint32_t len)
 {
     if (g_ec800m_connect_mode == EC800M_CONNECT_MODE_STRAIGHT_OUT) {
+        if (ec800m_dev_check_tcp_straight_out_to_disconnect(p_buf, len)) {
+            g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
+        }
         return ec800m_drv_straight_out_mode_save_data(p_buf, len);
     } else {
         if (g_ec800m_connect_mode == EC800M_CONNECT_MODE_DIRECT) {
@@ -405,8 +431,9 @@ static void ec800m_rx_task(void const *argument)
                 ec800m_drv_save_data(data, ret_size);
                 at_com_data_process(&g_ec800m_at_com, data, ret_size, 0);
 #if PRINT_EC800M_RX_DATA
-                data[ret_size] = '\0';
-                log_raw("%s", data);
+                for (int i = 0; i < ret_size; i++) {
+                    printf("%c", data[i]);
+                }
 #endif
             } else {
                 timeout -= 10;
@@ -888,6 +915,11 @@ static int32_t ec800m_device_tcp_transparent_no_carrier(void *args, char *str)
     // return ec800m_device_ack_message_send(EC800M_AT_ACK_QUEUE_NO_CARRIER);
 }
 
+static int32_t ec800m_device_tcp_transparent_qiurc_close(void *args, char *str)
+{
+    return ec800m_device_ack_message_send(EC800M_AT_ACK_QUEUE_TCP_CONNECT_ERROR);
+}
+
 static int32_t ec800m_device_tcp_straight_ack(void *args, char *str)
 {
     int32_t send_data = EC800M_AT_ACK_QUEUE_TCP_CONNECT_ERROR;
@@ -926,7 +958,10 @@ static int32_t ec800m_device_tcp_connect(int32_t mode)
         ret +=
             at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_CMD_QIOPEN_STRAIGHT_ACK, NULL, ec800m_device_tcp_straight_ack);
         ret += at_com_add_cmp_str(&g_ec800m_at_com, &at_str_ack[0]);
-        rx_queue_num = 1;
+        ret += at_com_set_cmp_str(&at_str_ack[1], EC800M_AT_CMD_QIURC_CLOSED_ACK, NULL,
+                                  ec800m_device_tcp_transparent_qiurc_close);
+        ret += at_com_add_cmp_str(&g_ec800m_at_com, &at_str_ack[1]);
+        rx_queue_num = 2;
     } else {
         log_e("ec800m_device_tcp_connect mode error\r\n");
         return -EINVAL;

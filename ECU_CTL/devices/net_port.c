@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2024-11-07 10:25:18
+ * @LastEditTime: 2024-11-07 17:56:25
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -51,7 +51,7 @@
  */
 DRIVER_OBJ_t *g_driver = NULL;
 
-int32_t g_set_tcp_connect_mode = NET_PORT_TCP_CONNECT_MODE_TRANSPARENT;
+int32_t g_set_tcp_connect_mode = NET_PORT_TCP_CONNECT_MODE_STRAIGHT_OUT;
 char g_tcp_host[64] = {0};
 char g_tcp_port[16] = {0};
 int8_t g_net_driver_init_flag = 0;
