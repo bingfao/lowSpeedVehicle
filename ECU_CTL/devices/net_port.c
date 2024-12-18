@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2024-11-07 17:56:25
+ * @LastEditTime: 2024-12-09 09:38:58
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -211,7 +211,7 @@ int32_t net_port_recv(uint8_t *buf, uint32_t len)
         return -ENODEV;
     }
     if (net_port_is_connected() == false) {
-        log_e("net port not connected \r\n");
+        // log_e("net port not connected \r\n");
         return -ENOTCONN;
     }
     ret = driver_read(g_driver, DEV_RXTX_POS_BLOCKING_1000, buf, len);

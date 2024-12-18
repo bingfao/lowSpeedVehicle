@@ -26,6 +26,7 @@ static char *fault_msg[] = {
     [FAULT_CODE_DMA] = "DMA",            // DMA故障
     [FAULT_CODE_I2C] = "I2C",            // I2C故障
     [FAULT_CODE_MEMPRY] = "MEMORY",      // 内存故障
+    [FAULT_CODE_NET_AGMT] = "NET_AGREEMENT",      // 网络协议协商失败
 };
 
 void fault_assert(bool x, int code)

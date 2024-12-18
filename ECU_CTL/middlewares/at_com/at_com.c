@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-11 15:07:36
- * @LastEditTime: 2024-11-06 15:33:55
+ * @LastEditTime: 2024-12-18 09:49:22
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \e_bike_ctrl_v1\Middlewares\at_com.c
@@ -14,6 +14,8 @@
 #include "at_com.h"
 
 #include <string.h>
+
+#include "user_comm.h"
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
@@ -43,7 +45,7 @@
  * ******** Private functions prototypes                               ********
  * ****************************************************************************
  */
-static int32_t at_com_cmp_str(AT_COM_t *p_at_com, char *src_str);
+static int32_t at_com_cmp_str(AT_COM_t *p_at_com, char *src_str, uint32_t src_len);
 static int32_t at_wait_idle(AT_COM_t *p_at_com, uint32_t timeout);
 static void at_com_log_str(AT_COM_t *p_at_com, char *log_str);
 
@@ -199,7 +201,7 @@ int32_t at_com_data_process(AT_COM_t *p_at_com, char *p_data, uint32_t length, u
         if (p_at_com->rx_buffer_index == p_at_com->rx_buffer_size) {
             p_at_com->rx_buffer[p_at_com->rx_buffer_index - 1] = '\0';
         }
-        ret = at_com_cmp_str(p_at_com, p_at_com->rx_buffer);
+        ret = at_com_cmp_str(p_at_com, p_at_com->rx_buffer, p_at_com->rx_buffer_index);
         p_at_com->rx_buffer_index = 0;
         if (ret == 0) {
             p_at_com->status = AT_COM_IDLE;
@@ -208,6 +210,26 @@ int32_t at_com_data_process(AT_COM_t *p_at_com, char *p_data, uint32_t length, u
 
     return 0;
 }
+
+AT_COM_STATUS_t at_com_get_status(AT_COM_t *p_at_com)
+{
+    if (p_at_com == NULL) {
+        return AT_COM_MAX;
+    }
+
+    return p_at_com->status;
+}
+
+int32_t at_com_set_status(AT_COM_t *p_at_com, AT_COM_STATUS_t status)
+{
+    if (p_at_com == NULL) {
+        return USER_ERROR_PARAM;
+    }
+    p_at_com->status = status;
+
+    return 0;
+}
+
 
 /*
  * ****************************************************************************
@@ -221,7 +243,7 @@ char *at_com_scarch_str(char *src_str, char *cmp_str)
     return strx;
 }
 
-static int32_t at_com_cmp_str(AT_COM_t *p_at_com, char *src_str)
+static int32_t at_com_cmp_str(AT_COM_t *p_at_com, char *src_str, uint32_t src_len)
 {
     SLIST_NODE_t *pos = NULL;
     AT_CMP_STR_NODE_t *str_node = NULL;
@@ -233,7 +255,7 @@ static int32_t at_com_cmp_str(AT_COM_t *p_at_com, char *src_str)
         str_node = SLIST_ELEMENT_ENTRY(pos, AT_CMP_STR_NODE_t, node);
         if (str_node->cmp_str_func) {  // search the cmp_str_func
             str_point = NULL;
-            str_point = strstr(src_str, str_node->cmp_str);
+            str_point = memmem(src_str, src_len, str_node->cmp_str, strlen(str_node->cmp_str));
             if (str_point) {
                 has_same_str += 1;
                 str_node->cmp_str_func_ret = str_node->cmp_str_func(str_node->cmp_str_param, str_point);
@@ -250,6 +272,8 @@ static int32_t at_com_cmp_str(AT_COM_t *p_at_com, char *src_str)
 static int32_t at_wait_idle(AT_COM_t *p_at_com, uint32_t timeout)
 {
     uint32_t delay_times = 0;
+    static uint32_t delay_times_total = 0;
+    uint32_t delay_times_max = 100000;
 
     while (p_at_com->status != AT_COM_IDLE) {
         if (p_at_com->at_delay_func) {
@@ -257,9 +281,16 @@ static int32_t at_wait_idle(AT_COM_t *p_at_com, uint32_t timeout)
         }
         delay_times += 10;
         if (delay_times >= timeout) {
-            return USER_ERROR_TIME_OUT;
+            delay_times_total += delay_times;
+            if (delay_times_total >= delay_times_max) {
+                p_at_com->status = AT_COM_IDLE;
+                at_com_log_str(p_at_com, "AT wait idle timeout\r\n");
+            } else {
+                return USER_ERROR_TIME_OUT;
+            }
         }
     }
+    delay_times_total = 0;
 
     return 0;
 }

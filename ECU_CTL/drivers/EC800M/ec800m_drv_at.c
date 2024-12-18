@@ -387,12 +387,14 @@ static int32_t ec800m_drv_save_data(char *p_buf, uint32_t len)
 {
     if (g_ec800m_connect_mode == EC800M_CONNECT_MODE_STRAIGHT_OUT) {
         if (ec800m_dev_check_tcp_straight_out_to_disconnect(p_buf, len)) {
+            log_d("ec800m_MODE_STRAIGHT_OUT: tcp disconnect\r\n");
             g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
         }
         return ec800m_drv_straight_out_mode_save_data(p_buf, len);
     } else {
         if (g_ec800m_connect_mode == EC800M_CONNECT_MODE_DIRECT) {
             if (ec800m_dev_check_tcp_direct_to_disconnect(p_buf, len)) {
+                log_d("ec800m_MODE_DIRECT: tcp disconnect\r\n");
                 g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
             }
         }
@@ -410,7 +412,7 @@ static void ec800m_rx_task(void const *argument)
 
     ec800m_rx_prepare();
     while (1) {
-        timeout = 100;
+        timeout = 200;
         ret = osSemaphoreWait(g_ec800m_rx_sem_handler, osWaitForever);
         if (ret != 0) {
             log_e("osSemaphoreWait failed, xReturn:%d\r\n", ret);
@@ -445,6 +447,7 @@ static void ec800m_rx_task(void const *argument)
             log_raw("\r\n");
 #endif
             data[0] = '\0';
+            log_d("rx: %d[%d] \r\n", g_ec800m_at_com.rx_buffer_index, g_ec800m_at_com.status);
             at_com_data_process(&g_ec800m_at_com, data, 1, 1);
         }
     }
@@ -788,10 +791,10 @@ static bool ec800m_is_ready(void)
         log_e("at_com_set_cmp_str failed, ret:%d\r\n", ret);
         return false;
     }
-    at_com_send_str(&g_ec800m_at_com, EC800M_AT_CMD_ATI, strlen(EC800M_AT_CMD_ATI), 2000);
+    at_com_send_str(&g_ec800m_at_com, EC800M_AT_CMD_ATI, strlen(EC800M_AT_CMD_ATI), 5000);
     rx_queue_num = 2;
     while (rx_queue_num > 0) {
-        event = osMessageGet(g_ec800m_rx_queue_handle, 2000);
+        event = osMessageGet(g_ec800m_rx_queue_handle, 5000);
         if (event.status != osEventMessage) {
             log_e("ec800m_is_ready osMessageGet failed, status:0x%x\r\n", event.status);
             return false;
@@ -917,6 +920,7 @@ static int32_t ec800m_device_tcp_transparent_no_carrier(void *args, char *str)
 
 static int32_t ec800m_device_tcp_transparent_qiurc_close(void *args, char *str)
 {
+    log_d("ec800m_device_tcp_transparent_qiurc_close\r\n");
     return ec800m_device_ack_message_send(EC800M_AT_ACK_QUEUE_TCP_CONNECT_ERROR);
 }
 
@@ -925,9 +929,11 @@ static int32_t ec800m_device_tcp_straight_ack(void *args, char *str)
     int32_t send_data = EC800M_AT_ACK_QUEUE_TCP_CONNECT_ERROR;
 
     if (strstr(str, "0,0")) {
+        log_d("ec800m_device_tcp_straight_ack OK\r\n");
         send_data = EC800M_AT_ACK_QUEUE_TCP_CONNECT_OK;
+    } else {
+        log_d("ec800m_device_tcp_straight_ack err\r\n");
     }
-
     return ec800m_device_ack_message_send(send_data);
 }
 
@@ -974,18 +980,22 @@ static int32_t ec800m_device_tcp_connect(int32_t mode)
             mode_num);
     at_com_send_str(&g_ec800m_at_com, cmd, strlen(cmd), 150000);
     while (rx_queue_num > 0) {
-        event = osMessageGet(g_ec800m_rx_queue_handle, 1000);
+        event = osMessageGet(g_ec800m_rx_queue_handle, 5000);
         if (event.status != osEventMessage) {
             log_e("osMessageGet failed, status:0x%x\r\n", event.status);
-            // return -EINVAL;
+            rx_queue_num--;
+            continue;
         }
         rx_queue_num--;
         switch (event.value.v) {
             case EC800M_AT_ACK_QUEUE_TCP_CONNECT_OK:
                 g_ec800m_connect_mode = mode;
+                log_d("osMessageGet OK [%d]rx_queue[%d]\r\n", g_ec800m_connect_mode,rx_queue_num);
+                at_com_set_status(&g_ec800m_at_com, AT_COM_ACK_DATA);
                 ret = 0;
                 break;
             case EC800M_AT_ACK_QUEUE_TCP_CONNECT_ERROR:
+                log_d("osMessageGet ERROR, rx_queue[%d]\r\n",rx_queue_num);
                 ec800m_device_close_socket();
                 g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
                 ret = -EOPNOTSUPP;
@@ -994,10 +1004,12 @@ static int32_t ec800m_device_tcp_connect(int32_t mode)
                 break;
         }
     }
+    at_com_set_status(&g_ec800m_at_com, AT_COM_IDLE);
     if (g_ec800m_connect_mode == EC800M_CONNECT_MODE_DISCONNECT) {
         log_e("tcp connect failed\r\n");
         return -EOPNOTSUPP;
     }
+    log_d("tcp connect success\r\n");
 
     return 0;
 }

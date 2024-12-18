@@ -1562,6 +1562,15 @@
         <name>ECU_CTL</name>
         <group>
             <name>app</name>
+            <group>
+                <name>shell_cmd</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\app\shell_cmd\t_boot.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\app\shell_cmd\t_cmd_test.c</name>
+                </file>
+            </group>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\app\ecu_unit.c</name>
             </file>
@@ -1577,6 +1586,9 @@
         </group>
         <group>
             <name>devices</name>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\ebike_manage.c</name>
+            </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\mcu_ctl.c</name>
             </file>
@@ -1662,6 +1674,12 @@
                 </group>
             </group>
             <group>
+                <name>net_agreement</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\net_agreement\net_agreement.c</name>
+                </file>
+            </group>
+            <group>
                 <name>soft_aes</name>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\soft_aes\aes.c</name>
@@ -1675,6 +1693,9 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\user_comm.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\user_crc.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\user_list.c</name>

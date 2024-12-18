@@ -41,9 +41,6 @@
  */
 osThreadId g_net_unit_handle;
 
-uint32_t g_net_connected = 0;
-
-
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
@@ -73,21 +70,8 @@ int32_t net_unit_start(void)
 
 static int32_t net_unit_prepare(void)
 {
-    int32_t ret = 0;
+    // int32_t ret = 0;
 
-    ret = net_port_init();
-    if (ret!= 0) {
-        log_e("net_port_init failed\r\n");
-        g_net_connected = 0;
-        return ret;
-    }
-    ret = net_port_tcp_connect(NET_PORT_TCP_TEST_HOST, NET_PORT_TCP_TEST_PORT);
-    if (ret!= 0) {
-        log_e("net_port_tcp_connect failed\r\n");
-        g_net_connected = 0;
-        return ret;
-    }
-    g_net_connected = 1;
 
     return 0;
 }
@@ -97,9 +81,6 @@ static void net_unit_task(void const *argument)
     net_unit_prepare();
 
     log_d("NET_UNIT task running...\r\n");
-    if (g_net_connected == 1) {
-        net_port_send("Hello, world!\r\n", strlen("Hello, world!\r\n"));
-    }
     while (1) {
         osDelay(1000);
     }

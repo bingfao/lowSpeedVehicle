@@ -21,6 +21,8 @@ extern "C" {
  * ****************************************************************************
  */
 #include "stdint.h"
+#include <assert.h>
+#include <string.h>
 
 /*
  * ****************************************************************************
@@ -77,6 +79,7 @@ extern "C" {
 uint32_t user_get_ticket(void);
 uint16_t swap_uint16(uint16_t value);
 uint32_t swap_uint32(uint32_t value);
+void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen);
 
 /* ************************************************************************* */
 #ifdef __cplusplus

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 15:09:26
- * @LastEditTime: 2024-11-05 15:01:40
+ * @LastEditTime: 2024-12-16 14:04:46
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.h
@@ -59,8 +59,10 @@ typedef enum {
 #define NET_PORT_TCP_CONNECT_MODE_STRAIGHT_OUT 1  // tcp connect with straight out mode
 #define NET_PORT_TCP_CONNECT_MODE_TRANSPARENT  2  // tcp connect with transparent  mode
 
-#define NET_PORT_TCP_TEST_HOST "s352373a61.vicp.fun"
-#define NET_PORT_TCP_TEST_PORT "37494"
+// #define NET_PORT_TCP_TEST_HOST "s352373a61.vicp.fun"
+// #define NET_PORT_TCP_TEST_PORT "37494"
+#define NET_PORT_TCP_TEST_HOST "kingxun.site"
+#define NET_PORT_TCP_TEST_PORT "10086"
 
 /*
  * ****************************************************************************

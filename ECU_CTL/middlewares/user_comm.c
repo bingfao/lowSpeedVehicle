@@ -58,6 +58,27 @@ uint32_t swap_uint32(uint32_t value)
     return (value << 24) | ((value << 8) & 0x00FF0000) | ((value >> 8) & 0x0000FF00) | (value >> 24);
 }
 
+void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen)
+{
+    const char *h = (const char *)haystack;
+    const char *n = (const char *)needle;
+    const char *end = h + haystacklen - needlelen;
+
+    assert(needlelen > 0);
+    // assert(haystacklen >= needlelen);
+    if (haystacklen < needlelen) {
+        return NULL;
+    }
+
+    for (; h <= end; h++) {
+        if (h[0] == n[0] && memcmp(h, n, needlelen) == 0) {
+            return (void *)h;
+        }
+    }
+
+    return NULL;
+}
+
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********

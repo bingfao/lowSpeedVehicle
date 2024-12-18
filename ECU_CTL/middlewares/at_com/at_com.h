@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-11 15:07:50
- * @LastEditTime: 2024-11-05 16:10:58
+ * @LastEditTime: 2024-12-09 17:53:54
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \e_bike_ctrl_v1\Middlewares\at_com.h
@@ -114,6 +114,8 @@ int32_t at_com_set_cmp_str(AT_CMP_STR_NODE_t *p_cmp_str_node, const char *p_cmp_
 int32_t at_com_add_cmp_str(AT_COM_t *p_at_com, AT_CMP_STR_NODE_t *p_cmp_str_node);
 int32_t at_com_send_str(AT_COM_t *p_at_com, char *tx_str, int32_t tx_len, int32_t timeout);
 int32_t at_com_data_process(AT_COM_t *p_at_com, char *p_data, uint32_t length, uint8_t end_flg);
+AT_COM_STATUS_t at_com_get_status(AT_COM_t *p_at_com);
+int32_t at_com_set_status(AT_COM_t *p_at_com, AT_COM_STATUS_t status);
 /* ************************************************************************* */
 #ifdef __cplusplus
 }
