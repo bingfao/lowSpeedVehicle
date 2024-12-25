@@ -38,21 +38,23 @@ typedef enum {
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
-#define EC800M_TRANS_DRV_NAME                 "usart2"
+#define EC800M_TRANS_DRV_NAME                        "usart2"
 
-#define EC800M_AT_ACK_QUEUE_OK                0x01
-#define EC800M_AT_ACK_QUEUE_ERROR             0x02
-#define EC800M_AT_ACK_QUEUE_DEV_OK            0x03
-#define EC800M_AT_ACK_QUEUE_CS_REG_OK         0x04
-#define EC800M_AT_ACK_QUEUE_CS_REG_ERROR      0x05
-#define EC800M_AT_ACK_QUEUE_TCP_CONNECT_OK    0x06
-#define EC800M_AT_ACK_QUEUE_TCP_CONNECT_ERROR 0x07
-#define EC800M_AT_ACK_QUEUE_REQUIRE_DATA      0x08
-#define EC800M_AT_ACK_QUEUE_SEND_OK           0x09
-#define EC800M_AT_ACK_QUEUE_READY             0x0a  // device is ready to receive data, after reset
-#define EC800M_AT_ACK_QUEUE_NO_CARRIER        0x0b  // when tcp do direct connect, 'NO CARRIER' may occur
+#define EC800M_AT_ACK_QUEUE_OK                       0x01
+#define EC800M_AT_ACK_QUEUE_ERROR                    0x02
+#define EC800M_AT_ACK_QUEUE_DEV_OK                   0x03
+#define EC800M_AT_ACK_QUEUE_CS_REG_OK                0x04
+#define EC800M_AT_ACK_QUEUE_CS_REG_ERROR             0x05
+#define EC800M_AT_ACK_QUEUE_TCP_CONNECT_OK           0x06
+#define EC800M_AT_ACK_QUEUE_TCP_CONNECT_ERROR        0x07
+#define EC800M_AT_ACK_QUEUE_REQUIRE_DATA             0x08
+#define EC800M_AT_ACK_QUEUE_SEND_OK                  0x09
+#define EC800M_AT_ACK_QUEUE_READY                    0x0a  // device is ready to receive data, after reset
+#define EC800M_AT_ACK_QUEUE_NO_CARRIER               0x0b  // when tcp do direct connect, 'NO CARRIER' may occur
+#define EC800M_AT_ACK_QUEUE_TCP_DIRECT_CONNECT       0x0c  // tcp direct connect state
+#define EC800M_AT_ACK_QUEUE_TCP_STRAIGHT_OUT_CONNECT 0x0d  // tcp straight out connect state
 
-#define PRINT_EC800M_RX_DATA                  1  // 1: print rx data, 0: not print
+#define PRINT_EC800M_RX_DATA                         1  // 1: print rx data, 0: not print
 /*
  * ****************************************************************************
  * ******** Private macro                                              ********
@@ -132,6 +134,7 @@ static int32_t ec800m_device_set_tcp_host(char *host);
 static int32_t ec800m_device_set_tcp_port(char *port);
 static int32_t ec800m_device_cs_stat(void *args, char *str);
 static bool ec800m_is_cs_registered(void);
+static int32_t ec800m_device_tcp_state_connect(void *args, char *str);
 static int32_t ec800m_device_tcp_transparent_connect_ok(void *args, char *str);
 static int32_t ec800m_device_tcp_transparent_connect_error(void *args, char *str);
 static int32_t ec800m_device_tcp_transparent_no_carrier(void *args, char *str);
@@ -434,6 +437,7 @@ static void ec800m_rx_task(void const *argument)
                 at_com_data_process(&g_ec800m_at_com, data, ret_size, 0);
 #if PRINT_EC800M_RX_DATA
                 for (int i = 0; i < ret_size; i++) {
+                    // printf("0x%02x[%c] ", data[i], data[i]);
                     printf("%c", data[i]);
                 }
 #endif
@@ -902,6 +906,73 @@ static bool ec800m_is_cs_registered(void)
     return true;
 }
 
+static int32_t ec800m_device_tcp_state_check(void *args, char *str)
+{
+    char *token;
+    char delim[] = ",";  // separator  ","
+
+    token = strtok(str, delim);
+    if (token != NULL) {
+        printf("Token: %s\n", token);
+    }
+
+    // get next token
+    while ((token = strtok(NULL, delim)) != NULL) {
+        printf("Token: %s\n", token);
+    }
+
+    return 0;
+}
+
+static bool ec800m_is_tcp_connect(void)
+{
+    AT_CMP_STR_NODE_t at_str_ack[2] = {0};
+    int32_t has_connected = 0;
+    int8_t rx_queue_num = 0;
+    int32_t ret = 0;
+    osEvent event;
+
+    at_com_clr_cmp_str(&g_ec800m_at_com);
+    ret += at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_CMD_QISTATE_ACK, NULL, ec800m_device_tcp_state_check);
+    ret += at_com_add_cmp_str(&g_ec800m_at_com, &at_str_ack[0]);
+    ret += at_com_set_cmp_str(&at_str_ack[1], EC800M_AT_ACK_OK, NULL, ec800m_device_ack_ok);
+    ret += at_com_add_cmp_str(&g_ec800m_at_com, &at_str_ack[1]);
+    if (ret != 0) {
+        log_e("at_com_set_cmp_str failed, ret:%d\r\n", ret);
+        return false;
+    }
+    at_com_send_str(&g_ec800m_at_com, EC800M_AT_CMD_QISTATE, strlen(EC800M_AT_CMD_QISTATE), 2000);
+    rx_queue_num = 2;
+    while (rx_queue_num > 0) {
+        event = osMessageGet(g_ec800m_rx_queue_handle, 2000);
+        if (event.status != osEventMessage) {
+            log_e("ec800m_is_cs_registered osMessageGet failed, status:0x%x\r\n", event.status);
+            return false;
+        }
+        rx_queue_num--;
+        switch (event.value.v) {
+            case EC800M_AT_ACK_QUEUE_TCP_DIRECT_CONNECT:
+                g_ec800m_connect_mode = EC800M_CONNECT_MODE_DIRECT;
+                has_connected = 1;
+                break;
+            case EC800M_AT_ACK_QUEUE_TCP_STRAIGHT_OUT_CONNECT:
+                g_ec800m_connect_mode = EC800M_CONNECT_MODE_STRAIGHT_OUT;
+                has_connected = 1;
+                break;
+            default:
+                break;
+        }
+    }
+    if (has_connected != 1) {
+        log_e("TCP is not connected \r\n");
+        g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
+        return false;
+    }
+    log_d("TCP is connected \r\n");
+
+    return true;
+}
+
 static int32_t ec800m_device_tcp_transparent_connect_ok(void *args, char *str)
 {
     return ec800m_device_ack_message_send(EC800M_AT_ACK_QUEUE_TCP_CONNECT_OK);
@@ -990,12 +1061,12 @@ static int32_t ec800m_device_tcp_connect(int32_t mode)
         switch (event.value.v) {
             case EC800M_AT_ACK_QUEUE_TCP_CONNECT_OK:
                 g_ec800m_connect_mode = mode;
-                log_d("osMessageGet OK [%d]rx_queue[%d]\r\n", g_ec800m_connect_mode,rx_queue_num);
+                log_d("osMessageGet OK [%d]rx_queue[%d]\r\n", g_ec800m_connect_mode, rx_queue_num);
                 at_com_set_status(&g_ec800m_at_com, AT_COM_ACK_DATA);
                 ret = 0;
                 break;
             case EC800M_AT_ACK_QUEUE_TCP_CONNECT_ERROR:
-                log_d("osMessageGet ERROR, rx_queue[%d]\r\n",rx_queue_num);
+                log_d("osMessageGet ERROR, rx_queue[%d]\r\n", rx_queue_num);
                 ec800m_device_close_socket();
                 g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
                 ret = -EOPNOTSUPP;

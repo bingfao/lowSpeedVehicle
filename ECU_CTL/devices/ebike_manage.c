@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:23
- * @LastEditTime: 2024-12-18 10:14:34
+ * @LastEditTime: 2024-12-25 16:25:24
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.c
@@ -21,6 +21,8 @@
 #include <task.h>
 
 #include "elog.h"
+#include "error_code.h"
+#include "net_agreement.h"
 #include "net_port.h"
 #include "version.h"
 
@@ -35,31 +37,6 @@ typedef struct
     uint8_t msg_type;
     MSG_ID_FUNC callback;
 } MSG_ID_MAP_t;
-
-#pragma pack(push, 1)
-typedef struct
-{
-    uint16_t year;
-    uint8_t month;
-    uint8_t day;
-    uint8_t hour;
-    uint8_t minute;
-    uint8_t second;
-} EBIKE_TIME_t;
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-typedef struct
-{
-    EBIKE_TIME_t time;
-    uint8_t dev_hw_version[4];
-    uint8_t dev_sw_version[4];
-    uint8_t motor_hw_version[4];
-    uint8_t motor_sw_version[4];
-    uint8_t dash_board_hw_version[4];
-    uint8_t dash_board_sw_version[4];
-} EBIKE_REGISTER_OBJ_t;
-#pragma pack(pop)
 
 /*
  * ****************************************************************************
@@ -100,9 +77,11 @@ static int32_t ebike_msg_wait_queue(uint32_t *in_message, uint32_t timeout);
 
 // device register callback function
 static int32_t ebike_device_register_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
+static int32_t ebike_device_state_upload_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 
 MSG_ID_MAP_t g_msg_id_fun_map[] = {
     {NET_TX_MSG_ID_REGISTER_DEV, NET_MSG_TYPE_RESP, ebike_device_register_ack},
+    {NET_TX_MSG_ID_DEV_STATE, NET_MSG_TYPE_RESP, ebike_device_state_upload_ack},
 };
 
 /*
@@ -114,6 +93,9 @@ int32_t ebike_manage_init(void)
 {
     memset(&g_ebike_manage_obj, 0, sizeof(EBIKE_MANAGE_OBJ_t));
     g_ebike_manage_obj.dev_id = EBIKE_DEV_ID;
+    g_ebike_manage_obj.dev_type = EBIKE_DEV_TYPE;
+    g_ebike_manage_obj.power_battery_series_counts = EBIKE_POWER_BATTERY_SERIES_COUNT;
+    g_ebike_manage_obj.power_battery_parallel_counts = EBIKE_POWER_BATTERY_PARALLEL_COUNT;
     g_ebike_manage_obj.net_agreement_obj =
         net_agreement_create(g_ebike_manage_obj.dev_id, ebike_manage_send_data, ebike_manage_get_ticks);
     if (g_ebike_manage_obj.net_agreement_obj != NULL) {
@@ -133,9 +115,266 @@ bool ebike_is_connected_server(void)
     return false;
 }
 
+EBIKE_TYPE_t ebike_get_device_type(void)
+{
+    return g_ebike_manage_obj.dev_type;
+}
+
+int32_t ebike_get_location(double *lng, double *lat)
+{
+    *lng = 121.47;
+    *lat = 31.23;
+
+    return 0;
+}
+
+float ebike_get_total_mileage(void)
+{
+    return 1001.0;  // unit is M
+}
+
+bool ebike_is_running(void)
+{
+    return true;
+}
+
+float ebike_get_speed(void)
+{
+    return 25.0;  // unit is km/h, 10000(mm/s) means 36(km/h)
+}
+
+bool ebike_electric_lock_is_lock(void)
+{
+    return false;
+}
+
+bool ebike_seat_lock_is_lock(void)
+{
+    return true;
+}
+
+bool ebike_trunk_lock_is_lock(void)
+{
+    return true;
+}
+
+bool ebike_helmet_lock_is_lock(void)
+{
+    return true;
+}
+
+bool ebike_electric_drive_lock_is_lock(void)
+{
+    return false;
+}
+
+// 0b00:OFF, 0b01:OPEN, 0b11:ERR
+uint16_t ebike_get_state_short_range_headlight(void)
+{
+    return 0x01;
+}
+
+// 0b00:OFF, 0b01:OPEN, 0b11:ERR
+uint16_t ebike_get_state_long_range_headlight(void)
+{
+    return 0x03;
+}
+
+// 0b00:OFF, 0b01:OPEN, 0b11:ERR
+uint16_t ebike_get_state_clearance_lamp(void)
+{
+    return 0x01;
+}
+
+// 0b00:OFF, 0b01:turn left, 0b10:turn right, 0b11:ERR
+uint16_t ebike_get_state_turn_signal(void)
+{
+    return 0x00;
+}
+
+// 0b00:OFF, 0b01:OPEN, 0b11:ERR
+uint16_t ebike_get_state_emergency_flashers(void)
+{
+    return 0x01;
+}
+
+// 0b00:OFF, 0b01:OPEN, 0b11:ERR
+uint16_t ebike_get_state_brake_light(void)
+{
+    return 0x00;
+}
+
+bool ebike_sensor_seat_is_tirgger(void)
+{
+    return true;
+}
+
+bool ebike_sensor_kick_stand_is_tirgger(void)
+{
+    return false;
+}
+
+bool ebike_sensor_child_seat_is_tirgger(void)
+{
+    return false;
+}
+
+bool ebike_sensor_rollover_is_tirgger(void)
+{
+    return false;
+}
+
+bool ebike_rear_brake_is_tirgger(void)
+{
+    return false;
+}
+
+bool ebike_front_brake_is_tirgger(void)
+{
+    return false;
+}
+
+bool ebike_abs_is_tirgger(void)
+{
+    return false;
+}
+
+bool ebike_tcs_tirgger(void)
+{
+    return false;
+}
+
+bool ebike_mini_battery_is_exit(void)
+{
+    return true;
+}
+
+int32_t ebike_get_mini_battery_id(uint8_t *id, uint32_t *len)
+{
+    if (*len < EBIKE_SMALL_BATTERY_ID_SIZE) {
+        return -EINVAL;
+    }
+    memcpy(id, EBIKE_SMALL_BATTERY_ID, EBIKE_SMALL_BATTERY_ID_SIZE);
+    *len = EBIKE_SMALL_BATTERY_ID_SIZE;
+
+    return 0;
+}
+
+int32_t ebike_get_mini_battery_soc(uint8_t *soc)
+{
+    *soc = 100;
+    return 0;
+}
+
+int32_t ebike_get_mini_battery_voltage(float *voltage)
+{
+    *voltage = 12.0;
+
+    return 0;
+}
+
+int32_t ebike_get_mini_battery_temp(float *temper)
+{
+    *temper = 25.0;
+
+    return 0;
+}
+
+bool ebike_power_battery_is_exit(void)
+{
+    return true;
+}
+
+bool ebike_power_battery_is_charging(void)
+{
+    return true;
+}
+
+int32_t ebike_get_power_battery_id(uint8_t *id, uint32_t *len)
+{
+    if (*len < EBIKE_POWER_BATTERY_ID_SIZE) {
+        return -EINVAL;
+    }
+    memcpy(id, EBIKE_POWER_BATTERY_ID, EBIKE_POWER_BATTERY_ID_SIZE);
+    *len = EBIKE_POWER_BATTERY_ID_SIZE;
+
+    return 0;
+}
+
+int32_t ebike_get_power_battery_soc(uint8_t *soc)
+{
+    *soc = 100;
+    return 0;
+}
+
+int32_t ebike_get_power_battery_voltage(float *voltage)
+{
+    *voltage = 48.123;
+    return 0;
+}
+
+int32_t ebike_get_power_battery_current(float *current)
+{
+    *current = 3.21;
+    return 0;
+}
+
+int32_t ebike_get_power_battery_temp(float *temper)
+{
+    *temper = 25.0;
+    return 0;
+}
+
+int32_t ebike_get_power_battery_charge_cycle(uint16_t *cycle)
+{
+    *cycle = 123;
+    return 0;
+}
+
+int32_t ebike_get_power_battery_soc_health(uint8_t *soc_health)
+{
+    *soc_health = 98;
+    return 0;
+}
+
+int32_t ebike_get_power_battery_series_count(uint8_t *count)
+{
+    *count = g_ebike_manage_obj.power_battery_series_counts;
+
+    return 0;
+}
+
+int32_t ebike_get_power_battery_parallel_count(uint8_t *count)
+{
+    *count = g_ebike_manage_obj.power_battery_parallel_counts;
+
+    return 0;
+}
+
+int32_t ebike_get_power_battery_series_voltages(float *voltages, uint8_t series_count, uint8_t parallel_count)
+{
+    if (series_count >= g_ebike_manage_obj.power_battery_series_counts) {
+        return -EINVAL;
+    }
+    *voltages = 3.2012;
+
+    return 0;
+}
+
+int32_t ebike_get_power_battery_series_temp(float *temp, uint8_t series_count, uint8_t parallel__count)
+{
+    if (series_count >= g_ebike_manage_obj.power_battery_series_counts) {
+        return -EINVAL;
+    }
+    *temp = 25.1;
+
+    return 0;
+}
+
 int32_t ebike_device_register_to_server(void)
 {
-    EBIKE_REGISTER_OBJ_t data = {0};
+    uint8_t data[100] = {0};
+    uint32_t len;
     int32_t ret = 0;
     uint8_t times = 3;
     uint32_t message = 0;
@@ -143,21 +382,15 @@ int32_t ebike_device_register_to_server(void)
     if (g_ebike_manage_obj.connect_flg == 0) {
         return -ENOTCONN;
     }
-    memset(&data, 0, sizeof(EBIKE_REGISTER_OBJ_t));
-    data.time.year = 2024;
-    data.time.month = 11;
-    data.time.day = 7;
-    data.time.hour = 15;
-    data.time.minute = 16;
-    data.time.second = 23;
-    data.dev_sw_version[0] = VERSION_MAJOR;
-    data.dev_sw_version[1] = VERSION_MINOR;
-    data.dev_sw_version[2] = VERSION_SUB;
-    data.dev_sw_version[3] = VERSION_BUILD;
-
+    len = sizeof(data);
+    ret = net_agreement_device_register_package(g_ebike_manage_obj.net_agreement_obj, data, &len);
+    if (ret != 0) {
+        log_e("net_agreement_device_register_package failed\r\n");
+        return ret;
+    }
     do {
         ret = net_agreement_send_msg(g_ebike_manage_obj.net_agreement_obj, NET_TX_MSG_ID_REGISTER_DEV,
-                                     NET_MSG_TYPE_SEND, (uint8_t *)&data, sizeof(EBIKE_REGISTER_OBJ_t));
+                                     NET_MSG_TYPE_SEND, data, len);
         if (ret < 0) {
             log_e("net_agreement_send_msg failed\r\n");
             osDelay(1000);
@@ -179,6 +412,46 @@ int32_t ebike_device_register_to_server(void)
     return -ETIMEDOUT;
 }
 
+int32_t ebike_device_state_upload_to_server(void)
+{
+    uint8_t data[256] = {0};
+    uint32_t len;
+    int32_t ret = 0;
+    uint8_t times = 3;
+    uint32_t message = 0;
+
+    if (g_ebike_manage_obj.connect_flg == 0) {
+        return -ENOTCONN;
+    }
+    len = sizeof(data);
+    ret = net_agreement_device_state_upload_package(g_ebike_manage_obj.net_agreement_obj, data, &len);
+    if (ret != 0) {
+        log_e("net_agreement_device_state_upload_package failed\r\n");
+        return ret;
+    }
+    do {
+        ret = net_agreement_send_msg(g_ebike_manage_obj.net_agreement_obj, NET_TX_MSG_ID_DEV_STATE,
+                                     NET_MSG_TYPE_SEND, data, len);
+        if (ret < 0) {
+            log_e("net_agreement_send_msg failed\r\n");
+            osDelay(1000);
+            continue;
+        }
+        ret = ebike_msg_wait_queue(&message, 5000);
+        if (ret == 0) {
+            if (message == EBIKE_ACK_QUEUE_OK) {
+                log_d("ebike_device_register success\r\n");
+                return 0;
+            } else if (message == EBIKE_ACK_QUEUE_ERROR) {
+                log_e("ebike_device_register failed\r\n");
+                return -EIO;
+            }
+        }
+    } while (times-- > 0 && ret < 0);
+    log_e("ebike_device_register timeout\r\n");
+
+    return -ETIMEDOUT;
+}
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
@@ -225,14 +498,41 @@ static int32_t ebike_device_register_ack(uint8_t *in_data, int32_t in_len, uint8
 {
     *out_len = 0;
     int32_t i = 0;
+    int32_t ret = 0;
 
     printf("ebike_device_register_ack :\r\n");
     for (i = 0; i < in_len; i++) {
         printf("0x%x ", in_data[i]);
     }
     printf("\r\n");
+    ret = net_agreement_device_register_ack(g_ebike_manage_obj.net_agreement_obj, in_data, in_len,
+                                            &g_ebike_manage_obj.session_id, g_ebike_manage_obj.aes_iv);
+    if (ret != 0) {
+        ebike_msg_send_queue(EBIKE_ACK_QUEUE_ERROR);
+        return -1;
+    }
     ebike_msg_send_queue(EBIKE_ACK_QUEUE_OK);
 
+    return 0;
+}
+
+static int32_t ebike_device_state_upload_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len)
+{
+    *out_len = 0;
+    int32_t i = 0;
+    int32_t ret = 0;
+
+    printf("ebike_device_state_upload_ack :\r\n");
+    for (i = 0; i < in_len; i++) {
+        printf("0x%x ", in_data[i]);
+    }
+    printf("\r\n");
+    ret = net_agreement_device_state_upload_ack(g_ebike_manage_obj.net_agreement_obj, in_data, in_len);
+    if (ret != 0) {
+        ebike_msg_send_queue(EBIKE_ACK_QUEUE_ERROR);
+        return -1;
+    }
+    ebike_msg_send_queue(EBIKE_ACK_QUEUE_OK);
     return 0;
 }
 

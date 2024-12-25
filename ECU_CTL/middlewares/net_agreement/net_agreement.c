@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:34
- * @LastEditTime: 2024-12-16 19:53:06
+ * @LastEditTime: 2024-12-25 14:40:55
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.c
@@ -11,15 +11,20 @@
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
+#define LOG_TAG "net_agreement"
+#define LOG_LVL ELOG_LVL_DEBUG
 #include "net_agreement.h"
 
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "ebike_manage.h"
+#include "elog.h"
 #include "error_code.h"
 #include "fault.h"
 #include "user_crc.h"
+#include "version.h"
 
 /*
  * ****************************************************************************
@@ -48,6 +53,170 @@ typedef struct
     uint32_t rx_msg_index;
     uint32_t msg_rx_state;
 } NET_AGREEMENT_OBJ_t;
+
+#pragma pack(push, 1)
+typedef struct
+{
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
+} EBIKE_TIME_t;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct
+{
+    EBIKE_TIME_t time;
+    uint8_t dev_hw_version[4];
+    uint8_t dev_sw_version[4];
+    uint8_t motor_hw_version[4];
+    uint8_t motor_sw_version[4];
+    uint8_t dash_board_hw_version[4];
+    uint8_t dash_board_sw_version[4];
+} NET_EBIKE_REGISTER_OBJ_t;
+#pragma pack(pop)
+
+typedef struct
+{
+    uint8_t electric_lock       : 1;
+    uint8_t seat_lock           : 1;
+    uint8_t trunk_lock          : 1;
+    uint8_t helmet_lock         : 1;
+    uint8_t electric_drive_lock : 1;
+    uint8_t resvrved            : 3;
+} LOCK_STATUS_t;
+
+typedef struct
+{
+    uint16_t short_range_headlight : 2;  // 00:OFF, 01:OPEN, 11:ERR
+    uint16_t long_range_headlight  : 2;  // 00:OFF, 01:OPEN, 11:ERR
+    uint16_t clearance_lamp        : 2;  // 00:OFF, 01:ON, 11:ERR
+    uint16_t turn_signal           : 2;  // 00:OFF, 01:turn left, 10:turn right, 11:ERR
+    uint16_t emergency_flashers    : 2;  // 00:OFF, 01:ON, 11:ERR
+    uint16_t brake_light           : 2;  // 00:OFF, 01:ON, 11:ERR
+    uint16_t reserved              : 4;
+} LIGHT_STATE_t;
+
+typedef struct
+{
+    uint8_t seat       : 1;
+    uint8_t kick_stand : 1;
+    uint8_t child_seat : 1;
+    uint8_t rollover   : 1;
+    uint8_t reserved   : 4;
+} SENSOR_STATE_t;
+
+typedef struct
+{
+    uint8_t rear_brake     : 1;
+    uint8_t front_brake    : 1;
+    uint8_t reserved_b2_b3 : 2;
+    uint8_t abs            : 1;
+    uint8_t tcs            : 1;
+    uint8_t reserved_b6_b7 : 2;
+} BRAKE_STATE_t;
+
+#pragma pack(push, 1)
+typedef struct
+{
+    LOCK_STATUS_t lock_status;
+    LIGHT_STATE_t light_state;
+    SENSOR_STATE_t sensor_state;
+    BRAKE_STATE_t brake_state;
+    uint8_t reserved;
+} EBIKE_WORK_STATE_t;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct
+{
+    uint8_t exit_flg;
+    uint8_t id[EBIKE_SMALL_BATTERY_ID_SIZE];
+    uint8_t soc;
+    uint16_t vol;  //  voltage vlaue (V) * 100
+    int16_t temp;  //  temperature value (℃) * 100
+} EBIKE_MINI_BATTERT_STATE_t;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct
+{
+    uint16_t vol;  //  voltage vlaue (V) * 100
+    int16_t temp;  //  temperature value (℃) * 100 , 0xFFFF means no temperature sensor
+} POWER_BATTERY_SERIES_STATE_t;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct
+{
+    uint8_t exit_flg;
+    uint8_t charge_flg;
+    uint8_t id[EBIKE_POWER_BATTERY_ID_SIZE];
+    uint8_t soc;
+    uint16_t vol;  //  voltage vlaue * 100
+    int16_t temp;  //  temperature value * 100
+    uint16_t charge_cycle;
+    uint8_t soc_health;
+    uint8_t curr_direction;  // 2:charge, 1:discharge
+    uint16_t curr;           // current value (A) * 100
+} EBIKE_POWER_BATTERT_STATE_t;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct
+{
+    uint8_t series_counts;
+    POWER_BATTERY_SERIES_STATE_t series_state[EBIKE_POWER_BATTERY_SERIES_COUNT_MAX];
+} EBIKE_POWER_BATTERT_SERIES_STATE_t;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct
+{
+    uint8_t protocol_flag;
+    double lng_pos;
+    double lat_pos;
+    uint32_t total_mileage;
+    bool is_running;
+    uint16_t speed;
+    EBIKE_WORK_STATE_t work_state;
+    EBIKE_MINI_BATTERT_STATE_t mini_battery;
+    EBIKE_POWER_BATTERT_STATE_t power_battery;
+    EBIKE_POWER_BATTERT_SERIES_STATE_t power_battery_series;
+} EBIKE_STATE_UPLOAD_t;
+#pragma pack(pop)
+
+typedef union
+{
+    EBIKE_STATE_UPLOAD_t ebike;
+} UPLOAD_STATE_UNION_t;
+
+#pragma pack(push, 1)
+typedef struct
+{
+    uint8_t dev_type;
+    UPLOAD_STATE_UNION_t upload_state;
+} NET_EBIKE_STATE_UPLOAD_OBJ_t;
+#pragma pack(pop)
+
+typedef struct
+{
+    uint32_t section_id;
+    uint8_t aes_iv[16];
+} REGISTER_ACK_DATA_t;
+typedef union
+{
+    REGISTER_ACK_DATA_t register_ack_data;
+} ACK_DATA_t;
+
+typedef struct
+{
+    uint32_t respcode;
+    ACK_DATA_t ack_data;
+} NET_MSG_ACK;
 
 /*
  * ****************************************************************************
@@ -303,6 +472,165 @@ int32_t net_agreement_data_in(void *obj, uint8_t *data, uint32_t len)
     return ret;
 }
 
+int32_t net_agreement_device_register_package(void *obj, uint8_t *data, uint32_t *len)
+{
+    NET_EBIKE_REGISTER_OBJ_t *p_data = (NET_EBIKE_REGISTER_OBJ_t *)data;
+    if (*len < sizeof(NET_EBIKE_REGISTER_OBJ_t)) {
+        return -EINVAL;
+    }
+    memset(p_data, 0, sizeof(NET_EBIKE_REGISTER_OBJ_t));
+    p_data->time.year = 2024;
+    p_data->time.month = 11;
+    p_data->time.day = 7;
+    p_data->time.hour = 15;
+    p_data->time.minute = 16;
+    p_data->time.second = 23;
+    p_data->dev_sw_version[0] = VERSION_MAJOR;
+    p_data->dev_sw_version[1] = VERSION_MINOR;
+    p_data->dev_sw_version[2] = VERSION_SUB;
+    p_data->dev_sw_version[3] = VERSION_BUILD;
+    *len = sizeof(NET_EBIKE_REGISTER_OBJ_t);
+
+    return 0;
+}
+
+int32_t net_agreement_device_register_ack(void *obj, uint8_t *data, uint32_t len, uint32_t *session_id, uint8_t *aes_iv)
+{
+    NET_AGREEMENT_OBJ_t *net_obj = (NET_AGREEMENT_OBJ_t *)obj;
+    NET_MSG_ACK *ack_msg = (NET_MSG_ACK *)data;
+
+    if (len != NET_MAS_LEN_REGISTER_ACK) {
+        return -EINVAL;
+    }
+    if (ack_msg->respcode != NET_MSG_RESPCODE_OK) {
+        log_e("register device fail, respcode:%d", ack_msg->respcode);
+        return -EPERM;
+    }
+    *session_id = ack_msg->ack_data.register_ack_data.section_id;
+    memcpy(aes_iv, ack_msg->ack_data.register_ack_data.aes_iv, sizeof(ack_msg->ack_data.register_ack_data.aes_iv));
+    net_obj->session_id = *session_id;
+    log_i("register device success, session_id:0x%08x", *session_id);
+
+    return 0;
+}
+
+int32_t net_agreement_device_state_upload_package(void *obj, uint8_t *data, uint32_t *len)
+{
+    NET_EBIKE_STATE_UPLOAD_OBJ_t *p_data = (NET_EBIKE_STATE_UPLOAD_OBJ_t *)data;
+    uint32_t need_size = sizeof(NET_EBIKE_STATE_UPLOAD_OBJ_t) - sizeof(EBIKE_POWER_BATTERT_SERIES_STATE_t);
+    uint8_t bat_series = 0;
+    uint8_t bat_parallel = 0;
+    EBIKE_STATE_UPLOAD_t *ebike_state = NULL;
+    EBIKE_POWER_BATTERT_SERIES_STATE_t *series_state = NULL;
+    int32_t ret = 0;
+    int32_t i = 0;
+    uint32_t id_len = 0;
+    uint32_t data_len = 0;
+    float temp = 0.0f;
+    double temp_double1 = 0.0;
+    double temp_double2 = 0.0;
+    uint16_t temp_u16 = 0;
+
+    ebike_get_power_battery_series_count(&bat_series);
+    ebike_get_power_battery_parallel_count(&bat_parallel);
+    need_size += sizeof(POWER_BATTERY_SERIES_STATE_t) * (bat_series * bat_parallel) + 1;
+    if (*len < need_size) {
+        return -EINVAL;  // need more data
+    }
+    ebike_state = &p_data->upload_state.ebike;
+    memset(p_data, 0, need_size);
+    p_data->dev_type = (uint8_t)ebike_get_device_type();
+    ebike_state->protocol_flag = 1;
+    ret += ebike_get_location(&temp_double1, &temp_double2);
+    ebike_state->lng_pos = temp_double1;
+    ebike_state->lat_pos = temp_double2;
+    temp = ebike_get_total_mileage();                              // get total mileage unit is x.x m
+    ebike_state->total_mileage = (uint32_t)((temp + 5.0f) / 10.0f);  // mileage unit is 10m
+    ebike_state->is_running = ebike_is_running();
+    temp = ebike_get_speed();                        // get speed unit is x.x km/h
+    ebike_state->speed = (uint16_t)(temp / 0.0036f);  // update speed unit is  mm/s
+    // ebike state data packet
+    ebike_state->work_state.lock_status.electric_lock = ebike_electric_lock_is_lock() ? 0 : 1;
+    ebike_state->work_state.lock_status.seat_lock = ebike_seat_lock_is_lock() ? 0 : 1;
+    ebike_state->work_state.lock_status.trunk_lock = ebike_trunk_lock_is_lock() ? 0 : 1;
+    ebike_state->work_state.lock_status.helmet_lock = ebike_helmet_lock_is_lock() ? 0 : 1;
+    ebike_state->work_state.lock_status.electric_drive_lock = ebike_electric_drive_lock_is_lock() ? 0 : 1;
+    ebike_state->work_state.light_state.short_range_headlight = ebike_get_state_short_range_headlight();
+    ebike_state->work_state.light_state.long_range_headlight = ebike_get_state_long_range_headlight();
+    ebike_state->work_state.light_state.clearance_lamp = ebike_get_state_clearance_lamp();
+    ebike_state->work_state.light_state.turn_signal = ebike_get_state_turn_signal();
+    ebike_state->work_state.light_state.emergency_flashers = ebike_get_state_emergency_flashers();
+    ebike_state->work_state.light_state.brake_light = ebike_get_state_brake_light();
+    ebike_state->work_state.sensor_state.seat = ebike_sensor_seat_is_tirgger() ? 1 : 0;
+    ebike_state->work_state.sensor_state.kick_stand = ebike_sensor_kick_stand_is_tirgger() ? 1 : 0;
+    ebike_state->work_state.sensor_state.child_seat = ebike_sensor_child_seat_is_tirgger() ? 1 : 0;
+    ebike_state->work_state.sensor_state.rollover = ebike_sensor_rollover_is_tirgger() ? 1 : 0;
+    ebike_state->work_state.brake_state.rear_brake = ebike_rear_brake_is_tirgger() ? 1 : 0;
+    ebike_state->work_state.brake_state.front_brake = ebike_front_brake_is_tirgger() ? 1 : 0;
+    ebike_state->work_state.brake_state.abs = ebike_abs_is_tirgger() ? 1 : 0;
+    ebike_state->work_state.brake_state.tcs = ebike_tcs_tirgger() ? 1 : 0;
+    // get mini battery state
+    ebike_state->mini_battery.exit_flg = ebike_mini_battery_is_exit() ? 1 : 0;
+    id_len = sizeof(ebike_state->mini_battery.id);
+    ret += ebike_get_mini_battery_id(ebike_state->mini_battery.id, &id_len);
+    ret += ebike_get_mini_battery_soc(&ebike_state->mini_battery.soc);
+    ret += ebike_get_mini_battery_voltage(&temp);              // get voltage unit is x.x V
+    ebike_state->mini_battery.vol = (uint16_t)(temp * 100.0f);  // update voltage unit is 10mV
+    ret += ebike_get_mini_battery_temp(&temp);                 // get temperature unit is x.x ℃
+    ebike_state->mini_battery.temp = (int16_t)(temp * 100.0f);  // update temperature unit is 0.01C
+    // get power battery state
+    ebike_state->power_battery.exit_flg = ebike_power_battery_is_exit() ? 1 : 0;
+    ebike_state->power_battery.charge_flg = ebike_power_battery_is_charging() ? 1 : 0;
+    id_len = sizeof(ebike_state->power_battery.id);
+    ret += ebike_get_power_battery_id(ebike_state->power_battery.id, &id_len);
+    ret += ebike_get_power_battery_soc(&ebike_state->power_battery.soc);
+    ret += ebike_get_power_battery_voltage(&temp);              // get voltage unit is x.x V
+    ebike_state->power_battery.vol = (uint16_t)(temp * 100.0f);  // update voltage unit is 10mV
+    ret += ebike_get_power_battery_temp(&temp);                 // get temperature unit is x.x ℃
+    ebike_state->power_battery.temp = (int16_t)(temp * 100.0f);  // update temperature unit is 0.01C
+    ret += ebike_get_power_battery_charge_cycle(&temp_u16);
+    ebike_state->power_battery.charge_cycle = temp_u16;
+    ret += ebike_get_power_battery_soc_health(&ebike_state->power_battery.soc_health);
+    ret += ebike_get_power_battery_current(&temp);  // get current unit is x.x A
+    ebike_state->power_battery.curr_direction = temp < 0 ? 2 : 1;
+    ebike_state->power_battery.curr = (uint16_t)(temp * 100.0f);  // update current unit is 10mA
+    data_len = sizeof(NET_EBIKE_STATE_UPLOAD_OBJ_t) - sizeof(EBIKE_POWER_BATTERT_SERIES_STATE_t);
+    // get power battery series state
+    ret += ebike_get_power_battery_series_count(&ebike_state->power_battery_series.series_counts);
+    data_len++;
+    series_state = &ebike_state->power_battery_series;
+    for (i = 0; i < ebike_state->power_battery_series.series_counts; i++) {
+        ret += ebike_get_power_battery_series_voltages(&temp, i, 0);   // get voltage unit is x.x V
+        series_state->series_state[i].vol = (uint16_t)(temp * 100.0f);  // update voltage unit is 10mV
+        ret += ebike_get_power_battery_series_temp(&temp, i, 0);       // get temperature unit is x.x ℃
+        series_state->series_state[i].temp = (int16_t)(temp * 100.0f);  // update temperature unit is 0.01C
+        data_len += sizeof(POWER_BATTERY_SERIES_STATE_t);
+    }
+    if (data_len != need_size) {
+        log_e("package error, data_len:%d, need_size:%d \r\n", data_len, need_size);
+        return -EINVAL;
+    }
+    *len = need_size;
+
+    return 0;
+}
+
+int32_t net_agreement_device_state_upload_ack(void *obj, uint8_t *data, uint32_t len)
+{
+    NET_MSG_ACK *ack_msg = (NET_MSG_ACK *)data;
+
+    if (len != NET_MAS_LEN_UPLOAD_ACK) {
+        return -EINVAL;
+    }
+    if (ack_msg->respcode != NET_MSG_RESPCODE_OK) {
+        log_e("upload device state fail, respcode:%d", ack_msg->respcode);
+        return -EPERM;
+    }
+    log_i("upload device state success");
+
+    return 0;
+}
+
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
@@ -474,7 +802,7 @@ static int32_t net_agreement_byte_in(NET_AGREEMENT_OBJ_t *net_obj, uint8_t byte,
 {
     int32_t ret = 0;
     static uint16_t temp_msg_id = 0;
-    static uint32_t temp_index = 0;
+    static int32_t temp_index = 0;
     uint8_t *rx_data = net_obj->rx_msg;
     uint32_t *rx_data_index = &net_obj->rx_msg_index;
     static uint32_t old_tick = 0;
@@ -532,15 +860,21 @@ static int32_t net_agreement_byte_in(NET_AGREEMENT_OBJ_t *net_obj, uint8_t byte,
                 break;
             }
             net_obj->msg_rx_state = NET_MSG_RX_STATE_WAIT_BODY_END;
-            temp_index = net_msg_head_get_body_len(rx_data);
+            temp_index = (int32_t)net_msg_head_get_body_len(rx_data);
             if (temp_index > NET_RX_MSG_BODY_LEN_MAX) {
                 net_obj->msg_rx_state = NET_MSG_RX_STATE_IDLE;
             }
-            break;
+            if (temp_index == 0) {
+                net_obj->msg_rx_state = NET_MSG_RX_STATE_PROGRESS;
+            } else {
+                break;
+            }
         case NET_MSG_RX_STATE_WAIT_BODY_END:
-            rx_data[*rx_data_index] = byte;
-            *rx_data_index += 1;
-            temp_index--;
+            if (temp_index > 0) {
+                rx_data[*rx_data_index] = byte;
+                *rx_data_index += 1;
+                temp_index--;
+            }
             if (temp_index > 0) {
                 break;
             }

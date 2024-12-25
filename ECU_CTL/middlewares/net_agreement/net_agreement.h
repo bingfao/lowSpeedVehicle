@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:43
- * @LastEditTime: 2024-12-14 22:17:01
+ * @LastEditTime: 2024-12-25 10:43:28
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.h
@@ -129,6 +129,10 @@ typedef int32_t (*MSG_ID_FUNC)(uint8_t *in_data, int32_t in_len, uint8_t *out_da
 #define NET_RX_MSG_ID_DISABLE_UNLOCK_DEVICE (2022)
 #define NET_RX_MSG_ID_MAX                   (6)
 
+#define NET_MSG_RESPCODE_OK                 (0)
+#define NET_MSG_RESPCODE_REDEFINE           (1)
+#define NET_MSG_RESPCODE_REFUSE             (2)
+
 #define ASSERT_MSG_ID(msg_id)                                                                                          \
     ((msg_id == NET_TX_MSG_ID_REGISTER_DEV) || (msg_id == NET_TX_MSG_ID_DEV_STATE) ||                                  \
      (msg_id == NET_TX_MSG_ID_EBIKE_JOURNEY) || (msg_id == NET_TX_MSG_ID_EBIKE_CHARGE_END) ||                          \
@@ -146,6 +150,8 @@ typedef int32_t (*MSG_ID_FUNC)(uint8_t *in_data, int32_t in_len, uint8_t *out_da
 #define NET_MSG_TX_WAITE_TICKS_MAX 10000  // 10S for wait ack from server
 #define NET_MSG_RX_WAITE_TIMEOUT   1000   // 1S for wait one package timeout
 
+#define NET_MAS_LEN_REGISTER_ACK   24  // 24 bytes for register ack
+#define NET_MAS_LEN_UPLOAD_ACK      4  // 4 bytes for upload ack
 /*
  * ****************************************************************************
  * ******** Exported macro                                             ********
@@ -173,6 +179,12 @@ bool net_agreement_msg_id_legal(uint16_t msg_id);
 int32_t net_agreement_msg_regsiter(void *obj, uint16_t msg_id, uint8_t msg_type, MSG_ID_FUNC msg_func);
 int32_t net_agreement_msg_unregsiter(void *obj, uint16_t msg_id);
 int32_t net_agreement_data_in(void *obj, uint8_t *data, uint32_t len);
+/* send package and ack data progress */
+int32_t net_agreement_device_register_package(void *obj, uint8_t *data, uint32_t *len);
+int32_t net_agreement_device_register_ack(void *obj, uint8_t *data, uint32_t len, uint32_t *session_id,
+                                          uint8_t *aes_iv);
+int32_t net_agreement_device_state_upload_package(void *obj, uint8_t *data, uint32_t *len);
+int32_t net_agreement_device_state_upload_ack(void *obj, uint8_t *data, uint32_t len);
 
 /* ************************************************************************* */
 #ifdef __cplusplus

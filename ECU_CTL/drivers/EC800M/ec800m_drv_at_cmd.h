@@ -60,6 +60,9 @@ extern "C" {
 
 #define EC800M_AT_CMD_QISEND                 "AT+QISEND"
 
+#define EC800M_AT_CMD_QISTATE                "AT+QISTATE\r\n"
+#define EC800M_AT_CMD_QISTATE_ACK            "+QISTATE:"
+
 /*
  * ****************************************************************************
  * ******** Exported macro                                             ********
