@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:23
- * @LastEditTime: 2024-12-25 16:25:24
+ * @LastEditTime: 2024-12-26 14:22:05
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.c
@@ -102,6 +102,7 @@ int32_t ebike_manage_init(void)
         ebike_manage_register_msg_id(g_ebike_manage_obj.net_agreement_obj);
         ebike_manage_read_start();
     }
+    g_ebike_manage_obj.init_flg = 1;
 
     return 0;
 }
@@ -109,6 +110,15 @@ int32_t ebike_manage_init(void)
 bool ebike_is_connected_server(void)
 {
     if (g_ebike_manage_obj.connect_flg != 0) {
+        return true;
+    }
+
+    return false;
+}
+
+bool ebike_is_register(void)
+{
+    if (g_ebike_manage_obj.register_flg != 0) {
         return true;
     }
 
@@ -400,14 +410,18 @@ int32_t ebike_device_register_to_server(void)
         if (ret == 0) {
             if (message == EBIKE_ACK_QUEUE_OK) {
                 log_d("ebike_device_register success\r\n");
+                g_ebike_manage_obj.register_flg = 1;
                 return 0;
             } else if (message == EBIKE_ACK_QUEUE_ERROR) {
+                g_ebike_manage_obj.register_flg = 0;
                 log_e("ebike_device_register failed\r\n");
                 return -EIO;
             }
         }
     } while (times-- > 0 && ret < 0);
     log_e("ebike_device_register timeout\r\n");
+    net_port_tcp_reconnect();
+    g_ebike_manage_obj.register_flg = 0;
 
     return -ETIMEDOUT;
 }
@@ -430,8 +444,8 @@ int32_t ebike_device_state_upload_to_server(void)
         return ret;
     }
     do {
-        ret = net_agreement_send_msg(g_ebike_manage_obj.net_agreement_obj, NET_TX_MSG_ID_DEV_STATE,
-                                     NET_MSG_TYPE_SEND, data, len);
+        ret = net_agreement_send_msg(g_ebike_manage_obj.net_agreement_obj, NET_TX_MSG_ID_DEV_STATE, NET_MSG_TYPE_SEND,
+                                     data, len);
         if (ret < 0) {
             log_e("net_agreement_send_msg failed\r\n");
             osDelay(1000);
@@ -440,15 +454,16 @@ int32_t ebike_device_state_upload_to_server(void)
         ret = ebike_msg_wait_queue(&message, 5000);
         if (ret == 0) {
             if (message == EBIKE_ACK_QUEUE_OK) {
-                log_d("ebike_device_register success\r\n");
+                log_d("ebike_state_upload success\r\n");
                 return 0;
             } else if (message == EBIKE_ACK_QUEUE_ERROR) {
-                log_e("ebike_device_register failed\r\n");
+                log_e("ebike_state_upload failed\r\n");
                 return -EIO;
             }
         }
     } while (times-- > 0 && ret < 0);
-    log_e("ebike_device_register timeout\r\n");
+    log_e("ebike_state_upload timeout\r\n");
+    net_port_tcp_reconnect();
 
     return -ETIMEDOUT;
 }
@@ -588,6 +603,7 @@ static void ebike_rx_task(void const *argument)
                 }
             } while (ret > 0);
         }
+        g_ebike_manage_obj.connect_flg = net_port_is_connected() ? 1 : 0;
         osDelay(100);
     }
 }

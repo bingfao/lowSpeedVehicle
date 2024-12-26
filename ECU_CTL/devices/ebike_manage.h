@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:41
- * @LastEditTime: 2024-12-25 14:15:08
+ * @LastEditTime: 2024-12-26 11:40:08
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.h
@@ -57,6 +57,7 @@ typedef struct
     uint8_t aes_iv[16];
     int8_t register_flg;
     int8_t connect_flg;
+    int8_t init_flg;
     void *net_agreement_obj;
 } EBIKE_MANAGE_OBJ_t;
 
@@ -98,6 +99,7 @@ typedef struct
  */
 int32_t ebike_manage_init(void);
 bool ebike_is_connected_server(void);
+bool ebike_is_register(void);
 int32_t ebike_device_register_to_server(void);
 int32_t ebike_device_state_upload_to_server(void);
 // get ebike info

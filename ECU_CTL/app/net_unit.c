@@ -13,6 +13,7 @@
 #include <error_code.h>
 #include <task.h>
 
+#include "ebike_manage.h"
 #include "elog.h"
 #include "net_port.h"
 
@@ -49,6 +50,7 @@ osThreadId g_net_unit_handle;
 
 static int32_t net_unit_prepare(void);
 static void net_unit_task(void const *argument);
+static void net_upload_data(int32_t ticks_used);
 
 /*
  * ****************************************************************************
@@ -71,7 +73,7 @@ int32_t net_unit_start(void)
 static int32_t net_unit_prepare(void)
 {
     // int32_t ret = 0;
-
+    ebike_manage_init();
 
     return 0;
 }
@@ -82,7 +84,32 @@ static void net_unit_task(void const *argument)
 
     log_d("NET_UNIT task running...\r\n");
     while (1) {
+        net_upload_data(1000);
         osDelay(1000);
+    }
+}
+
+#define NET_UPLOAD_INTERVAL_MS 60000  // 60s
+static void net_upload_data(int32_t ticks_used)
+{
+    static int32_t timeout = NET_UPLOAD_INTERVAL_MS;  // 60s
+    int32_t ret = 0;
+
+    if (ebike_is_connected_server() == false) {
+        return;
+    }
+    if (timeout <= 0) {
+        if (ebike_is_register() == true) {
+            ebike_device_state_upload_to_server();
+        } else {
+            ret = ebike_device_register_to_server();
+            if (ret == 0) {
+                ebike_device_state_upload_to_server();
+            }
+        }
+        timeout = NET_UPLOAD_INTERVAL_MS;
+    } else {
+        timeout -= ticks_used;
     }
 }
 

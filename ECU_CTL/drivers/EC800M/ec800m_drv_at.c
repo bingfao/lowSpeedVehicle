@@ -53,6 +53,7 @@ typedef enum {
 #define EC800M_AT_ACK_QUEUE_NO_CARRIER               0x0b  // when tcp do direct connect, 'NO CARRIER' may occur
 #define EC800M_AT_ACK_QUEUE_TCP_DIRECT_CONNECT       0x0c  // tcp direct connect state
 #define EC800M_AT_ACK_QUEUE_TCP_STRAIGHT_OUT_CONNECT 0x0d  // tcp straight out connect state
+#define EC800M_AT_ACK_QUEUE_TCP_DISCONNECT           0x0e  // tcp disconnect state
 
 #define PRINT_EC800M_RX_DATA                         1  // 1: print rx data, 0: not print
 /*
@@ -134,7 +135,8 @@ static int32_t ec800m_device_set_tcp_host(char *host);
 static int32_t ec800m_device_set_tcp_port(char *port);
 static int32_t ec800m_device_cs_stat(void *args, char *str);
 static bool ec800m_is_cs_registered(void);
-static int32_t ec800m_device_tcp_state_connect(void *args, char *str);
+static int32_t ec800m_device_tcp_state_check(void *args, char *str);
+static bool ec800m_socket_is_connected(void);
 static int32_t ec800m_device_tcp_transparent_connect_ok(void *args, char *str);
 static int32_t ec800m_device_tcp_transparent_connect_error(void *args, char *str);
 static int32_t ec800m_device_tcp_transparent_no_carrier(void *args, char *str);
@@ -671,6 +673,7 @@ static int32_t ec800m_drv_read(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buffe
 static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg)
 {
     int32_t ret = 0;
+    bool ret_bool = false;
     int32_t mode = *(int32_t *)arg;
 
     switch (cmd) {
@@ -718,6 +721,16 @@ static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg)
             if (ret == 0) {
                 g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
             }
+            break;
+        case DRV_EC800M_CMD_TCP_REF_STATE:
+            ret_bool = ec800m_socket_is_connected();
+            if (ret_bool == false) {
+                g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
+            }
+            *(int32_t *)arg = g_ec800m_connect_mode;
+            break;
+        case DRV_EC800M_CMD_SET_DIS_STATE:
+            g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
             break;
         default:
             break;
@@ -910,21 +923,45 @@ static int32_t ec800m_device_tcp_state_check(void *args, char *str)
 {
     char *token;
     char delim[] = ",";  // separator  ","
+    int8_t index = 0;
+    int8_t connect_flg = 0;
+    uint32_t connect_mode = 0;
 
     token = strtok(str, delim);
     if (token != NULL) {
-        printf("Token: %s\n", token);
+        index ++;
+        printf("[%d]%s\r\n",index, token);
     }
 
     // get next token
     while ((token = strtok(NULL, delim)) != NULL) {
-        printf("Token: %s\n", token);
+        index ++;
+        printf("[%d]%s\r\n",index, token);
+        if (index == 6) {
+            if (strcmp(token, "2") == 0) {
+                connect_flg = 1;
+            } else {
+                connect_flg = 0;
+            }
+        } else if (index == 9) {
+            if (strcmp(token, "1") == 0) {
+                connect_mode = EC800M_AT_ACK_QUEUE_TCP_STRAIGHT_OUT_CONNECT;
+            } else if (strcmp(token, "2") == 0) {
+                connect_mode = EC800M_AT_ACK_QUEUE_TCP_DIRECT_CONNECT;
+            } else {
+                connect_mode = EC800M_AT_ACK_QUEUE_TCP_DISCONNECT;
+            }
+        }
     }
+    if (connect_flg == 0) {
+        connect_mode = EC800M_AT_ACK_QUEUE_TCP_DISCONNECT;
+    }
+    ec800m_device_ack_message_send(connect_mode);
 
     return 0;
 }
 
-static bool ec800m_is_tcp_connect(void)
+static bool ec800m_socket_is_connected(void)
 {
     AT_CMP_STR_NODE_t at_str_ack[2] = {0};
     int32_t has_connected = 0;
@@ -946,7 +983,7 @@ static bool ec800m_is_tcp_connect(void)
     while (rx_queue_num > 0) {
         event = osMessageGet(g_ec800m_rx_queue_handle, 2000);
         if (event.status != osEventMessage) {
-            log_e("ec800m_is_cs_registered osMessageGet failed, status:0x%x\r\n", event.status);
+            log_e("socket state osMessageGet failed, status:0x%x, [%d] \r\n", event.status, rx_queue_num);
             return false;
         }
         rx_queue_num--;
@@ -958,6 +995,10 @@ static bool ec800m_is_tcp_connect(void)
             case EC800M_AT_ACK_QUEUE_TCP_STRAIGHT_OUT_CONNECT:
                 g_ec800m_connect_mode = EC800M_CONNECT_MODE_STRAIGHT_OUT;
                 has_connected = 1;
+                break;
+            case EC800M_AT_ACK_QUEUE_TCP_DISCONNECT:
+                g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
+                has_connected = 0;
                 break;
             default:
                 break;

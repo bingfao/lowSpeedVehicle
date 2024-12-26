@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 15:09:26
- * @LastEditTime: 2024-12-16 14:04:46
+ * @LastEditTime: 2024-12-26 11:31:36
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.h
@@ -47,6 +47,8 @@ typedef enum {
     NET_PORT_CMD_TCP_GET_MODE,
     NET_PORT_CMD_GET_CS_REGISTERED,  // Check Internet access (0: not registered, 1: registered)
     NET_PORT_CMD_RESET,
+    NET_PORT_CMD_TCP_REFRESH_STATE,   // refresh socket state (0: not connected, 1: connected)
+    NET_PORT_CMD_SET_DIS_STATE,
     NET_PORT_CMD_TCP_MAX
 } NET_PORT_CMD_t;
 
@@ -89,6 +91,8 @@ int32_t net_port_tcp_disconnect(void);
 bool net_port_is_connected(void);
 int32_t net_port_send(const uint8_t *buf, uint32_t len);
 int32_t net_port_recv(uint8_t *buf, uint32_t len);
+int32_t net_port_socket_refresh(void);
+int32_t net_port_tcp_reconnect(void);
 
 
 /* ************************************************************************* */

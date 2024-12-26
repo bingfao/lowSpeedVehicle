@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2024-12-09 09:38:58
+ * @LastEditTime: 2024-12-26 11:31:22
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -34,9 +34,10 @@
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
-#define NET_PORT_DRV_NAME "ec800m"
+#define NET_PORT_DRV_NAME              "ec800m"
 
-#define NET_RETRY_TO_CONNECT_TCP_CYCLE      (5*60000)        // 5min
+#define NET_RETRY_TO_CONNECT_TCP_CYCLE (5 * 60000)  // 5min
+#define NET_RETRY_TO_CONNECT_TCP_CYCLE (5 * 60000)  // 5min
 
 /*
  * ****************************************************************************
@@ -164,6 +165,15 @@ int32_t net_port_tcp_disconnect(void)
     return 0;
 }
 
+int32_t net_port_tcp_reconnect(void)
+{
+    net_port_tcp_disconnect();
+    g_net_driver_need_connect_flag = 1;
+    log_d("do reconnect \r\n");
+
+    return 0;
+}
+
 bool net_port_is_connected(void)
 {
     int32_t connect_mode = 0;
@@ -223,6 +233,22 @@ int32_t net_port_recv(uint8_t *buf, uint32_t len)
     return ret;
 }
 
+int32_t net_port_socket_refresh(void)
+{
+    int32_t state = 0xFF;
+
+    if (g_driver == NULL) {
+        log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
+        return -ENODEV;
+    }
+    driver_control(g_driver, NET_PORT_CMD_TCP_REFRESH_STATE, &state);
+    if (state == NET_PORT_TCP_CONNECT_MODE_STRAIGHT_OUT || state == NET_PORT_TCP_CONNECT_MODE_TRANSPARENT ||
+        state == NET_PORT_TCP_CONNECT_MODE_DISCONNECT) {
+        return state;
+    }
+    return -1;
+}
+
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
@@ -268,6 +294,7 @@ static void net_port_monitor_task(void const *argument)
 {
     int32_t times = NET_RETRY_TO_CONNECT_TCP_CYCLE;
     int32_t ret = 0;
+    int32_t socket_refresh_times = NET_RETRY_TO_CONNECT_TCP_CYCLE;
 
     while (1) {
         if (g_net_driver_init_flag == 1) {
@@ -287,6 +314,13 @@ static void net_port_monitor_task(void const *argument)
                 }
                 times -= 5000;
             }
+        }
+        // refresh socket state every 5 min
+        if (socket_refresh_times <= 0) {
+            socket_refresh_times = NET_RETRY_TO_CONNECT_TCP_CYCLE;
+            net_port_socket_refresh();
+        } else {
+            socket_refresh_times -= 5000;
         }
 
         osDelay(5000);

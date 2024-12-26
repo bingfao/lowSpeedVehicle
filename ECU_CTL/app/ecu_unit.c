@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2024-12-05 19:06:56
+ * @LastEditTime: 2024-12-26 11:38:26
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.c
@@ -28,7 +28,6 @@
 #include "driver_com.h"
 #include "mcu_ctl.h"
 #include "net_unit.h"
-#include "ebike_manage.h"
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
@@ -93,7 +92,6 @@ static int32_t ecu_unit_prepare(void)
     shell_port_init();
     mcu_ctl_init();
     net_unit_start();
-    ebike_manage_init();
 
     return 0;
 }
