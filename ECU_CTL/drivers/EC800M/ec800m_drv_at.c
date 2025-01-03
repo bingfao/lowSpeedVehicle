@@ -715,6 +715,9 @@ static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg)
                 break;
             }
             ret = ec800m_device_tcp_disconnect(mode);
+            if (ret == 0) {
+                g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
+            }
             break;
         case DRV_EC800M_CMD_RESET:
             ret = ec800m_device_reset();
@@ -956,6 +959,7 @@ static int32_t ec800m_device_tcp_state_check(void *args, char *str)
     if (connect_flg == 0) {
         connect_mode = EC800M_AT_ACK_QUEUE_TCP_DISCONNECT;
     }
+    log_d("tcp state check connect_flg:%d connect_mode:%d\r\n", connect_flg, connect_mode);
     ec800m_device_ack_message_send(connect_mode);
 
     return 0;

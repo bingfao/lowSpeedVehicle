@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2024-12-26 11:31:22
+ * @LastEditTime: 2025-01-03 10:00:26
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -168,6 +168,7 @@ int32_t net_port_tcp_disconnect(void)
 int32_t net_port_tcp_reconnect(void)
 {
     net_port_tcp_disconnect();
+    driver_control(g_driver, NET_PORT_CMD_SET_DIS_STATE, NULL);
     g_net_driver_need_connect_flag = 1;
     log_d("do reconnect \r\n");
 

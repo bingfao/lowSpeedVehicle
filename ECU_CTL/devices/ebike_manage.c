@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:23
- * @LastEditTime: 2024-12-26 14:22:05
+ * @LastEditTime: 2024-12-30 12:54:29
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.c
@@ -464,6 +464,7 @@ int32_t ebike_device_state_upload_to_server(void)
     } while (times-- > 0 && ret < 0);
     log_e("ebike_state_upload timeout\r\n");
     net_port_tcp_reconnect();
+    g_ebike_manage_obj.register_flg = 0;
 
     return -ETIMEDOUT;
 }
@@ -595,6 +596,7 @@ static void ebike_rx_task(void const *argument)
     //     net_port_send("Hello, world!\r\n", strlen("Hello, world!\r\n"));
     // }
     while (1) {
+        g_ebike_manage_obj.connect_flg = net_port_is_connected() ? 1 : 0;
         if (g_ebike_manage_obj.connect_flg == 1) {
             do {
                 ret = net_port_recv(&data, 1);
@@ -602,8 +604,9 @@ static void ebike_rx_task(void const *argument)
                     net_agreement_data_in(g_ebike_manage_obj.net_agreement_obj, &data, 1);
                 }
             } while (ret > 0);
+        } else {
+            g_ebike_manage_obj.register_flg = 0;
         }
-        g_ebike_manage_obj.connect_flg = net_port_is_connected() ? 1 : 0;
         osDelay(100);
     }
 }
