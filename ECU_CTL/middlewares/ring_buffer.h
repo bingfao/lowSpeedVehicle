@@ -19,6 +19,8 @@ typedef struct
     int itemSz;
     uint32_t head;
     uint32_t tail;
+    uint32_t overflow;
+    uint32_t used_deep;
 } RINGBUFF_T;
 
 /**
@@ -54,6 +56,18 @@ int RingBuffer_Init(RINGBUFF_T *RingBuff, void *buffer, int itemSize, int count)
 static inline void RingBuffer_Flush(RINGBUFF_T *RingBuff)
 {
     RingBuff->head = RingBuff->tail = 0;
+    RingBuff->overflow = 0;
+    RingBuff->used_deep = 0;
+}
+
+static inline int RingBuffer_GetOverflow(RINGBUFF_T *RingBuff)
+{
+    return RingBuff->overflow;
+}
+
+static inline int RingBuffer_GetUsedDeep(RINGBUFF_T *RingBuff)
+{
+    return RingBuff->used_deep;
 }
 
 /**
