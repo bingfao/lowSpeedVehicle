@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:23
- * @LastEditTime: 2024-12-30 12:54:29
+ * @LastEditTime: 2025-01-13 14:23:14
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.c
@@ -24,6 +24,7 @@
 #include "error_code.h"
 #include "net_agreement.h"
 #include "net_port.h"
+#include "ota_file_manage.h"
 #include "version.h"
 
 /*
@@ -61,6 +62,9 @@ EBIKE_MANAGE_OBJ_t g_ebike_manage_obj;
 osThreadId g_ebike_rx_handle;
 osMessageQId g_ebike_rx_queue_handle;
 
+static uint8_t g_default_aes_key[] = {0xfa, 0x91, 0x97, 0xfe, 0x55, 0xd5, 0x34, 0xe9,
+                                      0x41, 0x5a, 0x89, 0x6a, 0x84, 0x1f, 0xb5, 0x4f};
+
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
@@ -76,12 +80,16 @@ static int32_t ebike_msg_send_queue(uint32_t message);
 static int32_t ebike_msg_wait_queue(uint32_t *in_message, uint32_t timeout);
 
 // device register callback function
+// server ack function
 static int32_t ebike_device_register_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 static int32_t ebike_device_state_upload_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
+// server cmd function
+static int32_t ebike_rev_file_head(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 
 MSG_ID_MAP_t g_msg_id_fun_map[] = {
     {NET_TX_MSG_ID_REGISTER_DEV, NET_MSG_TYPE_RESP, ebike_device_register_ack},
     {NET_TX_MSG_ID_DEV_STATE, NET_MSG_TYPE_RESP, ebike_device_state_upload_ack},
+    {NET_RX_MSG_ID_FILE_DOWNLOAD, NET_MSG_TYPE_SEND, ebike_rev_file_head},
 };
 
 /*
@@ -98,6 +106,8 @@ int32_t ebike_manage_init(void)
     g_ebike_manage_obj.power_battery_parallel_counts = EBIKE_POWER_BATTERY_PARALLEL_COUNT;
     g_ebike_manage_obj.net_agreement_obj =
         net_agreement_create(g_ebike_manage_obj.dev_id, ebike_manage_send_data, ebike_manage_get_ticks);
+    memcpy(g_ebike_manage_obj.aes_iv, g_default_aes_key, sizeof(g_default_aes_key));
+    net_agreement_set_aes_key(g_ebike_manage_obj.net_agreement_obj, g_default_aes_key, sizeof(g_default_aes_key));
     if (g_ebike_manage_obj.net_agreement_obj != NULL) {
         ebike_manage_register_msg_id(g_ebike_manage_obj.net_agreement_obj);
         ebike_manage_read_start();
@@ -552,6 +562,19 @@ static int32_t ebike_device_state_upload_ack(uint8_t *in_data, int32_t in_len, u
     return 0;
 }
 
+static int32_t ebike_rev_file_head(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len)
+{
+    *out_len = 0;
+    out_data[0] = 0x01;
+
+    ota_file_head_in(in_data, in_len);
+
+    out_data[0] = 0x00;
+    *out_len = 1;
+
+    return 0;
+}
+
 static int32_t ebike_manage_read_start(void)
 {
     osThreadDef(ebike_rx, ebike_rx_task, osPriorityNormal, 0, 1024);
@@ -584,18 +607,27 @@ static int32_t ebike_rx_prepare(void)
     return 0;
 }
 
+#define EBIKE_RX_PREPARE_TIME_OUT 10000
 static void ebike_rx_task(void const *argument)
 {
     int32_t ret = 0;
     uint8_t data = 0;
+    int32_t has_prepare = 0;
+    int32_t prepare_time_out = 0;
 
-    ebike_rx_prepare();
     log_d("ebike_rx task running...\r\n");
     // if (g_ebike_manage_obj.connect_flg == 1) {
     //     log_d("ebike_rx task running...\r\n");
     //     net_port_send("Hello, world!\r\n", strlen("Hello, world!\r\n"));
     // }
     while (1) {
+        if (has_prepare == 0 && prepare_time_out <= 0) {
+            prepare_time_out = EBIKE_RX_PREPARE_TIME_OUT;
+            ret = ebike_rx_prepare();
+            if (ret == 0) {
+                has_prepare = 1;
+            }
+        }
         g_ebike_manage_obj.connect_flg = net_port_is_connected() ? 1 : 0;
         if (g_ebike_manage_obj.connect_flg == 1) {
             do {
@@ -607,7 +639,8 @@ static void ebike_rx_task(void const *argument)
         } else {
             g_ebike_manage_obj.register_flg = 0;
         }
-        osDelay(100);
+        osDelay(50);
+        prepare_time_out -= 50;
     }
 }
 

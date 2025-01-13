@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:41
- * @LastEditTime: 2024-12-26 11:40:08
+ * @LastEditTime: 2025-01-09 14:21:18
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.h
@@ -50,6 +50,7 @@ typedef enum {
 typedef struct
 {
     uint32_t dev_id;
+    uint8_t aes_key[16];
     uint32_t session_id;
     EBIKE_TYPE_t dev_type;
     uint8_t power_battery_series_counts;

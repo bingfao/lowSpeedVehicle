@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:22:37
- * @LastEditTime: 2024-10-30 10:52:33
+ * @LastEditTime: 2025-01-09 18:26:06
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.h
@@ -44,7 +44,7 @@ extern "C" {
  */
 #define DRV_USAER_1_OPEN  1
 #define DRV_USAER_2_OPEN  1
-#define DRV_USAER_3_OPEN  0
+#define DRV_USAER_3_OPEN  1
 #define DRV_USAER_4_OPEN  0
 #define DRV_USAER_5_OPEN  0
 #define DRV_USAER_6_OPEN  0
@@ -61,7 +61,7 @@ extern "C" {
 #define USART_1_INIT            NULL
 #endif
 #if DRV_USAER_2_OPEN
-#define DRV_USART_2_RX_BUF_SIZE 512
+#define DRV_USART_2_RX_BUF_SIZE 2048
 #define USART_2_HANDLE          &huart2
 #define USART_2_INIT            MX_USART2_UART_Init
 #else

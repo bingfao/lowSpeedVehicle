@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:34
- * @LastEditTime: 2024-12-25 14:40:55
+ * @LastEditTime: 2025-01-09 16:48:12
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.c
@@ -25,6 +25,7 @@
 #include "fault.h"
 #include "user_crc.h"
 #include "version.h"
+#include "aes.h"
 
 /*
  * ****************************************************************************
@@ -52,6 +53,8 @@ typedef struct
     uint8_t rx_msg[NET_RX_MSG_HEAD_BODY_LEN_MAX];
     uint32_t rx_msg_index;
     uint32_t msg_rx_state;
+    uint8_t aes_key[16];
+    uint8_t aes_iv[16];
 } NET_AGREEMENT_OBJ_t;
 
 #pragma pack(push, 1)
@@ -302,6 +305,50 @@ uint32_t net_agreement_get_session_id(void *obj)
     return net_obj->session_id;
 }
 
+int32_t net_agreement_set_aes_key(void *obj, uint8_t *key, uint32_t len)
+{
+    NET_AGREEMENT_OBJ_t *net_obj = (NET_AGREEMENT_OBJ_t *)obj;
+    if (len > sizeof(net_obj->aes_key)) {
+        return -EINVAL;
+    }
+    memcpy(net_obj->aes_key, key, len);
+    return 0;
+}
+
+int32_t net_agreement_get_aes_key(void *obj, uint8_t *key, uint32_t *len)
+{
+    NET_AGREEMENT_OBJ_t *net_obj = (NET_AGREEMENT_OBJ_t *)obj;
+    if (*len < sizeof(net_obj->aes_key)) {
+        return -EINVAL;
+    }
+    *len = sizeof(net_obj->aes_key);
+    memcpy(key, net_obj->aes_key, *len);
+
+    return 0;
+}
+
+int32_t net_agreement_set_aes_iv(void *obj, uint8_t *iv, uint32_t len)
+{
+    NET_AGREEMENT_OBJ_t *net_obj = (NET_AGREEMENT_OBJ_t *)obj;
+    if (len > sizeof(net_obj->aes_iv)) {
+        return -EINVAL;
+    }
+    memcpy(net_obj->aes_iv, iv, len);
+    return 0;
+}
+
+int32_t net_agreement_get_aes_iv(void *obj, uint8_t *iv, uint32_t *len)
+{
+    NET_AGREEMENT_OBJ_t *net_obj = (NET_AGREEMENT_OBJ_t *)obj;
+    if (*len < sizeof(net_obj->aes_iv)) {
+        return -EINVAL;
+    }
+    *len = sizeof(net_obj->aes_iv);
+    memcpy(iv, net_obj->aes_iv, *len);
+
+    return 0;
+}
+
 void net_agreement_destroy(void *obj)
 {
     NET_AGREEMENT_OBJ_t *net_obj = (NET_AGREEMENT_OBJ_t *)obj;
@@ -361,6 +408,7 @@ int32_t net_agreement_send_msg(void *obj, uint16_t msg_id, uint8_t msg_type, uin
     }
     if (len > 0) {
         if (msg_body_need_aes(msg_id)) {
+            out_len = sizeof(tx_msg->msg_body);
             ret = msg_aes_encoder(msg, len, tx_msg->msg_body, &out_len);
             tx_msg->req_head.head.msg_body_len = out_len;
             tx_msg->req_head.head.crypt_flg = NET_MSG_CRYPT_FLG_AES;
@@ -508,6 +556,7 @@ int32_t net_agreement_device_register_ack(void *obj, uint8_t *data, uint32_t len
     }
     *session_id = ack_msg->ack_data.register_ack_data.section_id;
     memcpy(aes_iv, ack_msg->ack_data.register_ack_data.aes_iv, sizeof(ack_msg->ack_data.register_ack_data.aes_iv));
+    memcpy(net_obj->aes_iv, ack_msg->ack_data.register_ack_data.aes_iv, sizeof(net_obj->aes_iv));
     net_obj->session_id = *session_id;
     log_i("register device success, session_id:0x%08x", *session_id);
 
@@ -646,11 +695,37 @@ static bool msg_body_need_aes(uint32_t msg_id)
 
 static int32_t msg_aes_encoder(uint8_t *in_msg, uint32_t in_len, uint8_t *out_msg, uint32_t *out_len)
 {
-    return *out_len;
+    struct AES_ctx ctx;
+    uint32_t len = in_len;
+    int32_t ret = 0;
+
+    AES_init_ctx_iv(&ctx, g_net_agreement_obj.aes_key, g_net_agreement_obj.aes_iv);
+    ret = AES_CBC_encrypt_buffer_fill(&ctx, in_msg, &len, *out_len);
+    if (ret < 0) {
+        log_e("msg_aes_encoder overflow, ret:%d", ret);
+        return ret;
+    }
+    *out_len = len;
+    memcpy(out_msg, in_msg, len);
+
+    return 0;
 }
 
 static int32_t msg_aes_decoder(uint8_t *in_msg, uint32_t in_len, uint8_t *out_msg, uint32_t *out_len)
 {
+    struct AES_ctx ctx;
+    uint32_t len = 0;
+    int32_t ret = 0;
+
+    AES_init_ctx_iv(&ctx, g_net_agreement_obj.aes_key, g_net_agreement_obj.aes_iv);
+    ret = AES_CBC_decrypt_buffer_fill(&ctx, in_msg, &len);
+    if (ret < 0) {
+        log_e("msg_aes_decoder fail, ret:%d", ret);
+        return ret;
+    }
+    *out_len = len;
+    memcpy(out_msg, in_msg, len);
+
     return *out_len;
 }
 
@@ -725,6 +800,7 @@ static int32_t net_msg_body_aes_decoder(uint8_t *data)
     int32_t ret = 0;
     NET_MSG_HEADER_t *msg_header = (NET_MSG_HEADER_t *)data;
     uint32_t out_len = 0;
+    uint32_t aes_len = 0;
 
     if (msg_header->crypt_flg == NET_MSG_CRYPT_FLG_NO_CRYPT) {
         return 0;  // no need to decode
@@ -733,13 +809,15 @@ static int32_t net_msg_body_aes_decoder(uint8_t *data)
         msg_body = data + sizeof(NET_RESPONSE_HEADER_t);
     } else {
         msg_body = data + sizeof(NET_REQUIRE_HEADER_t);
+        aes_len = msg_header->msg_body_len - 6;
     }
 
-    ret = msg_aes_decoder(msg_body, msg_header->msg_body_len, msg_body, &out_len);
+    ret = msg_aes_decoder(msg_body, aes_len, msg_body, &out_len);
     if (ret < 0) {
         return ret;
     }
-    msg_header->msg_body_len = out_len;
+    memcpy(&msg_body[out_len], &msg_body[aes_len], 6);
+    msg_header->msg_body_len = out_len + 6;
 
     return 0;
 }

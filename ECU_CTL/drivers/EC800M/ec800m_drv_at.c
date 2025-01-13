@@ -69,8 +69,8 @@ typedef enum {
  */
 AT_COM_t g_ec800m_at_com;
 DRIVER_OBJ_t *g_ec800m_trans_driver = NULL;
-char g_ec800m_at_tx_buf[EC800M_DRV_TX_BUF_SIZE];
-char g_ec800m_at_rx_buf[EC800M_DRV_RX_BUF_SIZE];
+char g_ec800m_at_tx_buf[EC800M_DRV_AT_TX_BUF_SIZE];
+char g_ec800m_at_rx_buf[EC800M_DRV_AT_RX_BUF_SIZE];
 
 char g_ec800m_rx_ring_buf_data[EC800M_DRV_RX_BUF_SIZE];
 RINGBUFF_T g_ec800m_rx_ring_buf_handle;
@@ -176,8 +176,8 @@ static int32_t ec800m_drv_init(DRIVER_OBJ_t *p_driver)
 {
     int32_t ret = 0;
 
-    at_com_init(&g_ec800m_at_com, g_ec800m_at_tx_buf, EC800M_DRV_TX_BUF_SIZE, g_ec800m_at_rx_buf,
-                EC800M_DRV_RX_BUF_SIZE);
+    at_com_init(&g_ec800m_at_com, g_ec800m_at_tx_buf, EC800M_DRV_AT_TX_BUF_SIZE, g_ec800m_at_rx_buf,
+                EC800M_DRV_AT_RX_BUF_SIZE);
     at_com_set_send_func(&g_ec800m_at_com, ec800m_dev_send_blocking_mode);
     at_com_set_delay_func(&g_ec800m_at_com, ec800m_delay_ms);
     g_ec800m_trans_driver = get_driver(EC800M_TRANS_DRV_NAME);
@@ -655,9 +655,9 @@ static int32_t ec800m_drv_read(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buffe
         }
         if (RingBuffer_IsEmpty(&g_ec800m_rx_ring_buf_handle)) {
             if (pos == EC800M_DRV_POS_BLOCKING_1000) {
-                time_out -= 100;
+                time_out -= 10;
             }
-            ec800m_delay_ms(100);
+            ec800m_delay_ms(10);
             continue;
         }
         if (pos == EC800M_DRV_POS_BLOCKING_1000) {

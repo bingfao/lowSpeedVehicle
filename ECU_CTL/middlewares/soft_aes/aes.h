@@ -24,9 +24,9 @@
 #endif
 
 
-// #define AES128 1
+#define AES128 1
 //#define AES192 1
-#define AES256 1
+// #define AES256 1
 
 #define AES_BLOCKLEN 16 // Block length in bytes - AES is 128b block only
 
@@ -72,6 +72,8 @@ void AES_ECB_decrypt(const struct AES_ctx* ctx, uint8_t* buf);
 //        no IV should ever be reused with the same key
 void AES_CBC_encrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, size_t length);
 void AES_CBC_decrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, size_t length);
+int32_t AES_CBC_encrypt_buffer_fill(struct AES_ctx *ctx, uint8_t* buf, size_t *length, size_t buf_max_len);
+int32_t AES_CBC_decrypt_buffer_fill(struct AES_ctx* ctx, uint8_t* buf, size_t *length);
 
 #endif // #if defined(CBC) && (CBC == 1)
 

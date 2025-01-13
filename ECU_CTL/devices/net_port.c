@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2025-01-03 10:00:26
+ * @LastEditTime: 2025-01-13 13:59:09
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -50,7 +50,7 @@
  * ******** Private global variables                                   ********
  * ****************************************************************************
  */
-DRIVER_OBJ_t *g_driver = NULL;
+static DRIVER_OBJ_t *g_driver = NULL;
 
 int32_t g_set_tcp_connect_mode = NET_PORT_TCP_CONNECT_MODE_STRAIGHT_OUT;
 char g_tcp_host[64] = {0};

@@ -528,6 +528,81 @@ void AES_CBC_decrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, size_t length)
 
 }
 
+// PKCS#7 填充
+static void pkcs7_pad(uint8_t *data, size_t length, size_t block_size) {
+    int padding_length = block_size - (length % block_size);
+    for (int i = 0; i < padding_length; i++) {
+        data[length + i] = padding_length;
+    }
+}
+
+// PKCS#7 去填充
+static int32_t pkcs7_unpad(uint8_t *data, size_t *length, size_t block_size) {
+    int padding_length = data[*length - 1];
+    int32_t i;
+    if (padding_length > block_size || padding_length == 0) {
+        // 填充错误
+        return -2;
+    }
+    for (i = *length - padding_length; i < *length ; i++) {
+        if (data[i] != padding_length) {
+            // 填充错误
+            return -2;
+        }
+    }
+
+    *length -= padding_length;
+
+    return 0;
+}
+
+int32_t AES_CBC_encrypt_buffer_fill(struct AES_ctx *ctx, uint8_t* buf, size_t *length, size_t buf_max_len)
+{
+  size_t i;
+  uint8_t *Iv = ctx->Iv;
+  size_t len = *length;
+  size_t need_len = len + AES_BLOCKLEN - (len % AES_BLOCKLEN);
+
+  if (need_len > buf_max_len) {
+    return -1;
+  }
+  pkcs7_pad(buf, len, AES_BLOCKLEN);
+  for (i = 0; i < need_len; i += AES_BLOCKLEN)
+  {
+    XorWithIv(buf, Iv);
+    Cipher((state_t*)buf, ctx->RoundKey);
+    Iv = buf;
+    buf += AES_BLOCKLEN;
+  }
+  /* store Iv in ctx for next call */
+  memcpy(ctx->Iv, Iv, AES_BLOCKLEN);
+  *length = need_len;
+
+  return 0;
+}
+
+int32_t AES_CBC_decrypt_buffer_fill(struct AES_ctx* ctx, uint8_t* buf, size_t *length)
+{
+  size_t i;
+  uint8_t storeNextIv[AES_BLOCKLEN];
+  size_t len = *length;
+
+  if (len % AES_BLOCKLEN) {
+    return -1;
+  }
+
+  for (i = 0; i < len; i += AES_BLOCKLEN)
+  {
+    memcpy(storeNextIv, buf, AES_BLOCKLEN);
+    InvCipher((state_t*)buf, ctx->RoundKey);
+    XorWithIv(buf, ctx->Iv);
+    memcpy(ctx->Iv, storeNextIv, AES_BLOCKLEN);
+    buf += AES_BLOCKLEN;
+  }
+
+  return pkcs7_unpad(buf - len, length, AES_BLOCKLEN);
+}
+
 #endif // #if defined(CBC) && (CBC == 1)
 
 

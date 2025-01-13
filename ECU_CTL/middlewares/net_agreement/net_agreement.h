@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:43
- * @LastEditTime: 2024-12-25 10:43:28
+ * @LastEditTime: 2025-01-09 15:45:45
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.h
@@ -39,7 +39,7 @@ extern "C" {
  */
 #define NET_TX_MSG_BODY_LEN_MAX      256
 #define NET_TX_MSG_HEAD_BODY_LEN_MAX (NET_TX_MSG_BODY_LEN_MAX + 23)  // require header + body
-#define NET_RX_MSG_BODY_LEN_MAX      1500
+#define NET_RX_MSG_BODY_LEN_MAX      0x1200                          // 4608 bytes
 #define NET_RX_MSG_HEAD_BODY_LEN_MAX (NET_RX_MSG_BODY_LEN_MAX + 19)  // response header + body
 
 #define NET_COMM_MSG_NUM_MAX         5
@@ -172,6 +172,10 @@ typedef int32_t (*MSG_ID_FUNC)(uint8_t *in_data, int32_t in_len, uint8_t *out_da
 void *net_agreement_create(uint32_t dev_id, NET_AG_TX_FUNC tx_func, NET_GET_TICK get_tick_func);
 void net_agreement_set_session_id(void *obj, uint32_t session_id);
 uint32_t net_agreement_get_session_id(void *obj);
+int32_t net_agreement_set_aes_key(void *obj, uint8_t *key, uint32_t len);
+int32_t net_agreement_get_aes_key(void *obj, uint8_t *key, uint32_t *len);
+int32_t net_agreement_set_aes_iv(void *obj, uint8_t *iv, uint32_t len);
+int32_t net_agreement_get_aes_iv(void *obj, uint8_t *iv, uint32_t *len);
 void net_agreement_destroy(void *obj);
 int32_t register_agreement_tx_func(void *obj, NET_AG_TX_FUNC tx_func);
 int32_t net_agreement_send_msg(void *obj, uint16_t msg_id, uint8_t msg_type, uint8_t *msg, uint32_t len);

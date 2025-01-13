@@ -1,46 +1,43 @@
 /*
  * @Author: your name
- * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2025-01-09 17:12:57
+ * @Date: 2025-01-09 15:11:21
+ * @LastEditTime: 2025-01-09 17:21:05
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
- * @FilePath: \ECU_CTL\app\ecu_unit.c
+ * @FilePath: \ebike_ECU\ECU_CTL\devices\file_manage.c
  */
-
 /*
  * ****************************************************************************
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#define LOG_TAG "ECU_UNIT"
+#define LOG_TAG "ota_file"
 #define LOG_LVL ELOG_LVL_DEBUG
-#include "ecu_unit.h"
+#include "ota_file_manage.h"
 
-#include <FreeRTOS.h>
-#include <cmsis_os.h>
-#include <error_code.h>
-#include <task.h>
-
-#include "console.h"
+#include "user_crc.h"
 #include "elog.h"
-#include "shell_port.h"
-#include "version.h"
-#include "driver_com.h"
-#include "mcu_ctl.h"
-#include "net_unit.h"
 #include "bms_port.h"
+
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
  * ****************************************************************************
  */
 
+typedef struct
+{
+    OTA_FILE_HEAD_t file_head;
+    uint8_t *data;
+    uint32_t size;
+    uint16_t crc;
+} OTA_FILE_t;
+
 /*
  * ****************************************************************************
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
-osThreadId g_ecu_unit_handle;
 
 /*
  * ****************************************************************************
@@ -53,33 +50,38 @@ osThreadId g_ecu_unit_handle;
  * ******** Private global variables                                   ********
  * ****************************************************************************
  */
+OTA_FILE_t g_file;
 
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
  * ****************************************************************************
  */
-static int32_t ecu_unit_prepare(void);
-static void ecu_unit_task(void const *argument);
 
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********
  * ****************************************************************************
  */
-int32_t ecu_unit_init(void)
-{
-    console_init();
-    print_system_inf();
-    driver_register_fun_doing();
 
-    return 0;
-}
-
-int32_t ecu_unit_start(void)
+int32_t ota_file_head_in(uint8_t *data, uint32_t size)
 {
-    osThreadDef(ecu_unit, ecu_unit_task, osPriorityNormal, 0, 1024);
-    g_ecu_unit_handle = osThreadCreate(osThread(ecu_unit), NULL);
+    uint16_t crc_cal = 0;
+    OTA_FILE_HEAD_t *head = (OTA_FILE_HEAD_t *)data;
+
+    memcpy(&g_file.file_head, head, sizeof(OTA_FILE_HEAD_t));
+    g_file.data = data + sizeof(OTA_FILE_HEAD_t);
+    g_file.size = (uint32_t)data[size - 6];
+    g_file.crc = (uint16_t)data[size - 2];
+
+    crc_cal = crc16_ccitt((uint8_t *)head, size, 0);
+
+    if (crc_cal == g_file.crc) {
+        log_d("ota file head crc check pass, 0x%04x == 0x%04x", crc_cal, g_file.crc);
+    } else {
+        log_e("ota file head crc check fail, 0x%04x != 0x%04x", crc_cal, g_file.crc);
+    }
+    bms_port_send((uint8_t *)head, size);
 
     return 0;
 }
@@ -88,38 +90,6 @@ int32_t ecu_unit_start(void)
  * ******** Private function Definition                                ********
  * ****************************************************************************
  */
-static int32_t ecu_unit_prepare(void)
-{
-    shell_port_init();
-    mcu_ctl_init();
-    net_unit_start();
-    bms_port_init();
-
-    return 0;
-}
-
-
-static void ecu_unit_task(void const *argument)
-{
-    ecu_unit_prepare();
-    uint8_t mcuID[18];
-    uint8_t size = 0;
-    // uint32_t tick = 0;
-
-    size = mcu_ctl_get_id(mcuID);
-    printf("CPU ID: 0x");
-    for (int i = 0; i < size; i++) {
-        printf("%02X ", mcuID[i]);
-    }
-    printf("\r\n");
-
-    log_d("ECU_UNIT task running...\r\n");
-    while (1) {
-        // tick = osKernelSysTick();
-        // log_d("tick: %d\r\n", tick);
-        osDelay(1000);
-    }
-}
 
 /*
  * ****************************************************************************
