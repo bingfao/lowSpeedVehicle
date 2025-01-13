@@ -189,7 +189,7 @@
                 <option>
                     <name>TrustZoneModes</name>
                     <version>0</version>
-                    <state>0</state>
+                    <state>1</state>
                 </option>
                 <option>
                     <name>OGAarch64Abi</name>
@@ -1238,6 +1238,9 @@
         <group>
             <name>devices</name>
             <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\bms_port.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\ebike_manage.c</name>
             </file>
             <file>
@@ -1245,6 +1248,9 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\net_port.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\ota_file_manage.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\shell_port.c</name>
