@@ -1241,6 +1241,9 @@
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\bms_port.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\console.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\ebike_manage.c</name>
             </file>
             <file>
@@ -1266,6 +1269,9 @@
             </group>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\console.c</name>
+                <excluded>
+                    <configuration>ECU_STM32_407</configuration>
+                </excluded>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\driver_com.c</name>
