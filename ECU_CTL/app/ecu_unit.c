@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2025-01-09 17:12:57
+ * @LastEditTime: 2025-01-14 19:42:28
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.c
@@ -69,9 +69,9 @@ static void ecu_unit_task(void const *argument);
  */
 int32_t ecu_unit_init(void)
 {
+    driver_register_fun_doing();
     console_init();
     print_system_inf();
-    driver_register_fun_doing();
 
     return 0;
 }

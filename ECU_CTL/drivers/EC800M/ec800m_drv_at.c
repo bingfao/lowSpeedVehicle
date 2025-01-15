@@ -38,7 +38,7 @@ typedef enum {
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
-#define EC800M_TRANS_DRV_NAME                        "usart2"
+#define EC800M_TRANS_DRV_NAME                        "f407_usart2"
 
 #define EC800M_AT_ACK_QUEUE_OK                       0x01
 #define EC800M_AT_ACK_QUEUE_ERROR                    0x02
