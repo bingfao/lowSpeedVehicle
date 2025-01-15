@@ -268,9 +268,9 @@ static void ec800m_rx_prepare(void)
 
 static int32_t ec800m_rx_ring_save_data(char *p_buf, uint32_t len)
 {
-    if (RingBuffer_IsFull(&g_ec800m_rx_ring_buf_handle)) {
-        RingBuffer_Flush(&g_ec800m_rx_ring_buf_handle);
-    }
+    // if (RingBuffer_IsFull(&g_ec800m_rx_ring_buf_handle)) {
+    //     RingBuffer_Flush(&g_ec800m_rx_ring_buf_handle);
+    // }
     RingBuffer_InsertMult(&g_ec800m_rx_ring_buf_handle, p_buf, len);
     return len;
 }
@@ -396,7 +396,7 @@ static int32_t ec800m_drv_save_data(char *p_buf, uint32_t len)
             g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
         }
         return ec800m_drv_straight_out_mode_save_data(p_buf, len);
-    } else {
+    } else if (g_ec800m_connect_mode == EC800M_CONNECT_MODE_DIRECT) {
         if (g_ec800m_connect_mode == EC800M_CONNECT_MODE_DIRECT) {
             if (ec800m_dev_check_tcp_direct_to_disconnect(p_buf, len)) {
                 log_d("ec800m_MODE_DIRECT: tcp disconnect\r\n");
@@ -405,6 +405,8 @@ static int32_t ec800m_drv_save_data(char *p_buf, uint32_t len)
         }
         return ec800m_rx_ring_save_data(p_buf, len);
     }
+
+    return -1;
 }
 
 static void ec800m_rx_task(void const *argument)
@@ -414,6 +416,7 @@ static void ec800m_rx_task(void const *argument)
     int32_t timeout = 100;
     char data[64] = {0};
     int32_t ret = 0;
+    int32_t in_data_size = 0;
 
     ec800m_rx_prepare();
     while (1) {
@@ -435,12 +438,22 @@ static void ec800m_rx_task(void const *argument)
             if (size > 0) {
                 timeout = 100;
                 ret_size = driver_read(g_ec800m_trans_driver, 0, data, size);
-                ec800m_drv_save_data(data, ret_size);
+                ret = ec800m_drv_save_data(data, ret_size);
                 at_com_data_process(&g_ec800m_at_com, data, ret_size, 0);
 #if PRINT_EC800M_RX_DATA
-                for (int i = 0; i < ret_size; i++) {
-                    // printf("0x%02x[%c] ", data[i], data[i]);
-                    printf("%c", data[i]);
+                if (ret > 0) {
+                    if (in_data_size < 1000) {
+                        for (int i = 0; i < ret_size; i++) {
+                            // printf("0x%02x[%c] ", data[i], data[i]);
+                            printf("%02x ", data[i]);
+                        }
+                    }
+                    in_data_size += ret;
+                } else {
+                    for (int i = 0; i < ret_size; i++) {
+                        // printf("0x%02x[%c] ", data[i], data[i]);
+                        printf("%c", data[i]);
+                    }
                 }
 #endif
             } else {
@@ -453,7 +466,9 @@ static void ec800m_rx_task(void const *argument)
             log_raw("\r\n");
 #endif
             data[0] = '\0';
-            log_d("rx: %d[%d] \r\n", g_ec800m_at_com.rx_buffer_index, g_ec800m_at_com.status);
+            log_d("AT rx: %d[%d] \r\n", g_ec800m_at_com.rx_buffer_index, g_ec800m_at_com.status);
+            log_d("data rx: %d \r\n", in_data_size);
+            in_data_size = 0;   // 512 bytes per line
             at_com_data_process(&g_ec800m_at_com, data, 1, 1);
         }
     }

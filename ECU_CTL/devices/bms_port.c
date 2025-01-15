@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-08 14:09:30
- * @LastEditTime: 2025-01-08 14:31:39
+ * @LastEditTime: 2025-01-15 17:27:02
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\bms_port.c
@@ -22,7 +22,7 @@
  * ******** Private Types                                              ********
  * ****************************************************************************
  */
-#define BMS_PORT_DRV_NAME              "usart3"
+#define BMS_PORT_DRV_NAME              "f407_usart3"
 
 /*
  * ****************************************************************************

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:20:51
- * @LastEditTime: 2025-01-14 21:37:27
+ * @LastEditTime: 2025-01-15 17:15:14
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.c
@@ -14,7 +14,9 @@
 #include "drv_usart.h"
 
 #include <FreeRTOS.h>
+#include <cmsis_os.h>
 #include <semphr.h>
+#include <util.h>
 
 #include "driver_com.h"
 #include "error_code.h"
@@ -37,7 +39,7 @@ typedef struct
 
 typedef struct
 {
-    uint8_t usart_index;  // 0:USART1, 1:USART2, 2:USART3, 3:USART4, 4:USART5, 5:USART6, 6:USART7, 7:USART8
+    uint8_t usart_index;  // 0:USART1, 1:USART2, 2:USART3, 3:USART4, 4:USART5, 5:USART6
     uint32_t rx_buf_size;
     uint8_t *rx_buffer;
     RINGBUFF_T rx_ring_buff;
@@ -47,13 +49,17 @@ typedef struct
     RINGBUFF_T tx_ring_buff;
     uint32_t tx_dma_buf_size;
     uint8_t *tx_dma_buffer;
+    uint8_t tx_dma_flg;
     DRV_USART_SEM_OBJ_t tx_sem;
+    DRV_USART_SEM_OBJ_t tx_start_sem;
     DRV_USART_SEM_OBJ_t rx_sem;
     UART_CALL_BACK_FUN rx_it_call_back;
     void *rx_it_call_back_arg;
     UART_CALL_BACK_FUN tx_it_call_back;
     void *tx_it_call_back_arg;
     UART_HandleTypeDef *ctl_uart;
+    osThreadId tx_thread_id;
+    osThreadDef_t *tx_thread_def;
 } DRV_USART_OBJ_t;
 
 /*
@@ -155,6 +161,9 @@ uint8_t *g_usart_tx_dma_buffer[DRV_USART_NUM_MAX] = {USART_1_TX_DMA_BUFFER, USAR
 uint32_t g_usart_tx_dma_buf_size[DRV_USART_NUM_MAX] = {DRV_USART_1_TX_DMA_BUF_SIZE, DRV_USART_2_TX_DMA_BUF_SIZE,
                                                        DRV_USART_3_TX_DMA_BUF_SIZE, DRV_USART_4_TX_DMA_BUF_SIZE,
                                                        DRV_USART_5_TX_DMA_BUF_SIZE, DRV_USART_6_TX_DMA_BUF_SIZE};
+uint32_t g_usart_tx_dma_flg[DRV_USART_NUM_MAX] = {DRV_USART_1_TX_DMA_FLG, DRV_USART_2_TX_DMA_FLG,
+                                                  DRV_USART_3_TX_DMA_FLG, DRV_USART_4_TX_DMA_FLG,
+                                                  DRV_USART_5_TX_DMA_FLG, DRV_USART_6_TX_DMA_FLG};
 
 UART_HandleTypeDef *g_usart_handle[DRV_USART_NUM_MAX] = {USART_1_HANDLE, USART_2_HANDLE, USART_3_HANDLE,
                                                          USART_4_HANDLE, USART_5_HANDLE, USART_6_HANDLE};
@@ -177,6 +186,7 @@ static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, ui
 static int32_t drv_usart_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args);
 void uart_it_rx_finish_callback(UART_HandleTypeDef *huart);
 void uart_it_tx_finish_callback(UART_HandleTypeDef *huart);
+static void usart_dma_tx_task(void const *argument);
 
 DRIVER_CTL_t g_usart_ctl[DRV_USART_NUM_MAX] = {
     {
@@ -204,6 +214,26 @@ DRIVER_CTL_t g_usart_ctl[DRV_USART_NUM_MAX] = {
         .deinit = drv_usart_deinit,
     },
 };
+
+osThreadDef(usart1_dma_tx, usart_dma_tx_task, osPriorityNormal, 0, 512);
+osThreadDef(usart2_dma_tx, usart_dma_tx_task, osPriorityNormal, 0, 512);
+osThreadDef(usart3_dma_tx, usart_dma_tx_task, osPriorityNormal, 0, 512);
+osThreadDef(usart4_dma_tx, usart_dma_tx_task, osPriorityNormal, 0, 512);
+osThreadDef(usart5_dma_tx, usart_dma_tx_task, osPriorityNormal, 0, 512);
+osThreadDef(usart6_dma_tx, usart_dma_tx_task, osPriorityNormal, 0, 512);
+
+/* define the uart tx dma rhread */
+#define DRIVER_CONFIG_UART_TX_DMA_THREAD(thread, open_flg) ((open_flg) ? thread : NULL)
+#define USART_1_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(osThread(usart1_dma_tx), DRV_USAER_1_OPEN)
+#define USART_2_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(osThread(usart2_dma_tx), DRV_USAER_2_OPEN)
+#define USART_3_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(osThread(usart3_dma_tx), DRV_USAER_3_OPEN)
+#define USART_4_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(osThread(usart4_dma_tx), DRV_USAER_4_OPEN)
+#define USART_5_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(osThread(usart5_dma_tx), DRV_USAER_5_OPEN)
+#define USART_6_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(osThread(usart6_dma_tx), DRV_USAER_6_OPEN)
+
+osThreadDef_t const *g_usart_tx_thread_def[DRV_USART_NUM_MAX] = {USART_1_TX_DMA_THREAD, USART_2_TX_DMA_THREAD,
+                                                           USART_3_TX_DMA_THREAD, USART_4_TX_DMA_THREAD,
+                                                           USART_5_TX_DMA_THREAD, USART_6_TX_DMA_THREAD};
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********
@@ -237,10 +267,20 @@ static int32_t drv_usart_init(DRIVER_OBJ_t *drv)
         RingBuffer_Init(&usart_obj->tx_ring_buff, usart_obj->tx_buffer, sizeof(uint8_t), usart_obj->tx_buf_size);
         usart_obj->tx_dma_buf_size = g_usart_tx_dma_buf_size[i];
         usart_obj->tx_dma_buffer = g_usart_tx_dma_buffer[i];
+        usart_obj->tx_dma_flg = g_usart_tx_dma_flg[i];
         usart_obj->tx_sem.xSemHandle = xSemaphoreCreateBinaryStatic(&usart_obj->tx_sem.xSemaphore);
         fault_assert(usart_obj->tx_sem.xSemHandle != NULL, FAULT_CODE_CONSOLE);
+        usart_obj->tx_start_sem.xSemHandle = xSemaphoreCreateBinaryStatic(&usart_obj->tx_start_sem.xSemaphore);
+        fault_assert(usart_obj->tx_start_sem.xSemHandle != NULL, FAULT_CODE_CONSOLE);
         usart_obj->rx_sem.xSemHandle = xSemaphoreCreateBinaryStatic(&usart_obj->rx_sem.xSemaphore);
         fault_assert(usart_obj->rx_sem.xSemHandle != NULL, FAULT_CODE_CONSOLE);
+        // create tx thread
+        usart_obj->tx_thread_def = (osThreadDef_t *)g_usart_tx_thread_def[i];
+        if (usart_obj->tx_thread_def != NULL) {
+            usart_obj->tx_thread_id = osThreadCreate(usart_obj->tx_thread_def, usart_obj);
+            fault_assert(usart_obj->tx_thread_id != NULL, FAULT_CODE_CONSOLE);
+        }
+
         // drv function init
         drv->driver->drv_priv = (void *)usart_obj;
         drv->driver->open = drv_usart_open;
@@ -308,7 +348,6 @@ void uart_it_rx_finish_callback(UART_HandleTypeDef *huart)
         usart_obj->rx_it_call_back(usart_obj->rx_it_call_back_arg);
     }
     HAL_UART_Receive_IT(usart_obj->ctl_uart, &usart_obj->rx_byte, 1);
-
 }
 
 void uart_it_tx_finish_callback(UART_HandleTypeDef *huart)
@@ -376,7 +415,7 @@ static int32_t drv_usart_read(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uin
     driver_set_reading(drv);
     data_size = RingBuffer_GetCount(&usart_obj->rx_ring_buff);
 
-    if (time_out != 0 && data_size <=0) {
+    if (time_out != 0 && data_size <= 0) {
         ret = xSemaphoreTake(usart_obj->rx_sem.xSemHandle, time_out);
         if (ret != pdTRUE) {
             return -ETIME;
@@ -404,8 +443,12 @@ static int32_t drv_usart_read(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uin
  */
 static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size)
 {
-    uint32_t time_out = 0;
+    int32_t time_out = 0;
     BaseType_t ret = 0;
+    int count = 0;
+    int i = 0;
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    uint8_t *p_buffer = (uint8_t *)buffer;
 
     if (!driver_is_opened(drv)) {
         return -EACCES;
@@ -417,13 +460,32 @@ static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, ui
     }
 
     DRV_USART_OBJ_t *usart_obj = (DRV_USART_OBJ_t *)drv->driver->drv_priv;
-    HAL_UART_Transmit_IT(usart_obj->ctl_uart, (uint8_t *)buffer, size);
-    driver_set_writing(drv);
-    if (time_out != 0) {
-        ret = xSemaphoreTake(usart_obj->tx_sem.xSemHandle, time_out);
-        if (ret != pdTRUE) {
-            driver_clear_writing(drv);
-            return -ETIME;
+    if (usart_obj->tx_dma_flg == 0) {
+        HAL_UART_Transmit_IT(usart_obj->ctl_uart, (uint8_t *)buffer, size);
+        driver_set_writing(drv);
+        if (time_out != 0) {
+            ret = xSemaphoreTake(usart_obj->tx_sem.xSemHandle, time_out);
+            if (ret != pdTRUE) {
+                driver_clear_writing(drv);
+                return -ETIME;
+            }
+        }
+    } else {
+        for (i = 0; i < size;) {
+            count = RingBuffer_GetFree(&usart_obj->tx_ring_buff);
+            count = count > size ? size : count;
+            if (count > 0) {
+                RingBuffer_InsertMult(&usart_obj->tx_ring_buff, &p_buffer[i], count);
+                i += count;
+                xSemaphoreGiveFromISR(usart_obj->tx_start_sem.xSemHandle, &xHigherPriorityTaskWoken);
+                portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+            } else {
+                if (time_out <= 0) {
+                    return -ETIME;
+                }
+                vTaskDelay(10);
+                time_out -= 10;
+            }
         }
     }
 
@@ -461,6 +523,31 @@ static int32_t drv_usart_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args)
     }
 
     return ret;
+}
+
+static void usart_dma_tx_task(void const *argument)
+{
+    int count = 0;
+    int send_count = 0;
+    DRV_USART_OBJ_t *usart_obj = (DRV_USART_OBJ_t *)argument;
+
+    if (usart_obj->usart_index > DRV_USART_NUM_MAX) {
+        vTaskSuspend(NULL);
+    }
+
+    while (1) {
+        count = RingBuffer_GetCount(&usart_obj->tx_ring_buff);
+        if (count == 0) {
+            xSemaphoreTake(usart_obj->tx_start_sem.xSemHandle, 1000);
+            count = RingBuffer_GetCount(&usart_obj->tx_ring_buff);
+        }
+        if (count > 0) {
+            send_count = count > usart_obj->tx_dma_buf_size ? usart_obj->tx_dma_buf_size : count;
+            RingBuffer_PopMult(&usart_obj->tx_ring_buff, usart_obj->tx_dma_buffer, send_count);
+            HAL_UART_Transmit_DMA(usart_obj->ctl_uart, usart_obj->tx_dma_buffer, send_count);
+            xSemaphoreTake(usart_obj->tx_sem.xSemHandle, OS_MS(1000));
+        }
+    }
 }
 
 /**
