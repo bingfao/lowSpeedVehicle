@@ -92,11 +92,18 @@ static void net_unit_task(void const *argument)
 #define NET_UPLOAD_INTERVAL_MS 60000  // 60s
 static void net_upload_data(int32_t ticks_used)
 {
-    static int32_t timeout = NET_UPLOAD_INTERVAL_MS;  // 60s
+    static int32_t timeout = 10000;  // 10s when connected wait 10S to register to server
     int32_t ret = 0;
 
     if (ebike_is_connected_server() == false) {
         return;
+    }
+    if (ebike_is_register() != true) {
+        ret = ebike_device_register_to_server();
+        if (ret == 0) {
+            ebike_device_state_upload_to_server();
+        }
+        timeout = NET_UPLOAD_INTERVAL_MS;
     }
     if (timeout <= 0) {
         if (ebike_is_register() == true) {
