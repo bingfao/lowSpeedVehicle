@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:34
- * @LastEditTime: 2025-01-09 16:48:12
+ * @LastEditTime: 2025-01-15 21:04:25
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.c
@@ -714,7 +714,7 @@ static int32_t msg_aes_encoder(uint8_t *in_msg, uint32_t in_len, uint8_t *out_ms
 static int32_t msg_aes_decoder(uint8_t *in_msg, uint32_t in_len, uint8_t *out_msg, uint32_t *out_len)
 {
     struct AES_ctx ctx;
-    uint32_t len = 0;
+    uint32_t len = in_len;
     int32_t ret = 0;
 
     AES_init_ctx_iv(&ctx, g_net_agreement_obj.aes_key, g_net_agreement_obj.aes_iv);
@@ -852,7 +852,8 @@ static int32_t net_msg_body_process(NET_AGREEMENT_OBJ_t *net_obj, uint8_t *data)
         len = net_msg_head_get_body_len(data) + sizeof(NET_RESPONSE_HEADER_t) - sizeof(NET_MSG_HEADER_t);
 
     } else {
-        if (req_head->dev_id != net_obj->dev_id || req_head->session_id != net_obj->session_id) {
+        // if (req_head->dev_id != net_obj->dev_id || req_head->session_id != net_obj->session_id) {
+        if (req_head->session_id != net_obj->session_id) {
             return -EINVAL;
         }
         buf = data + sizeof(NET_REQUIRE_HEADER_t);
