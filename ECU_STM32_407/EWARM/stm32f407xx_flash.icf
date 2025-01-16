@@ -24,6 +24,9 @@ define region CCMRAM_region   = mem:[from __ICFEDIT_region_CCMRAM_start__   to _
 define block CSTACK    with alignment = 8, size = __ICFEDIT_size_cstack__   { };
 define block HEAP      with alignment = 8, size = __ICFEDIT_size_heap__     { };
 
+define block CCMRam            { section .fast_ccmram };
+
+initialize by copy { section .fast_ccmram };
 initialize by copy { readwrite };
 do not initialize  { section .noinit };
 
@@ -32,3 +35,4 @@ place at address mem:__ICFEDIT_intvec_start__ { readonly section .intvec };
 place in ROM_region   { readonly };
 place in RAM_region   { readwrite,
                         block CSTACK, block HEAP };
+place in CCMRAM_region { block CCMRam };

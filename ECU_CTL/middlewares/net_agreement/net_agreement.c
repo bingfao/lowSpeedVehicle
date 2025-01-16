@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:34
- * @LastEditTime: 2025-01-15 21:04:25
+ * @LastEditTime: 2025-01-16 14:48:05
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.c
@@ -245,6 +245,9 @@ typedef struct
  * ******** Private global variables                                   ********
  * ****************************************************************************
  */
+#ifdef STM32F407xx
+#pragma location = ".fast_ccmram"
+#endif
 NET_AGREEMENT_OBJ_t g_net_agreement_obj;
 
 uint16_t g_net_msg_id_map[NET_TX_MSG_ID_MAX + NET_RX_MSG_ID_MAX] = {

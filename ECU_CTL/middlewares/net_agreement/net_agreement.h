@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:43
- * @LastEditTime: 2025-01-09 15:45:45
+ * @LastEditTime: 2025-01-16 14:44:36
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.h
@@ -39,7 +39,7 @@ extern "C" {
  */
 #define NET_TX_MSG_BODY_LEN_MAX      256
 #define NET_TX_MSG_HEAD_BODY_LEN_MAX (NET_TX_MSG_BODY_LEN_MAX + 23)  // require header + body
-#define NET_RX_MSG_BODY_LEN_MAX      0x1200                          // 4608 bytes
+#define NET_RX_MSG_BODY_LEN_MAX      0x5400                          // 21504 bytes
 #define NET_RX_MSG_HEAD_BODY_LEN_MAX (NET_RX_MSG_BODY_LEN_MAX + 19)  // response header + body
 
 #define NET_COMM_MSG_NUM_MAX         5
