@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:20:51
- * @LastEditTime: 2025-01-15 17:15:14
+ * @LastEditTime: 2025-01-16 10:29:41
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.c
@@ -443,7 +443,7 @@ static int32_t drv_usart_read(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uin
  */
 static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size)
 {
-    int32_t time_out = 0;
+    uint32_t time_out = 0;
     BaseType_t ret = 0;
     int count = 0;
     int i = 0;
@@ -473,7 +473,7 @@ static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, ui
     } else {
         for (i = 0; i < size;) {
             count = RingBuffer_GetFree(&usart_obj->tx_ring_buff);
-            count = count > size ? size : count;
+            count = count > size - i ? size - i : count;
             if (count > 0) {
                 RingBuffer_InsertMult(&usart_obj->tx_ring_buff, &p_buffer[i], count);
                 i += count;
