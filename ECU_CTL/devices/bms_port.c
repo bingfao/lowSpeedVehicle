@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-08 14:09:30
- * @LastEditTime: 2025-01-15 17:27:02
+ * @LastEditTime: 2025-01-16 09:47:22
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\bms_port.c
@@ -101,7 +101,7 @@ int32_t bms_port_send(const uint8_t *buf, uint32_t len)
         log_d("driver %s not ready \r\n", BMS_PORT_DRV_NAME);
         return -ENODEV;
     }
-    ret = driver_write(g_driver, DEV_POS_NONE, (void *)buf, len);
+    ret = driver_write(g_driver, DEV_RXTX_POS_BLOCKING, (void *)buf, len);
     if (ret < 0) {
         log_e("send failed ");
         return -EIO;
