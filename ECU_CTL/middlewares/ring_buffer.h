@@ -17,10 +17,10 @@ typedef struct
     void *data;
     int count;
     int itemSz;
-    uint32_t head;
-    uint32_t tail;
-    uint32_t overflow;
-    uint32_t used_deep;
+    volatile uint32_t head;
+    volatile uint32_t tail;
+    volatile uint32_t overflow;
+    volatile uint32_t used_deep;
 } RINGBUFF_T;
 
 /**
@@ -131,7 +131,7 @@ static inline int RingBuffer_IsEmpty(RINGBUFF_T *RingBuff)
  *   RingBuffer_Init() or attempted to insert
  *   when buffer is full)
  */
-int RingBuffer_Insert(RINGBUFF_T *RingBuff, const void *data);
+__root int RingBuffer_Insert(RINGBUFF_T *RingBuff, const void *data);
 
 /**
  * @brief Insert an array of items into ring buffer
@@ -143,7 +143,7 @@ int RingBuffer_Insert(RINGBUFF_T *RingBuff, const void *data);
  *   RingBuffer_Init() or attempted to insert
  *   when buffer is full)
  */
-int RingBuffer_InsertMult(RINGBUFF_T *RingBuff, const void *data, int num);
+__root int RingBuffer_InsertMult(RINGBUFF_T *RingBuff, const void *data, int num);
 
 /**
  * @brief Pop an item from the ring buffer
@@ -154,7 +154,7 @@ int RingBuffer_InsertMult(RINGBUFF_T *RingBuff, const void *data, int num);
  *    RingBuffer_Init() or attempted to pop item when
  *    the buffer is empty)
  */
-int RingBuffer_Pop(RINGBUFF_T *RingBuff, void *data);
+__root int RingBuffer_Pop(RINGBUFF_T *RingBuff, void *data);
 
 /**
  * @brief Pop an array of items from the ring buffer
@@ -165,7 +165,7 @@ int RingBuffer_Pop(RINGBUFF_T *RingBuff, void *data);
  *    0 on error (Buffer not initialized using RingBuffer_Init()
  *    or attempted to pop when the buffer is empty)
  */
-int RingBuffer_PopMult(RINGBUFF_T *RingBuff, void *data, int num);
+__root int RingBuffer_PopMult(RINGBUFF_T *RingBuff, void *data, int num);
 
 /**
  * @}
