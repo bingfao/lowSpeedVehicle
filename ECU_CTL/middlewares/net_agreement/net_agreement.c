@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:34
- * @LastEditTime: 2025-01-16 14:48:05
+ * @LastEditTime: 2025-01-20 09:58:16
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.c
@@ -229,10 +229,11 @@ typedef struct
 #define NET_MSG_RX_STATE_IDLE              0
 #define NET_MSG_RX_STATE_WAIT_MSG_ID_1     1
 #define NET_MSG_RX_STATE_WAIT_MSG_ID_2     2
-#define NET_MSG_RX_STATE_WAIT_MSG_HEADER   3
-#define NET_MSG_RX_STATE_WAIT_TOTAL_HEADER 4
-#define NET_MSG_RX_STATE_WAIT_BODY_END     5
-#define NET_MSG_RX_STATE_PROGRESS          6
+#define NET_MSG_RX_STATE_WAIT_TYPE         3
+#define NET_MSG_RX_STATE_WAIT_MSG_HEADER   4
+#define NET_MSG_RX_STATE_WAIT_TOTAL_HEADER 5
+#define NET_MSG_RX_STATE_WAIT_BODY_END     6
+#define NET_MSG_RX_STATE_PROGRESS          7
 
 /*
  * ****************************************************************************
@@ -253,13 +254,20 @@ NET_AGREEMENT_OBJ_t g_net_agreement_obj;
 uint16_t g_net_msg_id_map[NET_TX_MSG_ID_MAX + NET_RX_MSG_ID_MAX] = {
     NET_TX_MSG_ID_REGISTER_DEV,
     NET_TX_MSG_ID_DEV_STATE,
+    NET_TX_MSG_ID_DATA_TRAFFIC_REPORT,
     NET_TX_MSG_ID_EBIKE_JOURNEY,
     NET_TX_MSG_ID_EBIKE_CHARGE_END,
     NET_TX_MSG_ID_EBIKE_EVENT_REPORT,
+    NET_TX_MSG_ID_FILE_REV_END,
+    NET_TX_MSG_ID_FILE_APPLY,
     NET_RX_MSG_ID_UNLOCK,
     NET_RX_MSG_ID_LOCK,
     NET_RX_MSG_ID_RESTRICT,
-    NET_RX_MSG_ID_FILE_DOWNLOAD,
+    NET_RX_MSG_ID_ELECTRONIC_UNLOCK,
+    NET_RX_MSG_ID_LIGHT_CTL,
+    NET_RX_MSG_ID_FILE_HEAD_DOWNLOAD,
+    NET_RX_MSG_ID_FILE_DATA_DOWNLOAD,
+    NET_RX_MSG_ID_FILE_NEED_UPDATE,
     NET_RX_MSG_ID_ENABLE_UNLOCK_DEVICE,
     NET_RX_MSG_ID_DISABLE_UNLOCK_DEVICE,
 };
@@ -273,10 +281,12 @@ static bool msg_body_need_aes(uint32_t msg_id);
 static int32_t msg_aes_encoder(uint8_t *in_msg, uint32_t in_len, uint8_t *out_msg, uint32_t *out_len);
 static int32_t msg_aes_decoder(uint8_t *in_msg, uint32_t in_len, uint8_t *out_msg, uint32_t *out_len);
 static bool net_msg_id_is_registered(NET_AGREEMENT_OBJ_t *net_obj, uint8_t *data);
+static bool net_msg_type_is_valid(uint8_t type_flg);
 static MSG_ID_FUNC_MAP_t *net_msg_id_get_register_obj(NET_AGREEMENT_OBJ_t *net_obj, uint8_t *data);
 static bool net_msg_crc_check_ok(uint8_t *data);
 static bool net_msg_type_is_resp(uint8_t *data);
 static uint32_t net_msg_head_get_body_len(uint8_t *data);
+static uint16_t net_msg_head_get_seq_num(uint8_t *data);
 static int32_t net_msg_body_aes_decoder(uint8_t *data);
 static int32_t net_msg_body_process(NET_AGREEMENT_OBJ_t *net_obj, uint8_t *data);
 static int32_t net_agreement_byte_in(NET_AGREEMENT_OBJ_t *net_obj, uint8_t byte, uint32_t tick);
@@ -410,9 +420,12 @@ int32_t net_agreement_send_msg(void *obj, uint16_t msg_id, uint8_t msg_type, uin
         return -ENOMEM;
     }
     if (len > 0) {
-        if (msg_body_need_aes(msg_id)) {
+        if (msg_body_need_aes(msg_id) && (NET_MSG_TYPE_SEND == msg_type)) {
             out_len = sizeof(tx_msg->msg_body);
             ret = msg_aes_encoder(msg, len, tx_msg->msg_body, &out_len);
+            if (ret < 0) {
+                return ret;
+            }
             tx_msg->req_head.head.msg_body_len = out_len;
             tx_msg->req_head.head.crypt_flg = NET_MSG_CRYPT_FLG_AES;
         } else {
@@ -451,6 +464,64 @@ int32_t net_agreement_send_msg(void *obj, uint16_t msg_id, uint8_t msg_type, uin
     }
 
     return ret;
+}
+
+int32_t net_agreement_send_ack(void *obj, uint16_t msg_id, uint32_t resp_code, uint8_t *msg, uint32_t len)
+{
+    NET_AGREEMENT_OBJ_t *net_obj = (NET_AGREEMENT_OBJ_t *)obj;
+    int32_t i = 0;
+    int32_t ret = 0;
+    uint32_t ticks = 0;
+    NET_RESP_MSG_t *resp_msg = NULL;
+    uint32_t *start_addr = NULL;
+
+    fault_assert(ASSERT_MSG_ID(msg_id), FAULT_CODE_NET_AGMT);
+    if (net_obj->tx_func == NULL || net_obj->dev_id == 0) {
+        return -EACCES;
+    }
+    if (net_obj->get_tick) {
+        ticks = net_obj->get_tick();
+    }
+    /* find idle and timeout comm_msg  */
+    for (i = 0; i < NET_COMM_MSG_NUM_MAX; i++) {
+        if ((net_obj->comm_msg[i].msg_state == NET_COMM_MSG_STATE_IDLE) ||
+            ((net_obj->comm_msg[i].tx_msg_ticks + NET_MSG_TX_WAITE_TICKS_MAX) < ticks)) {
+            net_obj->comm_msg[i].msg_state = NET_COMM_MSG_STATE_IDLE;
+            break;
+        }
+    }
+    if (i >= NET_COMM_MSG_NUM_MAX) {
+        return -ENOMEM;
+    }
+    resp_msg = (NET_RESP_MSG_t *)&net_obj->comm_msg[i].tx_msg;
+    if (len > sizeof(resp_msg->resp_body)) {
+        return -ENOMEM;
+    }
+    resp_msg->resp_head.head.msg_id = msg_id;
+    resp_msg->resp_head.head.type_flg = NET_MSG_TYPE_RESP;
+    resp_msg->resp_head.head.seq_num = net_obj->msg_resp_num;
+    resp_msg->resp_head.head.msg_body_len = len;
+    resp_msg->resp_head.head.crypt_flg = NET_MSG_CRYPT_FLG_NO_CRYPT;
+    resp_msg->resp_head.head.reserved[0] = 0;
+    resp_msg->resp_head.head.reserved[1] = 0;
+    resp_msg->resp_head.head.reserved[2] = 0;
+    start_addr = (uint32_t *)&(resp_msg->resp_head);
+    resp_msg->resp_head.head.crc16 = crc16_ccitt((unsigned char *)start_addr, sizeof(resp_msg->resp_head.head) - 2, 0);
+    resp_msg->resp_head.resp_code = resp_code;
+    if (len > 0 && len < NET_TX_MSG_HEAD_BODY_LEN_MAX) {
+        memcpy(resp_msg->resp_body, msg, len);
+    } else {
+        return -1;
+    }
+    if (net_obj->tx_func) {
+        ret = net_obj->tx_func((uint8_t *)resp_msg, sizeof(NET_RESPONSE_HEADER_t) + resp_msg->resp_head.head.msg_body_len);
+        if (ret < 0){
+            return ret;
+        }
+    }
+
+
+    return 0;
 }
 
 bool net_agreement_msg_id_legal(uint16_t msg_id)
@@ -749,6 +820,15 @@ static bool net_msg_id_is_registered(NET_AGREEMENT_OBJ_t *net_obj, uint8_t *data
     return false;
 }
 
+static bool net_msg_type_is_valid(uint8_t type_flg)
+{
+    if (type_flg == NET_MSG_TYPE_SEND || type_flg == NET_MSG_TYPE_RESP) {
+        return true;
+    }
+
+    return false;
+}
+
 static MSG_ID_FUNC_MAP_t *net_msg_id_get_register_obj(NET_AGREEMENT_OBJ_t *net_obj, uint8_t *data)
 {
     int32_t i = 0;
@@ -795,6 +875,13 @@ static uint32_t net_msg_head_get_body_len(uint8_t *data)
     NET_MSG_HEADER_t *msg_header = (NET_MSG_HEADER_t *)data;
 
     return msg_header->msg_body_len;
+}
+
+static uint16_t net_msg_head_get_seq_num(uint8_t *data)
+{
+    NET_MSG_HEADER_t *msg_header = (NET_MSG_HEADER_t *)data;
+
+    return msg_header->seq_num;
 }
 
 static int32_t net_msg_body_aes_decoder(uint8_t *data)
@@ -867,14 +954,14 @@ static int32_t net_msg_body_process(NET_AGREEMENT_OBJ_t *net_obj, uint8_t *data)
         return -EINVAL;
     }
     ret = register_obj->msg_func(buf, len, send_buf, &send_buf_len);
-    if (ret < 0) {
+
+    if (net_msg_type_is_resp(data) == true) {
         return ret;
     }
-    if (send_buf_len > 0) {
-        ret = net_agreement_send_msg(net_obj, req_head->head.msg_id, NET_MSG_TYPE_RESP, send_buf, send_buf_len);
-        if (ret < 0) {
-            return ret;
-        }
+    net_obj->msg_resp_num = net_msg_head_get_seq_num(data);
+    ret = net_agreement_send_ack(net_obj, req_head->head.msg_id, ret, send_buf, send_buf_len);
+    if (ret < 0) {
+        return ret;
     }
 
     return 0;
@@ -906,11 +993,21 @@ static int32_t net_agreement_byte_in(NET_AGREEMENT_OBJ_t *net_obj, uint8_t byte,
             if (net_agreement_msg_id_legal(temp_msg_id) == false) {
                 net_obj->msg_rx_state = NET_MSG_RX_STATE_WAIT_MSG_ID_2;
             } else {
-                net_obj->msg_rx_state = NET_MSG_RX_STATE_WAIT_MSG_HEADER;
-                *(uint16_t *)&rx_data[0] = temp_msg_id;
-                *rx_data_index = 2;
-                temp_index = sizeof(NET_MSG_HEADER_t) - 2;
+                net_obj->msg_rx_state = NET_MSG_RX_STATE_WAIT_TYPE;
             }
+            break;
+        case NET_MSG_RX_STATE_WAIT_TYPE:
+            if (net_msg_type_is_valid(byte) == false) {
+                net_obj->msg_rx_state = NET_MSG_RX_STATE_IDLE;
+                log_e("msg type is not valid \r\n");
+                break;
+            }
+            net_obj->msg_rx_state = NET_MSG_RX_STATE_WAIT_MSG_HEADER;
+            *(uint16_t *)&rx_data[0] = temp_msg_id;
+            rx_data[2] = byte;
+            *rx_data_index = 3;
+            temp_index = sizeof(NET_MSG_HEADER_t) - 3;
+            log_d("start wait header \r\n");
             break;
         case NET_MSG_RX_STATE_WAIT_MSG_HEADER:
             rx_data[*rx_data_index] = byte;
@@ -920,11 +1017,17 @@ static int32_t net_agreement_byte_in(NET_AGREEMENT_OBJ_t *net_obj, uint8_t byte,
                 break;
             }
             if (net_msg_id_is_registered(net_obj, rx_data) == false) {
+                log_e("msg_id is not registered \r\n");
+                for (int i = 0; i < *rx_data_index; i++) {
+                    printf("%02x ", rx_data[i]);
+                }
+                printf("\r\n");
                 net_obj->msg_rx_state = NET_MSG_RX_STATE_IDLE;
                 break;
             }
             if (net_msg_crc_check_ok(rx_data) == false) {
                 net_obj->msg_rx_state = NET_MSG_RX_STATE_IDLE;
+                log_e("CRC check fail \r\n");
             } else {
                 if (net_msg_type_is_resp(rx_data) == true) {
                     temp_index = sizeof(NET_RESPONSE_HEADER_t) - sizeof(NET_MSG_HEADER_t);
@@ -944,6 +1047,7 @@ static int32_t net_agreement_byte_in(NET_AGREEMENT_OBJ_t *net_obj, uint8_t byte,
             net_obj->msg_rx_state = NET_MSG_RX_STATE_WAIT_BODY_END;
             temp_index = (int32_t)net_msg_head_get_body_len(rx_data);
             if (temp_index > NET_RX_MSG_BODY_LEN_MAX) {
+                log_e("net msg body len is too long \r\n");
                 net_obj->msg_rx_state = NET_MSG_RX_STATE_IDLE;
             }
             if (temp_index == 0) {
@@ -962,11 +1066,13 @@ static int32_t net_agreement_byte_in(NET_AGREEMENT_OBJ_t *net_obj, uint8_t byte,
             }
             ret = net_msg_body_aes_decoder(rx_data);
             if (ret < 0) {
+                log_e("AES decoder fail \r\n");
                 net_obj->msg_rx_state = NET_MSG_RX_STATE_IDLE;
                 break;
             }
             net_obj->msg_rx_state = NET_MSG_RX_STATE_PROGRESS;
         case NET_MSG_RX_STATE_PROGRESS:
+            log_d("net msgdo progress \r\n");
             net_msg_body_process(net_obj, rx_data);
             net_obj->msg_rx_state = NET_MSG_RX_STATE_IDLE;
             break;

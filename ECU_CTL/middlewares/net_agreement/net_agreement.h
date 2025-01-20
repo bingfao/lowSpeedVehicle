@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:43
- * @LastEditTime: 2025-01-16 14:44:36
+ * @LastEditTime: 2025-01-17 20:31:37
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.h
@@ -116,18 +116,25 @@ typedef int32_t (*MSG_ID_FUNC)(uint8_t *in_data, int32_t in_len, uint8_t *out_da
 
 #define NET_TX_MSG_ID_REGISTER_DEV          (1001)
 #define NET_TX_MSG_ID_DEV_STATE             (1002)
+#define NET_TX_MSG_ID_DATA_TRAFFIC_REPORT   (1004)
 #define NET_TX_MSG_ID_EBIKE_JOURNEY         (1008)
 #define NET_TX_MSG_ID_EBIKE_CHARGE_END      (1010)
-#define NET_TX_MSG_ID_EBIKE_EVENT_REPORT    (1011)
-#define NET_TX_MSG_ID_MAX                   (5)
+#define NET_TX_MSG_ID_EBIKE_EVENT_REPORT    (1012)
+#define NET_TX_MSG_ID_FILE_REV_END          (1020)
+#define NET_TX_MSG_ID_FILE_APPLY            (1022)
+#define NET_TX_MSG_ID_MAX                   (8)
 
 #define NET_RX_MSG_ID_UNLOCK                (2001)
 #define NET_RX_MSG_ID_LOCK                  (2002)
 #define NET_RX_MSG_ID_RESTRICT              (2003)
-#define NET_RX_MSG_ID_FILE_DOWNLOAD         (2020)
-#define NET_RX_MSG_ID_ENABLE_UNLOCK_DEVICE  (2021)
-#define NET_RX_MSG_ID_DISABLE_UNLOCK_DEVICE (2022)
-#define NET_RX_MSG_ID_MAX                   (6)
+#define NET_RX_MSG_ID_ELECTRONIC_UNLOCK     (2004)  // unlock the electronic lock, seat lock, trunk lock...
+#define NET_RX_MSG_ID_LIGHT_CTL             (2005)
+#define NET_RX_MSG_ID_FILE_HEAD_DOWNLOAD    (2020)
+#define NET_RX_MSG_ID_FILE_DATA_DOWNLOAD    (2021)
+#define NET_RX_MSG_ID_FILE_NEED_UPDATE      (2022)
+#define NET_RX_MSG_ID_ENABLE_UNLOCK_DEVICE  (2031)
+#define NET_RX_MSG_ID_DISABLE_UNLOCK_DEVICE (2032)
+#define NET_RX_MSG_ID_MAX                   (10)
 
 #define NET_MSG_RESPCODE_OK                 (0)
 #define NET_MSG_RESPCODE_REDEFINE           (1)
@@ -135,10 +142,13 @@ typedef int32_t (*MSG_ID_FUNC)(uint8_t *in_data, int32_t in_len, uint8_t *out_da
 
 #define ASSERT_MSG_ID(msg_id)                                                                                          \
     ((msg_id == NET_TX_MSG_ID_REGISTER_DEV) || (msg_id == NET_TX_MSG_ID_DEV_STATE) ||                                  \
-     (msg_id == NET_TX_MSG_ID_EBIKE_JOURNEY) || (msg_id == NET_TX_MSG_ID_EBIKE_CHARGE_END) ||                          \
-     (msg_id == NET_TX_MSG_ID_EBIKE_EVENT_REPORT) || (msg_id == NET_RX_MSG_ID_UNLOCK) ||                               \
-     (msg_id == NET_RX_MSG_ID_LOCK) || (msg_id == NET_RX_MSG_ID_RESTRICT) ||                                           \
-     (msg_id == NET_RX_MSG_ID_FILE_DOWNLOAD) || (msg_id == NET_RX_MSG_ID_ENABLE_UNLOCK_DEVICE) ||                      \
+     (msg_id == NET_TX_MSG_ID_DATA_TRAFFIC_REPORT) || (msg_id == NET_TX_MSG_ID_EBIKE_JOURNEY) ||                       \
+     (msg_id == NET_TX_MSG_ID_EBIKE_CHARGE_END) || (msg_id == NET_TX_MSG_ID_EBIKE_EVENT_REPORT) ||                     \
+     (msg_id == NET_TX_MSG_ID_FILE_REV_END) || (msg_id == NET_TX_MSG_ID_FILE_APPLY) ||                                 \
+     (msg_id == NET_RX_MSG_ID_UNLOCK) || (msg_id == NET_RX_MSG_ID_LOCK) || (msg_id == NET_RX_MSG_ID_RESTRICT) ||       \
+     (msg_id == NET_RX_MSG_ID_ELECTRONIC_UNLOCK) || (msg_id == NET_RX_MSG_ID_LIGHT_CTL) ||                             \
+     (msg_id == NET_RX_MSG_ID_FILE_HEAD_DOWNLOAD) || (msg_id == NET_RX_MSG_ID_FILE_DATA_DOWNLOAD) ||                   \
+     (msg_id == NET_RX_MSG_ID_FILE_NEED_UPDATE) || (msg_id == NET_RX_MSG_ID_ENABLE_UNLOCK_DEVICE) ||                   \
      (msg_id == NET_RX_MSG_ID_DISABLE_UNLOCK_DEVICE))
 
 #define NET_MSG_TYPE_SEND          0
@@ -151,7 +161,7 @@ typedef int32_t (*MSG_ID_FUNC)(uint8_t *in_data, int32_t in_len, uint8_t *out_da
 #define NET_MSG_RX_WAITE_TIMEOUT   1000   // 1S for wait one package timeout
 
 #define NET_MAS_LEN_REGISTER_ACK   24  // 24 bytes for register ack
-#define NET_MAS_LEN_UPLOAD_ACK      4  // 4 bytes for upload ack
+#define NET_MAS_LEN_UPLOAD_ACK     4   // 4 bytes for upload ack
 /*
  * ****************************************************************************
  * ******** Exported macro                                             ********
