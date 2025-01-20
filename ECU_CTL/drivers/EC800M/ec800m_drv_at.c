@@ -72,6 +72,9 @@ DRIVER_OBJ_t *g_ec800m_trans_driver = NULL;
 char g_ec800m_at_tx_buf[EC800M_DRV_AT_TX_BUF_SIZE];
 char g_ec800m_at_rx_buf[EC800M_DRV_AT_RX_BUF_SIZE];
 
+#ifdef STM32F407xx
+#pragma location = ".fast_ccmram"
+#endif
 char g_ec800m_rx_ring_buf_data[EC800M_DRV_RX_BUF_SIZE];
 RINGBUFF_T g_ec800m_rx_ring_buf_handle;
 
@@ -197,7 +200,7 @@ static int32_t ec800m_drv_init(DRIVER_OBJ_t *p_driver)
     g_ec800m_tx_sem_handler = osSemaphoreCreate(osSemaphore(g_ec800m_tx_sem), 1);
     g_ec800m_rx_sem_handler = osSemaphoreCreate(osSemaphore(g_ec800m_rx_sem), 1);
     RingBuffer_Init(&g_ec800m_rx_ring_buf_handle, g_ec800m_rx_ring_buf_data, sizeof(uint8_t), EC800M_DRV_RX_BUF_SIZE);
-    osThreadDef(ec800m_rx, ec800m_rx_task, osPriorityNormal, 0, 256);
+    osThreadDef(ec800m_rx, ec800m_rx_task, osPriorityNormal, 0, 512);
     g_ec800m_rx_thread = osThreadCreate(osThread(ec800m_rx), NULL);
 
     osMessageQDef(ec800m_rx_queue, 10, uint8_t);
@@ -650,33 +653,24 @@ static int32_t ec800m_drv_read(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buffe
 {
     int32_t ret = 0;
     int32_t size_read = 0;
-    int32_t time_out = 1000;
+    int32_t time_out = 0;
 
     if (driver_is_opened(p_driver) != true) {
         log_e("ec800m_drv is not opened\r\n");
         return -EINVAL;
     }
-    if (pos != EC800M_DRV_POS_BLOCKING && pos != EC800M_DRV_POS_BLOCKING_1000 && pos != EC800M_DRV_POS_NONBLOCKING) {
-        log_e("ec800m_drv_read pos error\r\n");
-        return -EINVAL;
-    }
-
     if (pos == EC800M_DRV_POS_BLOCKING_1000) {
         time_out = 1000;
+    } else if (pos == EC800M_DRV_POS_BLOCKING) {
+        time_out = HAL_MAX_DELAY;
+    } else if (pos == EC800M_DRV_POS_NONBLOCKING) {
+        time_out = 0;
     }
     while (size_read < size && time_out > 0) {
-        if (pos == EC800M_DRV_POS_NONBLOCKING) {
-            time_out = 0;
-        }
-        if (RingBuffer_IsEmpty(&g_ec800m_rx_ring_buf_handle)) {
-            if (pos == EC800M_DRV_POS_BLOCKING_1000) {
-                time_out -= 10;
-            }
+        if (RingBuffer_GetCount(&g_ec800m_rx_ring_buf_handle) == 0) {
             ec800m_delay_ms(10);
+            time_out -= 10;
             continue;
-        }
-        if (pos == EC800M_DRV_POS_BLOCKING_1000) {
-            time_out = 1000;
         }
         ret = RingBuffer_PopMult(&g_ec800m_rx_ring_buf_handle, &((uint8_t *)buffer)[size_read], size - size_read);
         size_read += ret;

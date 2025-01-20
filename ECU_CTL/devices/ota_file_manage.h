@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-09 15:11:34
- * @LastEditTime: 2025-01-09 17:21:37
+ * @LastEditTime: 2025-01-17 08:49:18
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\file_manage.h
@@ -40,7 +40,7 @@ extern "C" {
 #pragma pack(push, 1)
 typedef struct {
     uint8_t svr_time[8];
-    uint8_t session_id[4];
+    uint32_t session_id;
 } OTA_FILE_TARGET_INFO_t;
 #pragma pack(push, pop)
 #pragma pack(push, 1)
@@ -58,6 +58,16 @@ typedef struct {
 } OTA_FILE_HEAD_t;
 #pragma pack(push, pop)
 
+#pragma pack(push, 1)
+typedef struct
+{
+    uint32_t session_id;
+    uint8_t type;
+    uint8_t name[32];
+    uint32_t start_offset;
+    uint16_t data_len;
+}OTA_FILE_DATA_PACKAGE_HEAD_t;
+#pragma pack(push, pop)
 /*
  * ****************************************************************************
  * ******** Exported constants                                         ********
@@ -83,6 +93,7 @@ typedef struct {
  * ****************************************************************************
  */
 int32_t ota_file_head_in(uint8_t *data, uint32_t size);
+int32_t ota_file_data_in(uint8_t *data, uint32_t size);
 
 /* ************************************************************************* */
 #ifdef __cplusplus

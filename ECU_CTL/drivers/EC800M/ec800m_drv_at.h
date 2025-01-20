@@ -39,7 +39,7 @@ extern "C" {
  */
 #define EC800M_DRV_AT_TX_BUF_SIZE        128
 #define EC800M_DRV_AT_RX_BUF_SIZE        1024
-#define EC800M_DRV_RX_BUF_SIZE           5120
+#define EC800M_DRV_RX_BUF_SIZE           32*1024  // 30KB
 
 #define EC800M_DRV_POS_BLOCKING          DEV_RXTX_POS_BLOCKING       // driver R/W position blocking
 #define EC800M_DRV_POS_BLOCKING_1000     DEV_RXTX_POS_BLOCKING_1000  // driver R/W position blocking 1000ms

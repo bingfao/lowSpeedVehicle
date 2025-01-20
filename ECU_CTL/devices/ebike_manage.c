@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:23
- * @LastEditTime: 2025-01-13 14:23:14
+ * @LastEditTime: 2025-01-18 15:01:55
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.c
@@ -85,11 +85,13 @@ static int32_t ebike_device_register_ack(uint8_t *in_data, int32_t in_len, uint8
 static int32_t ebike_device_state_upload_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 // server cmd function
 static int32_t ebike_rev_file_head(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
+static int32_t ebike_rev_file_data(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 
 MSG_ID_MAP_t g_msg_id_fun_map[] = {
     {NET_TX_MSG_ID_REGISTER_DEV, NET_MSG_TYPE_RESP, ebike_device_register_ack},
     {NET_TX_MSG_ID_DEV_STATE, NET_MSG_TYPE_RESP, ebike_device_state_upload_ack},
-    {NET_RX_MSG_ID_FILE_DOWNLOAD, NET_MSG_TYPE_SEND, ebike_rev_file_head},
+    {NET_RX_MSG_ID_FILE_HEAD_DOWNLOAD, NET_MSG_TYPE_SEND, ebike_rev_file_head},
+    {NET_RX_MSG_ID_FILE_DATA_DOWNLOAD, NET_MSG_TYPE_SEND, ebike_rev_file_data},
 };
 
 /*
@@ -562,15 +564,38 @@ static int32_t ebike_device_state_upload_ack(uint8_t *in_data, int32_t in_len, u
     return 0;
 }
 
+/**
+ * @brief ebike_rev_file_head
+ * @param in_data
+ * @param in_len
+ * @param out_data
+ * @param out_len
+ * @return int32_t  0: respcode = 0, other: respcode
+ */
 static int32_t ebike_rev_file_head(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len)
 {
+    int32_t ret = 0;
+
     *out_len = 0;
-    out_data[0] = 0x01;
-
-    ota_file_head_in(in_data, in_len);
-
     out_data[0] = 0x00;
-    *out_len = 1;
+    ret = ota_file_head_in(in_data, in_len);
+    if (ret != 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
+static int32_t ebike_rev_file_data(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len)
+{
+    int32_t ret = 0;
+
+    *out_len = 0;
+    out_data[0] = 0x00;
+    ret = ota_file_data_in(in_data, in_len);
+    if (ret != 0) {
+        return 1;
+    }
 
     return 0;
 }
