@@ -49,7 +49,7 @@ osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
+  .stack_size = 256 * 4
 };
 /* Definitions for LedTask */
 osThreadId_t LedTaskHandle;
@@ -139,7 +139,7 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    osDelay(1000);
   }
   /* USER CODE END defaultTask */
 }
@@ -157,7 +157,8 @@ void LedTask_fun(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
+    osDelay(500);
   }
   /* USER CODE END LedTask */
 }
