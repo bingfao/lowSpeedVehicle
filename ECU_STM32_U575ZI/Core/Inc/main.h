@@ -57,10 +57,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define EC800M_RESET_Pin GPIO_PIN_3
-#define EC800M_RESET_GPIO_Port GPIOC
 #define LED0_Pin GPIO_PIN_7
 #define LED0_GPIO_Port GPIOC
+#define EC800M_RESET_Pin GPIO_PIN_7
+#define EC800M_RESET_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 
