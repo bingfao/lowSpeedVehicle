@@ -41,7 +41,8 @@ typedef enum {
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
-#define EC800M_TRANS_DRV_NAME                        "f407_usart2"
+#define EC800M_TRANS_DRV_NAME                        "usart2"
+#define EC800M_RST_PIN_DRV_NAME                      "ec800m_rst_pin"
 
 #define EC800M_AT_ACK_QUEUE_OK                       0x01
 #define EC800M_AT_ACK_QUEUE_ERROR                    0x02
@@ -72,6 +73,7 @@ typedef enum {
  */
 AT_COM_t g_ec800m_at_com;
 DRIVER_OBJ_t *g_ec800m_trans_driver = NULL;
+DRIVER_OBJ_t *g_ec800m_rst_pin_driver = NULL;
 char g_ec800m_at_tx_buf[EC800M_DRV_AT_TX_BUF_SIZE];
 char g_ec800m_at_rx_buf[EC800M_DRV_AT_RX_BUF_SIZE];
 
@@ -203,6 +205,19 @@ static int32_t ec800m_drv_init(DRIVER_OBJ_t *p_driver)
             return ret;
         }
     }
+    g_ec800m_rst_pin_driver = get_driver(EC800M_RST_PIN_DRV_NAME);
+    if (g_ec800m_rst_pin_driver != NULL) {
+        ret = driver_init(g_ec800m_rst_pin_driver);
+        if (ret != 0) {
+            log_e("g_ec800m_rst_pin_driver init failed, ret:%d\r\n", ret);
+            return ret;
+        }
+        ret = driver_open(g_ec800m_rst_pin_driver, 0);
+        if (ret != 0) {
+            log_d("g_ec800m_rst_pin_driver open failed, ret:%d\r\n", ret);
+            return ret;
+        }
+    }
     g_ec800m_tx_sem_handler = xSemaphoreCreateBinary();
     g_ec800m_rx_sem_handler = xSemaphoreCreateBinary();
     RingBuffer_Init(&g_ec800m_rx_ring_buf_handle, g_ec800m_rx_ring_buf_data, sizeof(uint8_t), EC800M_DRV_RX_BUF_SIZE);
@@ -235,6 +250,7 @@ static int32_t ec800m_drv_deinit(DRIVER_OBJ_t *p_driver)
     vSemaphoreDelete(g_ec800m_tx_sem_handler);
     vSemaphoreDelete(g_ec800m_rx_sem_handler);
     driver_deinit(g_ec800m_trans_driver);
+    driver_deinit(g_ec800m_rst_pin_driver);
 
     return 0;
 }
@@ -450,7 +466,7 @@ static void ec800m_rx_task(void const *argument)
             continue;
         }
         while (timeout > 0) {
-            size = driver_control(g_ec800m_trans_driver, DRV_CMD_GET_SIZE, NULL);
+            size = driver_control(g_ec800m_trans_driver, DRV_CMD_GET_RX_SIZE, NULL);
             size = size > 63 ? 63 : size;
             if (size > 0) {
                 timeout = 100;
@@ -1268,9 +1284,16 @@ static int32_t ec800m_device_tcp_disconnect(int32_t mode)
 
 static void ec800m_device_reset_pin(void)
 {
-    HAL_GPIO_WritePin(EC800M_RESET_GPIO_Port, EC800M_RESET_Pin, GPIO_PIN_RESET);
+    uint32_t pin_val = 0;
+
+    if (g_ec800m_rst_pin_driver == NULL) {
+        log_e("g_ec800m_rst_pin_driver is NULL\r\n");
+        return;
+    }
+    driver_write(g_ec800m_rst_pin_driver, 0, &pin_val, 1);
     ec800m_delay_ms(1000);
-    HAL_GPIO_WritePin(EC800M_RESET_GPIO_Port, EC800M_RESET_Pin, GPIO_PIN_SET);
+    pin_val = 1;
+    driver_write(g_ec800m_rst_pin_driver, 0, &pin_val, 1);
 }
 
 static int32_t ec800m_device_reset(void)

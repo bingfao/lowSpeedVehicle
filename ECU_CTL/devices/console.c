@@ -18,7 +18,7 @@
 #include "fault.h"
 #include "util.h"
 
-#define CONSOLE_TRANS_DRV_NAME "f407_usart1"
+#define CONSOLE_TRANS_DRV_NAME "usart1"
 
 DRIVER_OBJ_t *g_console_trans_driver = NULL;
 

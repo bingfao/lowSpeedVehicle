@@ -373,6 +373,7 @@
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\LetterShell\extensions\shell_enhance</state>
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\soft_aes</state>
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\net_agreement</state>
+                    <state>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -1267,6 +1268,18 @@
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\EC800M\ec800m_drv_at.c</name>
                 </file>
             </group>
+            <group>
+                <name>F407</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407\driver_mcu.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407\driver_pin_ec800m.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407\drv_usart.c</name>
+                </file>
+            </group>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\console.c</name>
                 <excluded>
@@ -1275,12 +1288,6 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\driver_com.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\driver_mcu.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\drv_usart.c</name>
             </file>
         </group>
         <group>

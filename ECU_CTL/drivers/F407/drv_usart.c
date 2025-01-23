@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:20:51
- * @LastEditTime: 2025-01-22 19:34:05
+ * @LastEditTime: 2025-01-23 13:40:48
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.c
@@ -93,7 +93,7 @@ static uint8_t g_usart_6_tx_dma_buffer[DRV_USART_6_TX_DMA_BUF_SIZE + 1];
  * ****************************************************************************
  */
 /* deifne the uart name */
-#define DRIVER_CONFIG_UART(num, open_flg)               ((open_flg) ? "f407_usart" #num : "\0")
+#define DRIVER_CONFIG_UART(num, open_flg)               ((open_flg) ? "usart" #num : "\0")
 
 #define USART_1_NAME                                    DRIVER_CONFIG_UART(1, DRV_USAER_1_OPEN)
 #define USART_2_NAME                                    DRIVER_CONFIG_UART(2, DRV_USAER_2_OPEN)
@@ -560,27 +560,27 @@ static void usart_dma_tx_task(void const *argument)
  * config file. Then get the driver object by using get_driver("usart1") in your code.
  */
 #if DRV_USAER_1_OPEN
-DRIVER_REGISTER(&g_usart_ctl[0], f407_usart1)
+DRIVER_REGISTER(&g_usart_ctl[0], usart1)
 #endif
 
 #if DRV_USAER_2_OPEN
-DRIVER_REGISTER(&g_usart_ctl[1], f407_usart2)
+DRIVER_REGISTER(&g_usart_ctl[1], usart2)
 #endif
 
 #if DRV_USAER_3_OPEN
-DRIVER_REGISTER(&g_usart_ctl[2], f407_usart3)
+DRIVER_REGISTER(&g_usart_ctl[2], usart3)
 #endif
 
 #if DRV_USAER_4_OPEN
-DRIVER_REGISTER(&g_usart_ctl[3], f407_usart4)
+DRIVER_REGISTER(&g_usart_ctl[3], usart4)
 #endif
 
 #if DRV_USAER_5_OPEN
-DRIVER_REGISTER(&g_usart_ctl[4], f407_usart5)
+DRIVER_REGISTER(&g_usart_ctl[4], usart5)
 #endif
 
 #if DRV_USAER_6_OPEN
-DRIVER_REGISTER(&g_usart_ctl[5], f407_usart6)
+DRIVER_REGISTER(&g_usart_ctl[5], usart6)
 #endif
 
 /*

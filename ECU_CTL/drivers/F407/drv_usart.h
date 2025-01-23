@@ -155,7 +155,7 @@ extern "C" {
 #define DRV_USART_CMD_SET_TX_IT_DONE_CALLBACK_ARG DRV_CMD_SET_WRITE_DONE_CALLBACK_ARG
 #define DRV_USART_CMD_SET_RX_IT_DONE_CALLBACK     DRV_CMD_SET_READ_DONE_CALLBACK  // set rx interrupt done callback
 #define DRV_USART_CMD_SET_RX_IT_DONE_CALLBACK_ARG DRV_CMD_SET_READ_DONE_CALLBACK_ARG
-#define DRV_USART_CMD_GET_RX_DATA_SIZE            DRV_CMD_GET_SIZE
+#define DRV_USART_CMD_GET_RX_DATA_SIZE            DRV_CMD_GET_RX_SIZE
 
 /*
  * ****************************************************************************

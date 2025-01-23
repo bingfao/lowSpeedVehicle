@@ -72,7 +72,7 @@ typedef enum {
     DRV_CMD_SET_WRITE_DONE_CALLBACK_ARG,  // set write done callback arg
     DRV_CMD_SET_READ_DONE_CALLBACK,       // set read done callback
     DRV_CMD_SET_READ_DONE_CALLBACK_ARG,   // set read done callback arg
-    DRV_CMD_GET_SIZE,                     // get size of driver
+    DRV_CMD_GET_RX_SIZE,                  // get size of driver
     DRV_CMD_GET_ID,                       // get id of driver
     DRV_CMD_MAX,
 } DRV_CMD_t;
