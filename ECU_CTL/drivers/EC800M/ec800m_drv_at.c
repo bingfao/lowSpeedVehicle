@@ -8,8 +8,9 @@
 #include "ec800m_drv_at.h"
 
 #include <FreeRTOS.h>
-#include <cmsis_os.h>
 #include <error_code.h>
+#include <queue.h>
+#include <semphr.h>
 #include <string.h>
 #include <task.h>
 
@@ -18,9 +19,11 @@
 #include "ec800m_drv_at_cmd.h"
 #include "elog.h"
 #include "error_code.h"
+#include "fault.h"
 #include "main.h"
 #include "ring_buffer.h"
 #include "usart.h"
+#include "user_os.h"
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
@@ -78,13 +81,13 @@ char g_ec800m_at_rx_buf[EC800M_DRV_AT_RX_BUF_SIZE];
 char g_ec800m_rx_ring_buf_data[EC800M_DRV_RX_BUF_SIZE];
 RINGBUFF_T g_ec800m_rx_ring_buf_handle;
 
-osSemaphoreDef(g_ec800m_tx_sem);
-osSemaphoreId g_ec800m_tx_sem_handler = NULL;
-osSemaphoreDef(g_ec800m_rx_sem);
-osSemaphoreId g_ec800m_rx_sem_handler = NULL;
+// osSemaphoreDef(g_ec800m_tx_sem);
+// osSemaphoreId g_ec800m_tx_sem_handler = NULL;
+SemaphoreHandle_t g_ec800m_tx_sem_handler = NULL;
+// osSemaphoreDef(g_ec800m_rx_sem);
+SemaphoreHandle_t g_ec800m_rx_sem_handler = NULL;
 
-osThreadId g_ec800m_rx_thread;
-osMessageQId g_ec800m_rx_queue_handle;
+QueueHandle_t g_ec800m_rx_queue_handle;
 
 uint32_t g_ec800m_connect_mode = 0;
 char g_ec800m_tcp_host[64] = {0};
@@ -163,6 +166,8 @@ DRIVER_CTL_t g_ec800m_driver = {
     .control = ec800m_dev_ctl,
 };
 
+USER_THREAD_OBJ_t g_ec800m_rx_thread =
+    USER_THREAD_OBJ_INIT(ec800m_rx_task, "ec800m_rx", 512, NULL, RTOS_PRIORITY_NORMAL);
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********
@@ -178,6 +183,7 @@ DRIVER_CTL_t g_ec800m_driver = {
 static int32_t ec800m_drv_init(DRIVER_OBJ_t *p_driver)
 {
     int32_t ret = 0;
+    USER_THREAD_OBJ_t *thread = &g_ec800m_rx_thread;
 
     at_com_init(&g_ec800m_at_com, g_ec800m_at_tx_buf, EC800M_DRV_AT_TX_BUF_SIZE, g_ec800m_at_rx_buf,
                 EC800M_DRV_AT_RX_BUF_SIZE);
@@ -197,14 +203,16 @@ static int32_t ec800m_drv_init(DRIVER_OBJ_t *p_driver)
             return ret;
         }
     }
-    g_ec800m_tx_sem_handler = osSemaphoreCreate(osSemaphore(g_ec800m_tx_sem), 1);
-    g_ec800m_rx_sem_handler = osSemaphoreCreate(osSemaphore(g_ec800m_rx_sem), 1);
+    g_ec800m_tx_sem_handler = xSemaphoreCreateBinary();
+    g_ec800m_rx_sem_handler = xSemaphoreCreateBinary();
     RingBuffer_Init(&g_ec800m_rx_ring_buf_handle, g_ec800m_rx_ring_buf_data, sizeof(uint8_t), EC800M_DRV_RX_BUF_SIZE);
-    osThreadDef(ec800m_rx, ec800m_rx_task, osPriorityNormal, 0, 512);
-    g_ec800m_rx_thread = osThreadCreate(osThread(ec800m_rx), NULL);
+    // osThreadDef(ec800m_rx, ec800m_rx_task, osPriorityNormal, 0, 512);
+    xTaskCreate((TaskFunction_t)thread->thread, thread->name, thread->stack_size, thread->parameter, thread->priority,
+                &thread->thread_handle);
+    fault_assert(thread->thread_handle != NULL, FAULT_CODE_NORMAL);
 
-    osMessageQDef(ec800m_rx_queue, 10, uint8_t);
-    g_ec800m_rx_queue_handle = osMessageCreate(osMessageQ(ec800m_rx_queue), NULL);
+    // osMessageQDef(ec800m_rx_queue, 10, uint8_t);
+    g_ec800m_rx_queue_handle = xQueueCreate(10, sizeof(uint32_t));
     ec800m_delay_ms(500);
     ec800m_device_reset();
     if (ec800m_is_ready() == false) {
@@ -222,10 +230,10 @@ static int32_t ec800m_drv_init(DRIVER_OBJ_t *p_driver)
 
 static int32_t ec800m_drv_deinit(DRIVER_OBJ_t *p_driver)
 {
-    osMessageDelete(g_ec800m_rx_queue_handle);
-    osThreadTerminate(g_ec800m_rx_thread);
-    osSemaphoreDelete(g_ec800m_tx_sem_handler);
-    osSemaphoreDelete(g_ec800m_rx_sem_handler);
+    vQueueDelete(g_ec800m_rx_queue_handle);
+    vTaskDelete(g_ec800m_rx_thread.thread_handle);
+    vSemaphoreDelete(g_ec800m_tx_sem_handler);
+    vSemaphoreDelete(g_ec800m_rx_sem_handler);
     driver_deinit(g_ec800m_trans_driver);
 
     return 0;
@@ -233,13 +241,18 @@ static int32_t ec800m_drv_deinit(DRIVER_OBJ_t *p_driver)
 
 static void ec800m_it_tx_callback(void *arg)
 {
-    osSemaphoreRelease(g_ec800m_tx_sem_handler);
-    // log_d("ec800m_tx_done\r\n");
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    if (xSemaphoreGiveFromISR(g_ec800m_tx_sem_handler, &xHigherPriorityTaskWoken) == pdTRUE) {
+        // portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
 }
 
 static void ec800m_it_rx_callback(void *arg)
 {
-    osSemaphoreRelease(g_ec800m_rx_sem_handler);
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    if (xSemaphoreGiveFromISR(g_ec800m_rx_sem_handler, &xHigherPriorityTaskWoken) == pdTRUE) {
+        // portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
 }
 
 static int32_t ec800m_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag)
@@ -419,13 +432,14 @@ static void ec800m_rx_task(void const *argument)
     int32_t timeout = 100;
     char data[64] = {0};
     int32_t ret = 0;
+    BaseType_t res = pdFALSE;
     int32_t in_data_size = 0;
 
     ec800m_rx_prepare();
     while (1) {
         timeout = 200;
-        ret = osSemaphoreWait(g_ec800m_rx_sem_handler, osWaitForever);
-        if (ret != 0) {
+        res = xSemaphoreTake(g_ec800m_rx_sem_handler, osWaitForever);
+        if (res != pdPASS) {
             log_e("osSemaphoreWait failed, xReturn:%d\r\n", ret);
         }
 #if PRINT_EC800M_RX_DATA
@@ -471,7 +485,7 @@ static void ec800m_rx_task(void const *argument)
             data[0] = '\0';
             log_d("AT rx: %d[%d] \r\n", g_ec800m_at_com.rx_buffer_index, g_ec800m_at_com.status);
             log_d("data rx: %d \r\n", in_data_size);
-            in_data_size = 0;   // 512 bytes per line
+            in_data_size = 0;  // 512 bytes per line
             at_com_data_process(&g_ec800m_at_com, data, 1, 1);
         }
     }
@@ -498,22 +512,22 @@ static int32_t ec800m_drv_close(DRIVER_OBJ_t *p_driver)
 
 static int32_t ec800m_dev_send_direct_mode(uint32_t pos, char *p_buf, uint32_t len)
 {
-    int32_t ret = 0;
+    BaseType_t ret = pdPASS;
 
-    ret = osSemaphoreWait(g_ec800m_tx_sem_handler, 100);
-    while (ret == 0) {
-        ret = osSemaphoreWait(g_ec800m_tx_sem_handler, 100);
+    ret = xSemaphoreTake(g_ec800m_tx_sem_handler, 100);
+    while (ret == pdPASS) {
+        ret = xSemaphoreTake(g_ec800m_tx_sem_handler, 100);
     }
 
     ec800m_send_direct(p_buf, len);
     if (pos == EC800M_DRV_POS_BLOCKING) {
-        osSemaphoreWait(g_ec800m_tx_sem_handler, osWaitForever);
+        xSemaphoreTake(g_ec800m_tx_sem_handler, osWaitForever);
     } else if (pos == EC800M_DRV_POS_BLOCKING_1000) {
-        ret = osSemaphoreWait(g_ec800m_tx_sem_handler, 1000);
+        ret = xSemaphoreTake(g_ec800m_tx_sem_handler, 1000);
     } else {
-        ret = 0;
+        ret = pdPASS;
     }
-    if (ret != 0) {
+    if (ret != pdPASS) {
         log_e("osSemaphoreWait failed, xReturn:%d\r\n", ret);
         return -ETIMEDOUT;
     }
@@ -531,8 +545,9 @@ static int32_t ec800m_dev_send_data_len_straight_out_mode(uint32_t len)
     AT_CMP_STR_NODE_t at_str_ack[2] = {0};
     int8_t rx_queue_num = 0;
     int32_t ret = 0;
-    osEvent event;
     char cmd[128] = {0};
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
 
     at_com_clr_cmp_str(&g_ec800m_at_com);
     ret += at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_ACK_REQUIRE_DATA, NULL, ec800m_device_ack_require_data);
@@ -546,13 +561,13 @@ static int32_t ec800m_dev_send_data_len_straight_out_mode(uint32_t len)
     at_com_send_str(&g_ec800m_at_com, cmd, strlen(cmd), 2000);
     rx_queue_num = 1;
     while (rx_queue_num > 0) {
-        event = osMessageGet(g_ec800m_rx_queue_handle, 2000);
-        if (event.status != osEventMessage) {
-            log_e("osMessageGet failed, status:0x%x\r\n", event.status);
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
+        if (res != pdPASS) {
+            log_e("osMessageGet failed\r\n");
             return false;
         }
         rx_queue_num--;
-        switch (event.value.v) {
+        switch (msg) {
             case EC800M_AT_ACK_QUEUE_REQUIRE_DATA:
                 return 0;
             default:
@@ -568,7 +583,8 @@ static int32_t ec800m_dev_send_data_straight_out_mode(char *p_buf, uint32_t len)
     AT_CMP_STR_NODE_t at_str_ack[2] = {0};
     int8_t rx_queue_num = 0;
     int32_t ret = 0;
-    osEvent event;
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
 
     at_com_clr_cmp_str(&g_ec800m_at_com);
     ret += at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_ACK_SEND_OK, NULL, ec800m_device_ack_send_ok);
@@ -580,13 +596,13 @@ static int32_t ec800m_dev_send_data_straight_out_mode(char *p_buf, uint32_t len)
     at_com_send_str(&g_ec800m_at_com, p_buf, len, 2000);
     rx_queue_num = 1;
     while (rx_queue_num > 0) {
-        event = osMessageGet(g_ec800m_rx_queue_handle, 2000);
-        if (event.status != osEventMessage) {
-            log_e("osMessageGet failed, status:0x%x\r\n", event.status);
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
+        if (res != pdPASS) {
+            log_e("osMessageGet failed\r\n");
             return -ETIMEDOUT;
         }
         rx_queue_num--;
-        switch (event.value.v) {
+        switch (msg) {
             case EC800M_AT_ACK_QUEUE_SEND_OK:
                 return len;
             default:
@@ -753,11 +769,11 @@ static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg)
 
 static int32_t ec800m_device_ack_message_send(uint32_t message)
 {
-    osEvent xReturn;
     uint32_t send_data = message;
+    BaseType_t res = pdFAIL;
 
-    xReturn.status = osMessagePut(g_ec800m_rx_queue_handle, send_data, 100);
-    if (osOK != xReturn.status) {
+    res = xQueueSend(g_ec800m_rx_queue_handle, &send_data, 100);
+    if (res != pdPASS) {
         log_d("ec800m_device_ack osMessage send:%d fail\n", message);
         return -1;
     }
@@ -806,8 +822,9 @@ static bool ec800m_is_ready(void)
     AT_CMP_STR_NODE_t at_str_ack[3] = {0};
     int32_t ret = 0;
     int32_t has_ec800m = 0;
-    osEvent event;
     int8_t rx_queue_num = 0;
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
 
     at_com_clr_cmp_str(&g_ec800m_at_com);
     ret += at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_CMD_ATI_ACK_DEVICE, NULL, ec800m_device_in_callback);
@@ -823,13 +840,13 @@ static bool ec800m_is_ready(void)
     at_com_send_str(&g_ec800m_at_com, EC800M_AT_CMD_ATI, strlen(EC800M_AT_CMD_ATI), 5000);
     rx_queue_num = 2;
     while (rx_queue_num > 0) {
-        event = osMessageGet(g_ec800m_rx_queue_handle, 5000);
-        if (event.status != osEventMessage) {
-            log_e("ec800m_is_ready osMessageGet failed, status:0x%x\r\n", event.status);
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 5000);
+        if (res != pdPASS) {
+            log_e("ec800m_is_ready osMessageGet failed\r\n");
             return false;
         }
         rx_queue_num--;
-        switch (event.value.v) {
+        switch (msg) {
             case EC800M_AT_ACK_QUEUE_DEV_OK:
                 has_ec800m = 1;
                 break;
@@ -889,7 +906,8 @@ static bool ec800m_is_cs_registered(void)
     int32_t has_registered = 0;
     int8_t rx_queue_num = 0;
     int32_t ret = 0;
-    osEvent event;
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
 
     at_com_clr_cmp_str(&g_ec800m_at_com);
     ret += at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_CMD_CREG_ASK_STAT, NULL, ec800m_device_cs_stat);
@@ -905,13 +923,13 @@ static bool ec800m_is_cs_registered(void)
     at_com_send_str(&g_ec800m_at_com, EC800M_AT_CMD_CREG_ASK, strlen(EC800M_AT_CMD_CREG_ASK), 2000);
     rx_queue_num = 2;
     while (rx_queue_num > 0) {
-        event = osMessageGet(g_ec800m_rx_queue_handle, 2000);
-        if (event.status != osEventMessage) {
-            log_e("ec800m_is_cs_registered osMessageGet failed, status:0x%x\r\n", event.status);
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
+        if (res != pdPASS) {
+            log_e("ec800m_is_cs_registered osMessageGet failed\r\n");
             return false;
         }
         rx_queue_num--;
-        switch (event.value.v) {
+        switch (msg) {
             case EC800M_AT_ACK_QUEUE_CS_REG_OK:
                 has_registered = 1;
                 break;
@@ -941,14 +959,14 @@ static int32_t ec800m_device_tcp_state_check(void *args, char *str)
 
     token = strtok(str, delim);
     if (token != NULL) {
-        index ++;
-        printf("[%d]%s\r\n",index, token);
+        index++;
+        printf("[%d]%s\r\n", index, token);
     }
 
     // get next token
     while ((token = strtok(NULL, delim)) != NULL) {
-        index ++;
-        printf("[%d]%s\r\n",index, token);
+        index++;
+        printf("[%d]%s\r\n", index, token);
         if (index == 6) {
             if (strcmp(token, "2") == 0) {
                 connect_flg = 1;
@@ -980,7 +998,8 @@ static bool ec800m_socket_is_connected(void)
     int32_t has_connected = 0;
     int8_t rx_queue_num = 0;
     int32_t ret = 0;
-    osEvent event;
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
 
     at_com_clr_cmp_str(&g_ec800m_at_com);
     ret += at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_CMD_QISTATE_ACK, NULL, ec800m_device_tcp_state_check);
@@ -994,13 +1013,13 @@ static bool ec800m_socket_is_connected(void)
     at_com_send_str(&g_ec800m_at_com, EC800M_AT_CMD_QISTATE, strlen(EC800M_AT_CMD_QISTATE), 2000);
     rx_queue_num = 2;
     while (rx_queue_num > 0) {
-        event = osMessageGet(g_ec800m_rx_queue_handle, 2000);
-        if (event.status != osEventMessage) {
-            log_e("socket state osMessageGet failed, status:0x%x, [%d] \r\n", event.status, rx_queue_num);
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
+        if (res != pdPASS) {
+            log_e("socket state osMessageGet failed,[%d] \r\n", rx_queue_num);
             return false;
         }
         rx_queue_num--;
-        switch (event.value.v) {
+        switch (msg) {
             case EC800M_AT_ACK_QUEUE_TCP_DIRECT_CONNECT:
                 g_ec800m_connect_mode = EC800M_CONNECT_MODE_DIRECT;
                 has_connected = 1;
@@ -1067,9 +1086,10 @@ static int32_t ec800m_device_tcp_connect(int32_t mode)
     AT_CMP_STR_NODE_t at_str_ack[3] = {0};
     int8_t rx_queue_num = 0;
     int32_t ret = 0;
-    osEvent event;
     char cmd[128] = {0};
     int32_t mode_num = 0;
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
 
     at_com_clr_cmp_str(&g_ec800m_at_com);
     if (mode == EC800M_CONNECT_MODE_DIRECT) {
@@ -1105,14 +1125,14 @@ static int32_t ec800m_device_tcp_connect(int32_t mode)
             mode_num);
     at_com_send_str(&g_ec800m_at_com, cmd, strlen(cmd), 150000);
     while (rx_queue_num > 0) {
-        event = osMessageGet(g_ec800m_rx_queue_handle, 5000);
-        if (event.status != osEventMessage) {
-            log_e("osMessageGet failed, status:0x%x\r\n", event.status);
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 5000);
+        if (res != pdPASS) {
+            log_e("osMessageGet failed\r\n");
             rx_queue_num--;
             continue;
         }
         rx_queue_num--;
-        switch (event.value.v) {
+        switch (msg) {
             case EC800M_AT_ACK_QUEUE_TCP_CONNECT_OK:
                 g_ec800m_connect_mode = mode;
                 log_d("osMessageGet OK [%d]rx_queue[%d]\r\n", g_ec800m_connect_mode, rx_queue_num);
@@ -1144,7 +1164,8 @@ static int32_t ec800m_device_close_socket(void)
     AT_CMP_STR_NODE_t at_str_ack[2] = {0};
     int8_t rx_queue_num = 0;
     int32_t ret = 0;
-    osEvent event;
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
 
     at_com_clr_cmp_str(&g_ec800m_at_com);
     ret += at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_ACK_OK, NULL, ec800m_device_ack_ok);
@@ -1158,13 +1179,13 @@ static int32_t ec800m_device_close_socket(void)
     at_com_send_str(&g_ec800m_at_com, EC800M_AT_CMD_QICLOSE, strlen(EC800M_AT_CMD_QICLOSE), 2000);
     rx_queue_num = 1;
     while (rx_queue_num > 0) {
-        event = osMessageGet(g_ec800m_rx_queue_handle, 2000);
-        if (event.status != osEventMessage) {
-            log_e("ec800m_is_cs_registered osMessageGet failed, status:0x%x\r\n", event.status);
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
+        if (res != pdPASS) {
+            log_e("ec800m_is_cs_registered osMessageGet failed\r\n");
             return false;
         }
         rx_queue_num--;
-        switch (event.value.v) {
+        switch (msg) {
             case EC800M_AT_ACK_QUEUE_OK:
                 return 0;
             case EC800M_AT_ACK_QUEUE_ERROR:
@@ -1181,7 +1202,8 @@ static int32_t ec800m_device_quit_tcp_transparent_step1(void)
 {
     AT_CMP_STR_NODE_t at_str_ack[2] = {0};
     int8_t rx_queue_num = 0;
-    osEvent event;
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
 
     at_com_clr_cmp_str(&g_ec800m_at_com);
     at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_ACK_OK, NULL, ec800m_device_ack_ok);
@@ -1191,13 +1213,13 @@ static int32_t ec800m_device_quit_tcp_transparent_step1(void)
                     strlen(EC800M_AT_CMD_QUIT_TCP_TRANSPARENT_1), 2000);
     rx_queue_num = 1;
     while (rx_queue_num > 0) {
-        event = osMessageGet(g_ec800m_rx_queue_handle, 2000);
-        if (event.status != osEventMessage) {
-            log_e("quit_tcp1 osMessageGet failed, status:0x%x\r\n", event.status);
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
+        if (res != pdPASS) {
+            log_e("quit_tcp1 osMessageGet failed\r\n");
             return -ETIME;
         }
         rx_queue_num--;
-        switch (event.value.v) {
+        switch (msg) {
             case EC800M_AT_ACK_QUEUE_OK:
                 return 0;
             default:
@@ -1255,8 +1277,9 @@ static int32_t ec800m_device_reset(void)
 {
     AT_CMP_STR_NODE_t at_str_ack[2] = {0};
     int8_t rx_queue_num = 0;
-    osEvent event;
     char cmd = 0;
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
 
     at_com_clr_cmp_str(&g_ec800m_at_com);
     at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_CMD_READY, NULL, ec800m_device_ack_ready);
@@ -1266,13 +1289,13 @@ static int32_t ec800m_device_reset(void)
     at_com_send_str(&g_ec800m_at_com, &cmd, 1, 10000);  // send fake reset command, to start check the "RDY" ACK
     rx_queue_num = 1;
     while (rx_queue_num > 0) {
-        event = osMessageGet(g_ec800m_rx_queue_handle, 10000);
-        if (event.status != osEventMessage) {
-            log_e("ec800m reset osMessageGet failed, status:0x%x\r\n", event.status);
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 10000);
+        if (res != pdPASS) {
+            log_e("ec800m reset osMessageGet failed\r\n");
             return false;
         }
         rx_queue_num--;
-        switch (event.value.v) {
+        switch (msg) {
             case EC800M_AT_ACK_QUEUE_READY:
                 log_d("ec800m_device_reset success\r\n");
                 return 0;

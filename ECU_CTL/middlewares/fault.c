@@ -13,20 +13,21 @@
 #include <elog.h>
 #include <task.h>
 
+#include "user_os.h"
 #include "util.h"
 
 static char *fault_msg[] = {
-    [FAULT_CODE_NORMAL] = "Normal",      // 普通
-    [FAULT_CODE_BATTERY] = "Battery",    // 电池故障
-    [FAULT_CODE_BUZZER] = "BUZZER",      // 蜂鸣器故障
-    [FAULT_CODE_E2P] = "E2P",            // E2P故障
-    [FAULT_CODE_SETTINGS] = "Settings",  // 设置错误
-    [FAULT_CODE_CONSOLE] = "Console",    // 控制台故障
-    [FAULT_CODE_EXT_ADC] = "EXT_ADC",    // 外部ADC故障
-    [FAULT_CODE_DMA] = "DMA",            // DMA故障
-    [FAULT_CODE_I2C] = "I2C",            // I2C故障
-    [FAULT_CODE_MEMPRY] = "MEMORY",      // 内存故障
-    [FAULT_CODE_NET_AGMT] = "NET_AGREEMENT",      // 网络协议协商失败
+    [FAULT_CODE_NORMAL] = "Normal",           // 普通
+    [FAULT_CODE_BATTERY] = "Battery",         // 电池故障
+    [FAULT_CODE_BUZZER] = "BUZZER",           // 蜂鸣器故障
+    [FAULT_CODE_E2P] = "E2P",                 // E2P故障
+    [FAULT_CODE_SETTINGS] = "Settings",       // 设置错误
+    [FAULT_CODE_CONSOLE] = "Console",         // 控制台故障
+    [FAULT_CODE_EXT_ADC] = "EXT_ADC",         // 外部ADC故障
+    [FAULT_CODE_DMA] = "DMA",                 // DMA故障
+    [FAULT_CODE_I2C] = "I2C",                 // I2C故障
+    [FAULT_CODE_MEMPRY] = "MEMORY",           // 内存故障
+    [FAULT_CODE_NET_AGMT] = "NET_AGREEMENT",  // 网络协议协商失败
 };
 
 void fault_assert(bool x, int code)

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:23
- * @LastEditTime: 2025-01-18 15:01:55
+ * @LastEditTime: 2025-01-22 14:33:52
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.c
@@ -16,8 +16,8 @@
 #include "ebike_manage.h"
 
 #include <FreeRTOS.h>
-#include <cmsis_os.h>
 #include <error_code.h>
+#include <queue.h>
 #include <task.h>
 
 #include "elog.h"
@@ -25,6 +25,7 @@
 #include "net_agreement.h"
 #include "net_port.h"
 #include "ota_file_manage.h"
+#include "user_os.h"
 #include "version.h"
 
 /*
@@ -59,8 +60,8 @@ typedef struct
  * ****************************************************************************
  */
 EBIKE_MANAGE_OBJ_t g_ebike_manage_obj;
-osThreadId g_ebike_rx_handle;
-osMessageQId g_ebike_rx_queue_handle;
+USER_THREAD_OBJ_t g_ebike_rx_thread;
+QueueHandle_t g_ebike_rx_queue_handle;
 
 static uint8_t g_default_aes_key[] = {0xfa, 0x91, 0x97, 0xfe, 0x55, 0xd5, 0x34, 0xe9,
                                       0x41, 0x5a, 0x89, 0x6a, 0x84, 0x1f, 0xb5, 0x4f};
@@ -415,7 +416,7 @@ int32_t ebike_device_register_to_server(void)
                                      NET_MSG_TYPE_SEND, data, len);
         if (ret < 0) {
             log_e("net_agreement_send_msg failed\r\n");
-            osDelay(1000);
+            vTaskDelay(1000);
             continue;
         }
         ret = ebike_msg_wait_queue(&message, 5000);
@@ -460,7 +461,7 @@ int32_t ebike_device_state_upload_to_server(void)
                                      data, len);
         if (ret < 0) {
             log_e("net_agreement_send_msg failed\r\n");
-            osDelay(1000);
+            vTaskDelay(1000);
             continue;
         }
         ret = ebike_msg_wait_queue(&message, 5000);
@@ -499,7 +500,7 @@ static int32_t ebike_manage_send_data(uint8_t *data, int32_t len)
 
 static uint32_t ebike_manage_get_ticks(void)
 {
-    return (uint32_t)osKernelSysTick();
+    return (uint32_t)xTaskGetTickCount();
 }
 
 static int32_t ebike_manage_register_msg_id(void *obj)
@@ -602,11 +603,25 @@ static int32_t ebike_rev_file_data(uint8_t *in_data, int32_t in_len, uint8_t *ou
 
 static int32_t ebike_manage_read_start(void)
 {
-    osThreadDef(ebike_rx, ebike_rx_task, osPriorityNormal, 0, 1024);
-    g_ebike_rx_handle = osThreadCreate(osThread(ebike_rx), NULL);
+    BaseType_t ret;
 
-    osMessageQDef(ebike_rx_queue, 10, uint8_t);
-    g_ebike_rx_queue_handle = osMessageCreate(osMessageQ(ebike_rx_queue), NULL);
+    memset(&g_ebike_rx_thread, 0, sizeof(USER_THREAD_OBJ_t));
+    g_ebike_rx_thread.thread = ebike_rx_task;
+    g_ebike_rx_thread.name = "ebike_rx";
+    g_ebike_rx_thread.stack_size = 1024;
+    g_ebike_rx_thread.parameter = NULL;
+    g_ebike_rx_thread.priority = RTOS_PRIORITY_NORMAL;
+    ret = xTaskCreate((TaskFunction_t)g_ebike_rx_thread.thread, g_ebike_rx_thread.name, g_ebike_rx_thread.stack_size,
+                      g_ebike_rx_thread.parameter, g_ebike_rx_thread.priority, &g_ebike_rx_thread.thread_handle);
+    if (ret != pdPASS) {
+        log_e("ebike_rx_task create failed\r\n");
+        return -1;
+    }
+    g_ebike_rx_queue_handle = xQueueCreate(10, sizeof(uint32_t));
+    if (g_ebike_rx_queue_handle == NULL) {
+        log_e("ebike_rx_queue create failed\r\n");
+        return -1;
+    }
 
     return 0;
 }
@@ -664,18 +679,18 @@ static void ebike_rx_task(void const *argument)
         } else {
             g_ebike_manage_obj.register_flg = 0;
         }
-        osDelay(50);
+        vTaskDelay(50);
         prepare_time_out -= 50;
     }
 }
 
 static int32_t ebike_msg_send_queue(uint32_t message)
 {
-    osEvent xReturn;
+    BaseType_t ret;
     uint32_t send_data = message;
 
-    xReturn.status = osMessagePut(g_ebike_rx_queue_handle, send_data, 100);
-    if (osOK != xReturn.status) {
+    ret = xQueueSend(g_ebike_rx_queue_handle, &send_data, 100);
+    if (pdPASS != ret) {
         log_d("ebike_msg_send_queue osMessage send:%d fail\n", message);
         return -1;
     }
@@ -685,11 +700,12 @@ static int32_t ebike_msg_send_queue(uint32_t message)
 
 static int32_t ebike_msg_wait_queue(uint32_t *in_message, uint32_t timeout)
 {
-    osEvent xEvent;
+    BaseType_t ret;
+    uint32_t temp_msg;
 
-    xEvent = osMessageGet(g_ebike_rx_queue_handle, timeout);
-    if (osEventMessage == xEvent.status) {
-        *in_message = xEvent.value.v;
+    ret = xQueueReceive(g_ebike_rx_queue_handle, &temp_msg, timeout);
+    if (ret == pdPASS) {
+        *in_message = temp_msg;
         return 0;
     } else {
         return -1;

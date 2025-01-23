@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2025-01-13 13:59:09
+ * @LastEditTime: 2025-01-22 15:15:18
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -16,13 +16,13 @@
 #include "net_port.h"
 
 #include <FreeRTOS.h>
-#include <cmsis_os.h>
 #include <error_code.h>
 #include <string.h>
 #include <task.h>
 
 #include "elog.h"
 #include "error_code.h"
+#include "user_os.h"
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
@@ -57,7 +57,6 @@ char g_tcp_host[64] = {0};
 char g_tcp_port[16] = {0};
 int8_t g_net_driver_init_flag = 0;
 int8_t g_net_driver_need_connect_flag = 0;
-osThreadId g_net_port_monitor_thread = NULL;
 
 /*
  * ****************************************************************************
@@ -66,6 +65,8 @@ osThreadId g_net_port_monitor_thread = NULL;
  */
 static int32_t net_port_keep_tcp_mode(void);
 static void net_port_monitor_task(void const *argument);
+USER_THREAD_OBJ_t g_net_port_monitor_thread =
+    USER_THREAD_OBJ_INIT(net_port_monitor_task, "net_port_monitor", 1024, NULL, RTOS_PRIORITY_NORMAL);
 
 /*
  * ****************************************************************************
@@ -75,6 +76,8 @@ static void net_port_monitor_task(void const *argument);
 int32_t net_port_init(void)
 {
     int32_t ret = 0;
+    BaseType_t res;
+
     g_driver = get_driver(NET_PORT_DRV_NAME);
     if (g_driver == NULL) {
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
@@ -91,8 +94,14 @@ int32_t net_port_init(void)
         log_e("driver open failed \r\n");
         return -EIO;
     }
-    osThreadDef(net_port_monitor, net_port_monitor_task, osPriorityNormal, 0, 1024);
-    g_net_port_monitor_thread = osThreadCreate(osThread(net_port_monitor), NULL);
+    USER_THREAD_OBJ_t *thread = &g_net_port_monitor_thread;
+    res = xTaskCreate((TaskFunction_t)thread->thread, thread->name, thread->stack_size, thread->parameter,
+                      thread->priority, &thread->thread_handle);
+    if (res != pdPASS) {
+        log_e("create net_port_monitor_task failed \r\n");
+        return -EIO;
+    }
+
     g_net_driver_init_flag = 1;
 
     return 0;
@@ -128,7 +137,7 @@ int32_t net_port_tcp_connect(const char *host, const char *port)
     strncpy(g_tcp_port, temp_port, sizeof(g_tcp_port) - 1);
     while (is_registered == false && time_out > 0) {
         driver_control(g_driver, NET_PORT_CMD_GET_CS_REGISTERED, &is_registered);
-        osDelay(100);
+        vTaskDelay(100);
         time_out -= 100;
     }
     if (is_registered == false) {
@@ -324,7 +333,7 @@ static void net_port_monitor_task(void const *argument)
             socket_refresh_times -= 5000;
         }
 
-        osDelay(5000);
+        vTaskDelay(5000);
     }
 }
 

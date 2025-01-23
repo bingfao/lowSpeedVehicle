@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2025-01-14 19:42:28
+ * @LastEditTime: 2025-01-22 14:02:17
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.c
@@ -16,19 +16,17 @@
 #define LOG_LVL ELOG_LVL_DEBUG
 #include "ecu_unit.h"
 
-#include <FreeRTOS.h>
-#include <cmsis_os.h>
 #include <error_code.h>
-#include <task.h>
 
+#include "bms_port.h"
 #include "console.h"
-#include "elog.h"
-#include "shell_port.h"
-#include "version.h"
 #include "driver_com.h"
+#include "elog.h"
 #include "mcu_ctl.h"
 #include "net_unit.h"
-#include "bms_port.h"
+#include "shell_port.h"
+#include "user_os.h"
+#include "version.h"
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
@@ -40,7 +38,7 @@
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
-osThreadId g_ecu_unit_handle;
+USER_THREAD_OBJ_t g_ecu_unit_thread = {0};
 
 /*
  * ****************************************************************************
@@ -78,8 +76,20 @@ int32_t ecu_unit_init(void)
 
 int32_t ecu_unit_start(void)
 {
-    osThreadDef(ecu_unit, ecu_unit_task, osPriorityNormal, 0, 1024);
-    g_ecu_unit_handle = osThreadCreate(osThread(ecu_unit), NULL);
+    BaseType_t ret;
+
+    memset(&g_ecu_unit_thread, 0, sizeof(USER_THREAD_OBJ_t));
+    g_ecu_unit_thread.thread = ecu_unit_task;
+    g_ecu_unit_thread.name = "ECU_UNIT";
+    g_ecu_unit_thread.stack_size = 1024;
+    g_ecu_unit_thread.parameter = NULL;
+    g_ecu_unit_thread.priority = RTOS_PRIORITY_NORMAL;
+    ret = xTaskCreate((TaskFunction_t)g_ecu_unit_thread.thread, g_ecu_unit_thread.name, g_ecu_unit_thread.stack_size,
+                      g_ecu_unit_thread.parameter, g_ecu_unit_thread.priority, &g_ecu_unit_thread.thread_handle);
+    if (ret != pdPASS) {
+        log_e("Create ECU_UNIT task failed\r\n");
+        return -1;
+    }
 
     return 0;
 }
@@ -97,7 +107,6 @@ static int32_t ecu_unit_prepare(void)
 
     return 0;
 }
-
 
 static void ecu_unit_task(void const *argument)
 {
@@ -117,7 +126,7 @@ static void ecu_unit_task(void const *argument)
     while (1) {
         // tick = osKernelSysTick();
         // log_d("tick: %d\r\n", tick);
-        osDelay(1000);
+        vTaskDelay(1000);
     }
 }
 

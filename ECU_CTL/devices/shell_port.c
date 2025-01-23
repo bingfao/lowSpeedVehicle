@@ -6,13 +6,13 @@
 #include "shell_port.h"
 
 #include <FreeRTOS.h>
-#include <cmsis_os.h>
 #include <task.h>
 
 #include "console.h"
 #include "elog.h"
 #include "fault.h"
 #include "shell.h"
+#include "user_os.h"
 #include "util.h"
 /*
  * ****************************************************************************
@@ -38,7 +38,6 @@
  * ****************************************************************************
  */
 
-osThreadId g_shell_port_task_handle;
 static Shell shell_data;
 static Shell *shell = &shell_data;
 static char buffer[BUFFER_SIZE];
@@ -50,7 +49,10 @@ static char buffer[BUFFER_SIZE];
 static short shell_port_read(char *data, unsigned short size);
 static short shell_port_write(char *data, unsigned short size);
 static void elog_output_func(const char *log, size_t size);
+static void shelltask_handle(void const *argument);
 
+USER_THREAD_OBJ_t g_shell_port_thread =
+    USER_THREAD_OBJ_INIT(shelltask_handle, "shell_p", 1024, NULL, RTOS_PRIORITY_LOW);
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********
@@ -69,9 +71,11 @@ int32_t shell_port_init(void)
     shellInit(shell, buffer, BUFFER_SIZE);
     /* 启动elog */
     logger_startup(elog_output_func);
-    osThreadDef(shell_p, shelltask_handle, osPriorityLow, 0, 1024);
-    g_shell_port_task_handle = osThreadCreate(osThread(shell_p), shell);
-    fault_assert(g_shell_port_task_handle != NULL, FAULT_CODE_NORMAL);
+    g_shell_port_thread.parameter = shell;
+    USER_THREAD_OBJ_t *thread = &g_shell_port_thread;
+    xTaskCreate((TaskFunction_t)thread->thread, thread->name, thread->stack_size, thread->parameter, thread->priority,
+                &thread->thread_handle);
+    fault_assert(thread->thread_handle != NULL, FAULT_CODE_NORMAL);
 
     return 0;
 }

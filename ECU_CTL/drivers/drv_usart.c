@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:20:51
- * @LastEditTime: 2025-01-16 10:29:41
+ * @LastEditTime: 2025-01-22 19:34:05
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.c
@@ -14,7 +14,6 @@
 #include "drv_usart.h"
 
 #include <FreeRTOS.h>
-#include <cmsis_os.h>
 #include <semphr.h>
 #include <util.h>
 
@@ -22,6 +21,7 @@
 #include "error_code.h"
 #include "fault.h"
 #include "ring_buffer.h"
+#include "user_os.h"
 
 /*
  * ****************************************************************************
@@ -58,8 +58,7 @@ typedef struct
     UART_CALL_BACK_FUN tx_it_call_back;
     void *tx_it_call_back_arg;
     UART_HandleTypeDef *ctl_uart;
-    osThreadId tx_thread_id;
-    osThreadDef_t *tx_thread_def;
+    USER_THREAD_OBJ_t *tx_thread_def;
 } DRV_USART_OBJ_t;
 
 /*
@@ -215,25 +214,28 @@ DRIVER_CTL_t g_usart_ctl[DRV_USART_NUM_MAX] = {
     },
 };
 
-osThreadDef(usart1_dma_tx, usart_dma_tx_task, osPriorityNormal, 0, 512);
-osThreadDef(usart2_dma_tx, usart_dma_tx_task, osPriorityNormal, 0, 512);
-osThreadDef(usart3_dma_tx, usart_dma_tx_task, osPriorityNormal, 0, 512);
-osThreadDef(usart4_dma_tx, usart_dma_tx_task, osPriorityNormal, 0, 512);
-osThreadDef(usart5_dma_tx, usart_dma_tx_task, osPriorityNormal, 0, 512);
-osThreadDef(usart6_dma_tx, usart_dma_tx_task, osPriorityNormal, 0, 512);
+USER_THREAD_OBJ_t g_usart_tx_thread[DRV_USART_NUM_MAX] = {
+    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart1_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL),
+    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart2_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL),
+    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart3_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL),
+    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart4_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL),
+    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart5_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL),
+    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart6_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL),
+};
 
 /* define the uart tx dma rhread */
 #define DRIVER_CONFIG_UART_TX_DMA_THREAD(thread, open_flg) ((open_flg) ? thread : NULL)
-#define USART_1_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(osThread(usart1_dma_tx), DRV_USAER_1_OPEN)
-#define USART_2_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(osThread(usart2_dma_tx), DRV_USAER_2_OPEN)
-#define USART_3_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(osThread(usart3_dma_tx), DRV_USAER_3_OPEN)
-#define USART_4_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(osThread(usart4_dma_tx), DRV_USAER_4_OPEN)
-#define USART_5_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(osThread(usart5_dma_tx), DRV_USAER_5_OPEN)
-#define USART_6_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(osThread(usart6_dma_tx), DRV_USAER_6_OPEN)
+#define USART_1_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(&g_usart_tx_thread[0], DRV_USAER_1_OPEN)
+#define USART_2_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(&g_usart_tx_thread[1], DRV_USAER_2_OPEN)
+#define USART_3_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(&g_usart_tx_thread[2], DRV_USAER_3_OPEN)
+#define USART_4_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(&g_usart_tx_thread[3], DRV_USAER_4_OPEN)
+#define USART_5_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(&g_usart_tx_thread[4], DRV_USAER_5_OPEN)
+#define USART_6_TX_DMA_THREAD                              DRIVER_CONFIG_UART_TX_DMA_THREAD(&g_usart_tx_thread[5], DRV_USAER_6_OPEN)
 
-osThreadDef_t const *g_usart_tx_thread_def[DRV_USART_NUM_MAX] = {USART_1_TX_DMA_THREAD, USART_2_TX_DMA_THREAD,
-                                                           USART_3_TX_DMA_THREAD, USART_4_TX_DMA_THREAD,
-                                                           USART_5_TX_DMA_THREAD, USART_6_TX_DMA_THREAD};
+USER_THREAD_OBJ_t *g_usart_tx_thread_def[DRV_USART_NUM_MAX] = {USART_1_TX_DMA_THREAD, USART_2_TX_DMA_THREAD,
+                                                               USART_3_TX_DMA_THREAD, USART_4_TX_DMA_THREAD,
+                                                               USART_5_TX_DMA_THREAD, USART_6_TX_DMA_THREAD};
+
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********
@@ -275,10 +277,13 @@ static int32_t drv_usart_init(DRIVER_OBJ_t *drv)
         usart_obj->rx_sem.xSemHandle = xSemaphoreCreateBinaryStatic(&usart_obj->rx_sem.xSemaphore);
         fault_assert(usart_obj->rx_sem.xSemHandle != NULL, FAULT_CODE_CONSOLE);
         // create tx thread
-        usart_obj->tx_thread_def = (osThreadDef_t *)g_usart_tx_thread_def[i];
+        usart_obj->tx_thread_def = g_usart_tx_thread_def[i];
         if (usart_obj->tx_thread_def != NULL) {
-            usart_obj->tx_thread_id = osThreadCreate(usart_obj->tx_thread_def, usart_obj);
-            fault_assert(usart_obj->tx_thread_id != NULL, FAULT_CODE_CONSOLE);
+            usart_obj->tx_thread_def->parameter = (void *)usart_obj;
+            USER_THREAD_OBJ_t *thread = usart_obj->tx_thread_def;
+            xTaskCreate((TaskFunction_t)thread->thread, thread->name, thread->stack_size, thread->parameter,
+                        thread->priority, &thread->thread_handle);
+            fault_assert(thread->thread_handle != NULL, FAULT_CODE_CONSOLE);
         }
 
         // drv function init

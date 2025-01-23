@@ -546,26 +546,6 @@ char *utf8_lcpy(char *dst, const char *src, size_t n);
     (expr);                                                             \
 })
 
-
-#define OS_MS(_ms)           ((_ms)/portTICK_PERIOD_MS)
-#define OS_SECOND(second)   OS_MS(second*1000)
-#define OS_NO_WAIT          OS_MS(0)
-#define OS_WAIT_FOREVER     (( TickType_t )-1)
-#define OS_SUCCESS          (pdTRUE)
-#define OS_FAIL             (pdFALSE)
-
-enum
-{
-    RTOS_PRIORITY_MIN         = 0,
-    RTOS_PRIORITY_LOW         = (configMAX_PRIORITIES * 1 / 7),
-    RTOS_PRIORITY_BELOWNORMAL = (configMAX_PRIORITIES * 2 / 7),
-    RTOS_PRIORITY_NORMAL      = (configMAX_PRIORITIES * 3 / 7),
-    RTOS_PRIORITY_ABOVENORMAL = (configMAX_PRIORITIES * 4 / 7),
-    RTOS_PRIORITY_HIGH        = (configMAX_PRIORITIES * 5 / 7),
-    RTOS_PRIORITY_REALTIME    = (configMAX_PRIORITIES * 6 / 7),
-    RTOS_PRIORITY_MAX         = configMAX_PRIORITIES - 1
-};
-
 /**
  * @}
  */

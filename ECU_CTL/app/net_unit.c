@@ -9,13 +9,13 @@
 #include "net_unit.h"
 
 #include <FreeRTOS.h>
-#include <cmsis_os.h>
 #include <error_code.h>
 #include <task.h>
 
 #include "ebike_manage.h"
 #include "elog.h"
 #include "net_port.h"
+#include "user_os.h"
 
 /*
  * ****************************************************************************
@@ -40,7 +40,7 @@
  * ******** Private global variables                                   ********
  * ****************************************************************************
  */
-osThreadId g_net_unit_handle;
+USER_THREAD_OBJ_t g_net_unit_thread;
 
 /*
  * ****************************************************************************
@@ -59,8 +59,20 @@ static void net_upload_data(int32_t ticks_used);
  */
 int32_t net_unit_start(void)
 {
-    osThreadDef(net_unit, net_unit_task, osPriorityNormal, 0, 1024);
-    g_net_unit_handle = osThreadCreate(osThread(net_unit), NULL);
+    BaseType_t ret;
+
+    memset(&g_net_unit_thread, 0, sizeof(USER_THREAD_OBJ_t));
+    g_net_unit_thread.thread = net_unit_task;
+    g_net_unit_thread.name = "net_unit";
+    g_net_unit_thread.stack_size = 1024;
+    g_net_unit_thread.parameter = NULL;
+    g_net_unit_thread.priority = RTOS_PRIORITY_NORMAL;
+    ret = xTaskCreate((TaskFunction_t)g_net_unit_thread.thread, g_net_unit_thread.name, g_net_unit_thread.stack_size,
+                      g_net_unit_thread.parameter, g_net_unit_thread.priority, &g_net_unit_thread.thread_handle);
+    if (ret != pdPASS) {
+        log_e("net_unit_start failed\r\n");
+        return -1;
+    }
 
     return 0;
 }
@@ -85,7 +97,7 @@ static void net_unit_task(void const *argument)
     log_d("NET_UNIT task running...\r\n");
     while (1) {
         net_upload_data(1000);
-        osDelay(1000);
+        vTaskDelay(1000);
     }
 }
 
