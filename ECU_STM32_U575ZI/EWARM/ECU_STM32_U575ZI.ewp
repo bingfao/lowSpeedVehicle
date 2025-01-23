@@ -189,7 +189,7 @@
                 <option>
                     <name>TrustZoneModes</name>
                     <version>0</version>
-                    <state>1</state>
+                    <state>0</state>
                 </option>
                 <option>
                     <name>OGAarch64Abi</name>
@@ -374,6 +374,7 @@
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\LetterShell\extensions\shell_enhance</state>
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\net_agreement</state>
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\soft_aes</state>
+                    <state>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -701,7 +702,7 @@
             <data>
                 <extensions></extensions>
                 <cmdline></cmdline>
-                <hasPrio>0</hasPrio>
+                <hasPrio>64</hasPrio>
                 <buildSequence>inputOutputBased</buildSequence>
             </data>
         </settings>
@@ -1280,11 +1281,20 @@
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\EC800M\ec800m_drv_at.c</name>
                 </file>
             </group>
+            <group>
+                <name>U575</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\driver_mcu.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\driver_pin_ec800m.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\drv_usart.c</name>
+                </file>
+            </group>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\driver_com.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\drv_usart.c</name>
             </file>
         </group>
         <group>

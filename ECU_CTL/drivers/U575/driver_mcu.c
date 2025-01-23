@@ -1,32 +1,20 @@
 /*
  * @Author: your name
- * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2025-01-23 15:19:41
+ * @Date: 2025-01-23 10:36:17
+ * @LastEditTime: 2025-01-23 13:56:07
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
- * @FilePath: \ECU_CTL\app\ecu_unit.c
+ * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_mcu.c
  */
-
 /*
  * ****************************************************************************
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#define LOG_TAG "ECU_UNIT"
-#define LOG_LVL ELOG_LVL_DEBUG
-#include "ecu_unit.h"
+#include "driver_mcu.h"
 
-#include <error_code.h>
+#include "error_code.h"
 
-#include "bms_port.h"
-#include "console.h"
-#include "driver_com.h"
-#include "elog.h"
-#include "mcu_ctl.h"
-#include "net_unit.h"
-#include "shell_port.h"
-#include "user_os.h"
-#include "version.h"
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
@@ -38,7 +26,6 @@
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
-USER_THREAD_OBJ_t g_ecu_unit_thread = {0};
 
 /*
  * ****************************************************************************
@@ -57,83 +44,80 @@ USER_THREAD_OBJ_t g_ecu_unit_thread = {0};
  * ******** Private functions prototypes                               ********
  * ****************************************************************************
  */
-static int32_t ecu_unit_prepare(void);
-static void ecu_unit_task(void const *argument);
+static int32_t mcu_drv_init(DRIVER_OBJ_t *p_driver);
+static int32_t mcu_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag);
+static int32_t get_mcu_id(uint8_t *id);
+static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args);
 
+DRIVER_CTL_t g_mcu_driver = {
+    .init = mcu_drv_init,
+    .open = mcu_drv_open,
+    .control = drv_mcu_control,
+};
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********
  * ****************************************************************************
  */
-int32_t ecu_unit_init(void)
-{
-    driver_register_fun_doing();
-    console_init();
-    print_system_inf();
 
-    return 0;
-}
-
-int32_t ecu_unit_start(void)
-{
-    BaseType_t ret;
-
-    memset(&g_ecu_unit_thread, 0, sizeof(USER_THREAD_OBJ_t));
-    g_ecu_unit_thread.thread = ecu_unit_task;
-    g_ecu_unit_thread.name = "ECU_UNIT";
-    g_ecu_unit_thread.stack_size = 1024;
-    g_ecu_unit_thread.parameter = NULL;
-    g_ecu_unit_thread.priority = RTOS_PRIORITY_NORMAL;
-    ret = xTaskCreate((TaskFunction_t)g_ecu_unit_thread.thread, g_ecu_unit_thread.name, g_ecu_unit_thread.stack_size,
-                      g_ecu_unit_thread.parameter, g_ecu_unit_thread.priority, &g_ecu_unit_thread.thread_handle);
-    if (ret != pdPASS) {
-        log_e("Create ECU_UNIT task failed\r\n");
-        return -1;
-    }
-
-    return 0;
-}
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
  * ****************************************************************************
  */
-static int32_t ecu_unit_prepare(void)
+static int32_t mcu_drv_init(DRIVER_OBJ_t *p_driver)
 {
-    shell_port_init();
-    mcu_ctl_init();
-    net_unit_start();
-    bms_port_init();
-
     return 0;
 }
 
-static void ecu_unit_task(void const *argument)
+static int32_t mcu_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag)
 {
-    ecu_unit_prepare();
-    uint8_t mcuID[18];
-    int32_t size = 0;
-    // uint32_t tick = 0;
-
-    size = mcu_ctl_get_id(mcuID);
-    if (size < 0) {
-        log_e("Get MCU ID failed\r\n");
-    } else {
-        printf("CPU ID: 0x");
-        for (int i = 0; i < size; i++) {
-            printf("%02X ", mcuID[i]);
-        }
-        printf("\r\n");
-    }
-
-    log_d("ECU_UNIT task running...\r\n");
-    while (1) {
-        // tick = osKernelSysTick();
-        // log_d("tick: %d\r\n", tick);
-        vTaskDelay(1000);
-    }
+    return 0;
 }
 
+static int32_t get_mcu_id(uint8_t *id)
+{
+    int8_t i, j;
+    uint32_t id_read[3] = {0};
+
+    if (id == NULL) {
+        return -EINVAL;
+    }
+
+    id_read[0] = *(__IO uint32_t *)(0x0BFA0700);
+    id_read[1] = *(__IO uint32_t *)(0x0BFA0704);
+    id_read[2] = *(__IO uint32_t *)(0x0BFA0708);
+
+    for (i = 2; i >= 0; i--) {
+        for (j = 0; j < 4; j++) {
+            *id++ = id_read[i];
+            id_read[i] >>= 8;
+        }
+    }
+
+    return 12;
+}
+
+static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args)
+{
+    int32_t ret = 0;
+
+    if (!driver_is_opened(drv)) {
+        return -EACCES;
+    }
+    switch (cmd) {
+        case DRV_CMD_GET_ID:
+            ret = get_mcu_id((uint8_t *)args);
+            break;
+
+        default:
+            return -EINVAL;
+    }
+
+    return ret;
+}
+
+DRIVER_REGISTER(&g_mcu_driver, mcu_u575)
 /*
  * ****************************************************************************
  * End File

@@ -1628,11 +1628,20 @@
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\EC800M\ec800m_drv_at.c</name>
                 </file>
             </group>
+            <group>
+                <name>U575</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\driver_mcu.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\driver_pin_ec800m.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\drv_usart.c</name>
+                </file>
+            </group>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\driver_com.c</name>
-            </file>
-            <file>
-                <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\drv_usart.c</name>
             </file>
         </group>
         <group>
