@@ -1593,9 +1593,6 @@
                 <name>$PROJ_DIR$\..\..\ECU_CTL\app\net_unit.c</name>
             </file>
             <file>
-                <name>$PROJ_DIR$\..\..\ECU_CTL\app\test.c</name>
-            </file>
-            <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\app\version.c</name>
             </file>
         </group>
