@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:34
- * @LastEditTime: 2025-01-20 09:58:16
+ * @LastEditTime: 2025-01-24 11:23:02
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.c
@@ -19,13 +19,13 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "aes.h"
 #include "ebike_manage.h"
 #include "elog.h"
 #include "error_code.h"
 #include "fault.h"
 #include "user_crc.h"
 #include "version.h"
-#include "aes.h"
 
 /*
  * ****************************************************************************
@@ -514,12 +514,12 @@ int32_t net_agreement_send_ack(void *obj, uint16_t msg_id, uint32_t resp_code, u
         return -1;
     }
     if (net_obj->tx_func) {
-        ret = net_obj->tx_func((uint8_t *)resp_msg, sizeof(NET_RESPONSE_HEADER_t) + resp_msg->resp_head.head.msg_body_len);
-        if (ret < 0){
+        ret = net_obj->tx_func((uint8_t *)resp_msg,
+                               sizeof(NET_RESPONSE_HEADER_t) + resp_msg->resp_head.head.msg_body_len);
+        if (ret < 0) {
             return ret;
         }
     }
-
 
     return 0;
 }
@@ -667,10 +667,10 @@ int32_t net_agreement_device_state_upload_package(void *obj, uint8_t *data, uint
     ret += ebike_get_location(&temp_double1, &temp_double2);
     ebike_state->lng_pos = temp_double1;
     ebike_state->lat_pos = temp_double2;
-    temp = ebike_get_total_mileage();                              // get total mileage unit is x.x m
+    temp = ebike_get_total_mileage();                                // get total mileage unit is x.x m
     ebike_state->total_mileage = (uint32_t)((temp + 5.0f) / 10.0f);  // mileage unit is 10m
     ebike_state->is_running = ebike_is_running();
-    temp = ebike_get_speed();                        // get speed unit is x.x km/h
+    temp = ebike_get_speed();                         // get speed unit is x.x km/h
     ebike_state->speed = (uint16_t)(temp / 0.0036f);  // update speed unit is  mm/s
     // ebike state data packet
     ebike_state->work_state.lock_status.electric_lock = ebike_electric_lock_is_lock() ? 0 : 1;
@@ -697,9 +697,9 @@ int32_t net_agreement_device_state_upload_package(void *obj, uint8_t *data, uint
     id_len = sizeof(ebike_state->mini_battery.id);
     ret += ebike_get_mini_battery_id(ebike_state->mini_battery.id, &id_len);
     ret += ebike_get_mini_battery_soc(&ebike_state->mini_battery.soc);
-    ret += ebike_get_mini_battery_voltage(&temp);              // get voltage unit is x.x V
+    ret += ebike_get_mini_battery_voltage(&temp);               // get voltage unit is x.x V
     ebike_state->mini_battery.vol = (uint16_t)(temp * 100.0f);  // update voltage unit is 10mV
-    ret += ebike_get_mini_battery_temp(&temp);                 // get temperature unit is x.x ℃
+    ret += ebike_get_mini_battery_temp(&temp);                  // get temperature unit is x.x ℃
     ebike_state->mini_battery.temp = (int16_t)(temp * 100.0f);  // update temperature unit is 0.01C
     // get power battery state
     ebike_state->power_battery.exit_flg = ebike_power_battery_is_exit() ? 1 : 0;
@@ -707,9 +707,9 @@ int32_t net_agreement_device_state_upload_package(void *obj, uint8_t *data, uint
     id_len = sizeof(ebike_state->power_battery.id);
     ret += ebike_get_power_battery_id(ebike_state->power_battery.id, &id_len);
     ret += ebike_get_power_battery_soc(&ebike_state->power_battery.soc);
-    ret += ebike_get_power_battery_voltage(&temp);              // get voltage unit is x.x V
+    ret += ebike_get_power_battery_voltage(&temp);               // get voltage unit is x.x V
     ebike_state->power_battery.vol = (uint16_t)(temp * 100.0f);  // update voltage unit is 10mV
-    ret += ebike_get_power_battery_temp(&temp);                 // get temperature unit is x.x ℃
+    ret += ebike_get_power_battery_temp(&temp);                  // get temperature unit is x.x ℃
     ebike_state->power_battery.temp = (int16_t)(temp * 100.0f);  // update temperature unit is 0.01C
     ret += ebike_get_power_battery_charge_cycle(&temp_u16);
     ebike_state->power_battery.charge_cycle = temp_u16;
@@ -723,9 +723,9 @@ int32_t net_agreement_device_state_upload_package(void *obj, uint8_t *data, uint
     data_len++;
     series_state = &ebike_state->power_battery_series;
     for (i = 0; i < ebike_state->power_battery_series.series_counts; i++) {
-        ret += ebike_get_power_battery_series_voltages(&temp, i, 0);   // get voltage unit is x.x V
+        ret += ebike_get_power_battery_series_voltages(&temp, i, 0);    // get voltage unit is x.x V
         series_state->series_state[i].vol = (uint16_t)(temp * 100.0f);  // update voltage unit is 10mV
-        ret += ebike_get_power_battery_series_temp(&temp, i, 0);       // get temperature unit is x.x ℃
+        ret += ebike_get_power_battery_series_temp(&temp, i, 0);        // get temperature unit is x.x ℃
         series_state->series_state[i].temp = (int16_t)(temp * 100.0f);  // update temperature unit is 0.01C
         data_len += sizeof(POWER_BATTERY_SERIES_STATE_t);
     }
@@ -754,6 +754,33 @@ int32_t net_agreement_device_state_upload_ack(void *obj, uint8_t *data, uint32_t
     return 0;
 }
 
+int32_t net_agreement_device_traffic_report_package(void *obj, uint8_t *data, uint32_t *len)
+{
+    memset(data, 0, 6);
+    data[0] = (uint8_t)ebike_get_device_type();
+    data[1] = 0x01;
+    *(uint32_t *)&data[2] = 0x02;
+    *len = 6;
+
+    return 0;
+}
+
+int32_t net_agreement_device_traffic_report_ack(void *obj, uint8_t *data, uint32_t len)
+{
+    NET_MSG_ACK *ack_msg = (NET_MSG_ACK *)data;
+
+    if (len != NET_MAS_LEN_TRAFFIC_ACK) {
+        return -EINVAL;
+    }
+    if (ack_msg->respcode != NET_MSG_RESPCODE_OK) {
+        log_e("utraffic report fail, respcode:%d", ack_msg->respcode);
+        return -EPERM;
+    }
+    log_i("utraffic report  state success");
+
+    return 0;
+}
+
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
@@ -761,7 +788,8 @@ int32_t net_agreement_device_state_upload_ack(void *obj, uint8_t *data, uint32_t
  */
 static bool msg_body_need_aes(uint32_t msg_id)
 {
-    if (msg_id == NET_TX_MSG_ID_REGISTER_DEV || msg_id == NET_TX_MSG_ID_DEV_STATE) {
+    if (msg_id == NET_TX_MSG_ID_REGISTER_DEV || msg_id == NET_TX_MSG_ID_DEV_STATE ||
+        msg_id == NET_TX_MSG_ID_DATA_TRAFFIC_REPORT) {
         return false;
     }
     return true;

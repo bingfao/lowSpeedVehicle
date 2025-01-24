@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:43
- * @LastEditTime: 2025-01-17 20:31:37
+ * @LastEditTime: 2025-01-24 10:01:29
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.h
@@ -162,6 +162,7 @@ typedef int32_t (*MSG_ID_FUNC)(uint8_t *in_data, int32_t in_len, uint8_t *out_da
 
 #define NET_MAS_LEN_REGISTER_ACK   24  // 24 bytes for register ack
 #define NET_MAS_LEN_UPLOAD_ACK     4   // 4 bytes for upload ack
+#define NET_MAS_LEN_TRAFFIC_ACK    4   // 4 bytes for traffic report ack
 /*
  * ****************************************************************************
  * ******** Exported macro                                             ********
@@ -199,6 +200,8 @@ int32_t net_agreement_device_register_ack(void *obj, uint8_t *data, uint32_t len
                                           uint8_t *aes_iv);
 int32_t net_agreement_device_state_upload_package(void *obj, uint8_t *data, uint32_t *len);
 int32_t net_agreement_device_state_upload_ack(void *obj, uint8_t *data, uint32_t len);
+int32_t net_agreement_device_traffic_report_package(void *obj, uint8_t *data, uint32_t *len);
+int32_t net_agreement_device_traffic_report_ack(void *obj, uint8_t *data, uint32_t len);
 
 /* ************************************************************************* */
 #ifdef __cplusplus

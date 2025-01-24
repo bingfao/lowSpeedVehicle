@@ -100,10 +100,21 @@ static int t_socket_state(int argc, char *argv[])
     return 0;
 }
 
+static int t_traffic_report(int argc, char *argv[])
+{
+    int32_t ret = 0;
+
+    ret = ebike_device_traffic_report();
+    log_i("device_traffic start = %d \r\n", ret);
+
+    return 0;
+}
+
 ShellCommand ebike_ctl[] = {
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_ebike_register, t_ebike_register, ebike register to server),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_ebike_state_upload, t_ebike_state_upload, ebike state upload to server),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_socket_state, t_socket_state, ebike socket state),
+    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_traffic_report, t_traffic_report, ebike traffic report start file load),
     SHELL_CMD_GROUP_END()};
 
 SHELL_EXPORT_CMD_GROUP(SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN), ebike_cmd, ebike_ctl, ebike_cmd);
