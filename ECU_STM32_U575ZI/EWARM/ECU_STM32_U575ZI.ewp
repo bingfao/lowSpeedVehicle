@@ -1143,6 +1143,9 @@
           <name>$PROJ_DIR$\..\Core\Src\memorymap.c</name>
         </file>
         <file>
+          <name>$PROJ_DIR$/../Core/Src/octospi.c</name>
+        </file>
+        <file>
           <name>$PROJ_DIR$\..\Core\Src\usart.c</name>
         </file>
         <file>
@@ -1220,6 +1223,12 @@
       </file>
       <file>
         <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_icache.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$/../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_ospi.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$/../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_dlyb.c</name>
       </file>
       <file>
         <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_uart.c</name>

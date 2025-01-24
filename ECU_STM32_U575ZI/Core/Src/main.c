@@ -22,6 +22,7 @@
 #include "gpdma.h"
 #include "icache.h"
 #include "memorymap.h"
+#include "octospi.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -101,6 +102,7 @@ int main(void)
   MX_ICACHE_Init();
   MX_USART3_UART_Init();
   MX_USART2_UART_Init();
+  MX_OCTOSPI1_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
