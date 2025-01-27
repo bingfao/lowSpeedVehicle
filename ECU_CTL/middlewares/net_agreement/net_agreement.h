@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:43
- * @LastEditTime: 2025-01-24 10:01:29
+ * @LastEditTime: 2025-01-26 16:46:53
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.h
@@ -202,6 +202,9 @@ int32_t net_agreement_device_state_upload_package(void *obj, uint8_t *data, uint
 int32_t net_agreement_device_state_upload_ack(void *obj, uint8_t *data, uint32_t len);
 int32_t net_agreement_device_traffic_report_package(void *obj, uint8_t *data, uint32_t *len);
 int32_t net_agreement_device_traffic_report_ack(void *obj, uint8_t *data, uint32_t len);
+int32_t net_agreement_device_file_download_require_package(void *obj, uint8_t *data, uint32_t *len, uint32_t r_adr,
+                                                           uint16_t r_len);
+int32_t net_agreement_device_file_download_require_ack(void *obj, uint8_t *data, uint32_t len);
 
 /* ************************************************************************* */
 #ifdef __cplusplus

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:34
- * @LastEditTime: 2025-01-24 11:23:02
+ * @LastEditTime: 2025-01-27 10:01:36
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.c
@@ -24,6 +24,7 @@
 #include "elog.h"
 #include "error_code.h"
 #include "fault.h"
+#include "ota_file_manage.h"
 #include "user_crc.h"
 #include "version.h"
 
@@ -40,6 +41,7 @@ typedef struct
     uint8_t msg_register;
 } MSG_ID_FUNC_MAP_t;
 
+#pragma pack(push, 4)
 typedef struct
 {
     uint32_t dev_id;
@@ -56,6 +58,7 @@ typedef struct
     uint8_t aes_key[16];
     uint8_t aes_iv[16];
 } NET_AGREEMENT_OBJ_t;
+#pragma pack(pop)
 
 #pragma pack(push, 1)
 typedef struct
@@ -205,6 +208,18 @@ typedef struct
 } NET_EBIKE_STATE_UPLOAD_OBJ_t;
 #pragma pack(pop)
 
+#pragma pack(push, 1)
+typedef struct
+{
+    uint8_t dev_type;
+    uint8_t file_type;
+    uint8_t file_name[32];
+    uint8_t file_url_key[16];
+    uint32_t file_data_start_index;
+    uint16_t file_data_require_len;
+} EBIKE_FILE_DOWNLOAD_REQUIRE_t;
+#pragma pack(pop)
+
 typedef struct
 {
     uint32_t section_id;
@@ -213,6 +228,7 @@ typedef struct
 typedef union
 {
     REGISTER_ACK_DATA_t register_ack_data;
+    uint8_t data[16];
 } ACK_DATA_t;
 
 typedef struct
@@ -781,6 +797,38 @@ int32_t net_agreement_device_traffic_report_ack(void *obj, uint8_t *data, uint32
     return 0;
 }
 
+int32_t net_agreement_device_file_download_require_package(void *obj, uint8_t *data, uint32_t *len, uint32_t r_adr, uint16_t r_len)
+{
+    EBIKE_FILE_DOWNLOAD_REQUIRE_t *p_data = (EBIKE_FILE_DOWNLOAD_REQUIRE_t *)data;
+
+    memset(p_data, 0, sizeof(EBIKE_FILE_DOWNLOAD_REQUIRE_t));
+    p_data->dev_type = (uint8_t)ebike_get_device_type();
+    p_data->file_type = get_file_download_file_type();
+    get_file_download_file_name(p_data->file_name, sizeof(p_data->file_name));
+    get_file_download_file_url_key(p_data->file_url_key, sizeof(p_data->file_url_key));
+    p_data->file_data_start_index = r_adr;
+    p_data->file_data_require_len = r_len;
+    *len = sizeof(EBIKE_FILE_DOWNLOAD_REQUIRE_t);
+
+    return 0;
+}
+
+int32_t net_agreement_device_file_download_require_ack(void *obj, uint8_t *data, uint32_t len)
+{
+    NET_MSG_ACK *ack_msg = (NET_MSG_ACK *)data;
+
+    if (len <= 10) {
+        return -EINVAL;
+    }
+    if (ack_msg->respcode != NET_MSG_RESPCODE_OK) {
+        log_e("utraffic report fail, respcode:%d", ack_msg->respcode);
+        return -EPERM;
+    }
+    log_i("utraffic report  state success");
+
+    return ota_file_data_download_in(&ack_msg->ack_data.data[0], len - 4);
+}
+
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
@@ -789,7 +837,7 @@ int32_t net_agreement_device_traffic_report_ack(void *obj, uint8_t *data, uint32
 static bool msg_body_need_aes(uint32_t msg_id)
 {
     if (msg_id == NET_TX_MSG_ID_REGISTER_DEV || msg_id == NET_TX_MSG_ID_DEV_STATE ||
-        msg_id == NET_TX_MSG_ID_DATA_TRAFFIC_REPORT) {
+        msg_id == NET_TX_MSG_ID_DATA_TRAFFIC_REPORT || msg_id == NET_TX_MSG_ID_FILE_APPLY) {
         return false;
     }
     return true;

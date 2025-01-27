@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:23
- * @LastEditTime: 2025-01-24 10:01:57
+ * @LastEditTime: 2025-01-26 17:16:52
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.c
@@ -85,16 +85,21 @@ static int32_t ebike_msg_wait_queue(uint32_t *in_message, uint32_t timeout);
 static int32_t ebike_device_register_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 static int32_t ebike_device_state_upload_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 static int32_t ebike_device_traffic_report_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
-// server cmd function
-static int32_t ebike_rev_file_head(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
+static int32_t ebike_device_file_download_require_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data,
+                                                      int32_t *out_len);
+    // server cmd function
+    static int32_t ebike_rev_file_head(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 static int32_t ebike_rev_file_data(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
+static int32_t ebike_rev_file_download_require(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 
 MSG_ID_MAP_t g_msg_id_fun_map[] = {
     {NET_TX_MSG_ID_REGISTER_DEV, NET_MSG_TYPE_RESP, ebike_device_register_ack},
     {NET_TX_MSG_ID_DEV_STATE, NET_MSG_TYPE_RESP, ebike_device_state_upload_ack},
     {NET_TX_MSG_ID_DATA_TRAFFIC_REPORT, NET_MSG_TYPE_RESP, ebike_device_traffic_report_ack},
+    {NET_TX_MSG_ID_FILE_APPLY, NET_MSG_TYPE_RESP, ebike_device_file_download_require_ack},
     {NET_RX_MSG_ID_FILE_HEAD_DOWNLOAD, NET_MSG_TYPE_SEND, ebike_rev_file_head},
     {NET_RX_MSG_ID_FILE_DATA_DOWNLOAD, NET_MSG_TYPE_SEND, ebike_rev_file_data},
+    {NET_RX_MSG_ID_FILE_NEED_UPDATE, NET_MSG_TYPE_SEND, ebike_rev_file_download_require},
 };
 
 /*
@@ -143,6 +148,11 @@ bool ebike_is_register(void)
 EBIKE_TYPE_t ebike_get_device_type(void)
 {
     return g_ebike_manage_obj.dev_type;
+}
+
+uint32_t ebike_get_session_id(void)
+{
+    return g_ebike_manage_obj.session_id;
 }
 
 int32_t ebike_get_location(double *lng, double *lat)
@@ -502,8 +512,8 @@ int32_t ebike_device_traffic_report(void)
         return ret;
     }
     do {
-        ret = net_agreement_send_msg(g_ebike_manage_obj.net_agreement_obj, NET_TX_MSG_ID_DATA_TRAFFIC_REPORT, NET_MSG_TYPE_SEND,
-                                     data, len);
+        ret = net_agreement_send_msg(g_ebike_manage_obj.net_agreement_obj, NET_TX_MSG_ID_DATA_TRAFFIC_REPORT,
+                                     NET_MSG_TYPE_SEND, data, len);
         if (ret < 0) {
             log_e("net_agreement_send_msg failed\r\n");
             vTaskDelay(1000);
@@ -525,7 +535,48 @@ int32_t ebike_device_traffic_report(void)
     return -ETIMEDOUT;
 }
 
+int32_t ebike_device_file_download_require(uint32_t r_adr, uint16_t r_len)
+{
+    uint8_t data[256] = {0};
+    uint32_t len;
+    int32_t ret = 0;
+    uint8_t times = 3;
+    uint32_t message = 0;
 
+    if (g_ebike_manage_obj.connect_flg == 0) {
+        return -ENOTCONN;
+    }
+    len = sizeof(data);
+    log_d("ebike_file_download_require [0x%08x, %d]\r\n", r_adr, r_len);
+    ret = net_agreement_device_file_download_require_package(g_ebike_manage_obj.net_agreement_obj, data, &len, r_adr,
+                                                             r_len);
+    if (ret != 0) {
+        log_e("net_agreement_device_file_download_require_package failed\r\n");
+        return ret;
+    }
+    do {
+        ret = net_agreement_send_msg(g_ebike_manage_obj.net_agreement_obj, NET_TX_MSG_ID_FILE_APPLY, NET_MSG_TYPE_SEND,
+                                     data, len);
+        if (ret < 0) {
+            log_e("net_agreement_send_msg failed\r\n");
+            vTaskDelay(1000);
+            continue;
+        }
+        ret = ebike_msg_wait_queue(&message, 5000);
+        if (ret == 0) {
+            if (message == EBIKE_ACK_QUEUE_OK) {
+                log_d("ebike_file_download_require success\r\n");
+                return 0;
+            } else if (message == EBIKE_ACK_QUEUE_ERROR) {
+                log_e("ebike_file_download_require failed\r\n");
+                return -EIO;
+            }
+        }
+    } while (times-- > 0 && ret < 0);
+    log_e("ebike_file_download_require timeout\r\n");
+
+    return -ETIMEDOUT;
+}
 
 /*
  * ****************************************************************************
@@ -631,6 +682,21 @@ static int32_t ebike_device_traffic_report_ack(uint8_t *in_data, int32_t in_len,
     return 0;
 }
 
+static int32_t ebike_device_file_download_require_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data,
+                                                      int32_t *out_len)
+{
+    *out_len = 0;
+    int32_t ret = 0;
+
+    ret = net_agreement_device_file_download_require_ack(g_ebike_manage_obj.net_agreement_obj, in_data, in_len);
+    if (ret != 0) {
+        ebike_msg_send_queue(EBIKE_ACK_QUEUE_ERROR);
+        return -1;
+    }
+    ebike_msg_send_queue(EBIKE_ACK_QUEUE_OK);
+    return 0;
+}
+
 /**
  * @brief ebike_rev_file_head
  * @param in_data
@@ -660,6 +726,20 @@ static int32_t ebike_rev_file_data(uint8_t *in_data, int32_t in_len, uint8_t *ou
     *out_len = 0;
     out_data[0] = 0x00;
     ret = ota_file_data_in(in_data, in_len);
+    if (ret != 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
+static int32_t ebike_rev_file_download_require(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len)
+{
+    int32_t ret = 0;
+
+    *out_len = 0;
+    out_data[0] = 0x00;
+    ret = ota_file_data_download_inform(in_data, in_len);
     if (ret != 0) {
         return 1;
     }

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:41
- * @LastEditTime: 2025-01-24 10:03:36
+ * @LastEditTime: 2025-01-26 16:57:32
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.h
@@ -105,8 +105,10 @@ bool ebike_is_register(void);
 int32_t ebike_device_register_to_server(void);
 int32_t ebike_device_state_upload_to_server(void);
 int32_t ebike_device_traffic_report(void);
+int32_t ebike_device_file_download_require(uint32_t r_adr, uint16_t r_len);
 // get ebike info
 EBIKE_TYPE_t ebike_get_device_type(void);
+uint32_t ebike_get_session_id(void);
 int32_t ebike_get_location(double *lng, double *lat);
 float ebike_get_total_mileage(void);
 bool ebike_is_running(void);

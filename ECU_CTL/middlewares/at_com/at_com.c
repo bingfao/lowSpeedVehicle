@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-11 15:07:36
- * @LastEditTime: 2024-12-18 09:49:22
+ * @LastEditTime: 2025-01-26 07:05:30
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \e_bike_ctrl_v1\Middlewares\at_com.c
@@ -273,7 +273,7 @@ static int32_t at_wait_idle(AT_COM_t *p_at_com, uint32_t timeout)
 {
     uint32_t delay_times = 0;
     static uint32_t delay_times_total = 0;
-    uint32_t delay_times_max = 100000;
+    uint32_t delay_times_max = 10000;
 
     while (p_at_com->status != AT_COM_IDLE) {
         if (p_at_com->at_delay_func) {

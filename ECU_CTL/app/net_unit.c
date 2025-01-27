@@ -16,6 +16,7 @@
 #include "elog.h"
 #include "net_port.h"
 #include "user_os.h"
+#include "ota_file_manage.h"
 
 /*
  * ****************************************************************************
@@ -86,7 +87,7 @@ static int32_t net_unit_prepare(void)
 {
     // int32_t ret = 0;
     ebike_manage_init();
-
+    ota_file_thread_init();
     return 0;
 }
 

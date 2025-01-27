@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-09 15:11:34
- * @LastEditTime: 2025-01-17 08:49:18
+ * @LastEditTime: 2025-01-26 17:04:20
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\file_manage.h
@@ -30,6 +30,7 @@ extern "C" {
  * ****************************************************************************
  */
 #include <stdint.h>
+#include <stdbool.h>
 
 /*
  * ****************************************************************************
@@ -58,6 +59,13 @@ typedef struct {
 } OTA_FILE_HEAD_t;
 #pragma pack(push, pop)
 
+#pragma pack(push, 1)
+typedef struct {
+    OTA_FILE_TARGET_INFO_t target_info;
+    OTA_FILE_INFO_t file_info;
+    uint8_t file_url_key[16];
+} OTA_FILE_DOWNLOAD_INFORM_t;
+#pragma pack(push, pop)
 #pragma pack(push, 1)
 typedef struct
 {
@@ -92,8 +100,15 @@ typedef struct
  * ******** Exported Function                                          ********
  * ****************************************************************************
  */
+int32_t ota_file_thread_init(void);
 int32_t ota_file_head_in(uint8_t *data, uint32_t size);
 int32_t ota_file_data_in(uint8_t *data, uint32_t size);
+int32_t ota_file_data_download_inform(uint8_t *data, uint32_t size);
+int32_t ota_file_data_download_in(uint8_t *data, uint32_t size);
+bool ota_file_download_is_start(void);
+uint8_t get_file_download_file_type(void);
+int32_t get_file_download_file_name(uint8_t *name, uint32_t name_max_size);
+int32_t get_file_download_file_url_key(uint8_t *key, uint32_t key_max_size);
 
 /* ************************************************************************* */
 #ifdef __cplusplus

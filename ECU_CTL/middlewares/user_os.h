@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-22 10:29:06
- * @LastEditTime: 2025-01-22 14:14:50
+ * @LastEditTime: 2025-01-27 14:24:16
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\user_os.h
@@ -34,6 +34,7 @@ extern "C"
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include <semphr.h>
 
 /*
  * ****************************************************************************

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-09 15:11:21
- * @LastEditTime: 2025-01-18 14:59:38
+ * @LastEditTime: 2025-01-27 11:01:56
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\file_manage.c
@@ -16,14 +16,24 @@
 #include "ota_file_manage.h"
 
 #include "bms_port.h"
+#include "ebike_manage.h"
 #include "elog.h"
+#include "error_code.h"
+#include "fault.h"
 #include "user_crc.h"
+#include "user_os.h"
 
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
  * ****************************************************************************
  */
+typedef enum {
+    OTA_FILE_DOWNLOAD_IDLE = 0,
+    OTA_FILE_DOWNLOAD_DATA_REQUIRE,
+    OTA_FILE_DOWNLOAD_END,
+} OTA_FILE_DOWNLOAD_STATE_t;
+
 typedef struct
 {
     OTA_FILE_HEAD_t file_head;
@@ -45,11 +55,30 @@ typedef struct
     uint16_t crc16;
 } OTA_FILE_DATA_t;
 
+typedef struct
+{
+    OTA_FILE_DOWNLOAD_INFORM_t file_inform;
+    OTA_FILE_DOWNLOAD_STATE_t state;
+    SemaphoreHandle_t sem_start;
+    SemaphoreHandle_t sem_data_download;
+    uint32_t read_size;
+    uint32_t data_offset;
+} OTA_FILE_DOWNLOAD_t;
+
+typedef struct
+{
+    uint32_t data_pos;
+    uint16_t data_len;
+    uint8_t *data;
+    uint16_t crc16;
+} OTA_FILE_DOWNLOAD_DATA_t;
+
 /*
  * ****************************************************************************
  * ******** Private constants                                          ********
  * ****************************************************************************
  */
+#define OTA_FILE_DOWNLOAD_PACKAGE_MAX_SIZE (1024 * 1)
 
 /*
  * ****************************************************************************
@@ -63,12 +92,15 @@ typedef struct
  * ****************************************************************************
  */
 OTA_FILE_t g_file;
+OTA_FILE_DOWNLOAD_t g_file_download;
 
+USER_THREAD_OBJ_t g_ota_file_thread;
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
  * ****************************************************************************
  */
+static void ota_file_download_task(void const *parameter);
 
 /*
  * ****************************************************************************
@@ -122,17 +154,195 @@ int32_t ota_file_data_in(uint8_t *data, uint32_t size)
         log_e("ota file data crc check fail, 0x%04x != 0x%04x", crc_cal, file_data.crc16);
         return -1;
     }
-    log_d("file_name:%s, size:%d offset:[0x%08x],type:%d\r\n", file_data.package_head->name, file_data.package_head->data_len,
-          file_data.package_head->start_offset, file_data.package_head->type);
+    log_d("file_name:%s, size:%d offset:[0x%08x],type:%d\r\n", file_data.package_head->name,
+          file_data.package_head->data_len, file_data.package_head->start_offset, file_data.package_head->type);
     bms_port_send(file_data.data, file_data.package_head->data_len);
 
     return 0;
 }
+
+int32_t ota_file_data_download_inform(uint8_t *data, uint32_t size)
+{
+    OTA_FILE_DOWNLOAD_INFORM_t *inform = (OTA_FILE_DOWNLOAD_INFORM_t *)data;
+
+    if (inform->target_info.session_id != ebike_get_session_id()) {
+        log_e("session id not match, target:%d, local:%d", inform->target_info.session_id, ebike_get_session_id());
+        return -1;
+    }
+    memcpy(&g_file_download.file_inform, inform, sizeof(OTA_FILE_DOWNLOAD_INFORM_t));
+    g_file_download.state = OTA_FILE_DOWNLOAD_DATA_REQUIRE;
+    g_file_download.data_offset = 0;
+
+    log_d("file_name:%s, size:%d,type:%d\r\n", g_file_download.file_inform.file_info.name,
+          g_file_download.file_inform.file_info.size, g_file_download.file_inform.file_info.type);
+    xSemaphoreGive(g_file_download.sem_start);
+
+    return 0;
+}
+
+int32_t ota_file_data_download_in(uint8_t *data, uint32_t size)
+{
+    uint16_t crc_cal = 0;
+    int32_t ret = 0;
+
+    if (g_file_download.state != OTA_FILE_DOWNLOAD_DATA_REQUIRE) {
+        log_e("file download state error, state:%d", g_file_download.state);
+        return -1;
+    }
+    OTA_FILE_DOWNLOAD_DATA_t file_data;
+    file_data.data_pos = *(uint32_t *)&data[0];
+    file_data.data_len = *(uint16_t *)&data[4];
+    file_data.data = data + 6;
+    file_data.crc16 = *(uint16_t *)&data[size - 2];
+    if ((file_data.data_len > FILE_DATA_MAX_SIZE) || (file_data.data_len != g_file_download.read_size)) {
+        log_e("file data len:%d, need read_size:%d", file_data.data_len, g_file_download.read_size);
+        return -1;
+    }
+    crc_cal = crc16_ccitt(data, size - 2, 0);
+    if (crc_cal == file_data.crc16) {
+        log_d("ota file download data crc check pass, 0x%04x == 0x%04x", crc_cal, file_data.crc16);
+    } else {
+        log_e("ota file download data crc check fail, 0x%04x != 0x%04x", crc_cal, file_data.crc16);
+        return -1;
+    }
+    log_d("size:%d offset:[0x%08x]\r\n", file_data.data_len, file_data.data_pos);
+    vTaskDelay(100);
+    ret = bms_port_send(file_data.data, file_data.data_len);
+    if (ret < 0) {
+        log_e("ota_file_data_download_in failed, ret:%d\r\n", ret);
+        return -1;
+    }
+    g_file_download.data_offset += file_data.data_len;
+    if (g_file_download.data_offset >= g_file_download.file_inform.file_info.size) {
+        g_file_download.state = OTA_FILE_DOWNLOAD_END;
+    }
+    xSemaphoreGive(g_file_download.sem_data_download);
+
+    return 0;
+}
+
+int32_t ota_file_thread_init(void)
+{
+    BaseType_t ret;
+
+    memset(&g_ota_file_thread, 0, sizeof(USER_THREAD_OBJ_t));
+    g_ota_file_thread.thread = ota_file_download_task;
+    g_ota_file_thread.name = "ota_file";
+    g_ota_file_thread.stack_size = 1024;
+    g_ota_file_thread.parameter = NULL;
+    g_ota_file_thread.priority = RTOS_PRIORITY_NORMAL;
+    ret = xTaskCreate((TaskFunction_t)g_ota_file_thread.thread, g_ota_file_thread.name, g_ota_file_thread.stack_size,
+                      g_ota_file_thread.parameter, g_ota_file_thread.priority, &g_ota_file_thread.thread_handle);
+    if (ret != pdPASS) {
+        log_e("ota_file_thread start failed\r\n");
+        return -1;
+    }
+    log_d("ota_file_thread start success\r\n");
+
+    return 0;
+}
+
+bool ota_file_download_is_start(void)
+{
+    return (g_file_download.state != OTA_FILE_DOWNLOAD_IDLE && g_file_download.state != OTA_FILE_DOWNLOAD_END);
+}
+
+uint8_t get_file_download_file_type(void)
+{
+    return g_file_download.file_inform.file_info.type;
+}
+
+int32_t get_file_download_file_name(uint8_t *name, uint32_t name_max_size)
+{
+    if (name_max_size < strlen((const char *)g_file_download.file_inform.file_info.name)) {
+        return -1;
+    }
+    strncpy((char *)name, (const char *)g_file_download.file_inform.file_info.name, name_max_size);
+    return 0;
+}
+
+int32_t get_file_download_file_url_key(uint8_t *key, uint32_t key_max_size)
+{
+    if (key_max_size < sizeof(g_file_download.file_inform.file_url_key)) {
+        return -1;
+    }
+    memcpy(key, g_file_download.file_inform.file_url_key, sizeof(g_file_download.file_inform.file_url_key));
+
+    return 0;
+}
+
+uint32_t get_file_download_file_data_offset(void)
+{
+    return g_file_download.data_offset;
+}
+
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
  * ****************************************************************************
  */
+
+static void ota_file_download_progress(void)
+{
+    BaseType_t ret = pdFALSE;
+
+    if (g_file_download.data_offset >= g_file_download.file_inform.file_info.size) {
+        g_file_download.state = OTA_FILE_DOWNLOAD_END;
+    }
+    switch (g_file_download.state) {
+        case OTA_FILE_DOWNLOAD_DATA_REQUIRE:
+            g_file_download.read_size = g_file_download.file_inform.file_info.size - g_file_download.data_offset;
+            if ((int32_t)g_file_download.read_size < 0) {
+                log_e("read data pos error, %d - %d =  %d\r\n", g_file_download.file_inform.file_info.size,
+                      g_file_download.data_offset, g_file_download.read_size);
+                g_file_download.state = OTA_FILE_DOWNLOAD_IDLE;
+                g_file_download.data_offset = 0;
+                break;
+            }
+            g_file_download.read_size = g_file_download.read_size > OTA_FILE_DOWNLOAD_PACKAGE_MAX_SIZE
+                                            ? OTA_FILE_DOWNLOAD_PACKAGE_MAX_SIZE
+                                            : g_file_download.read_size;
+            ebike_device_file_download_require(g_file_download.data_offset, g_file_download.read_size);
+            ret = xSemaphoreTake(g_file_download.sem_data_download, 10000);
+            if (ret == pdPASS) {
+                g_file_download.state = OTA_FILE_DOWNLOAD_DATA_REQUIRE;
+                xSemaphoreGive(g_file_download.sem_start);
+            } else {
+                log_e("osSemaphoreWait failed, xReturn:%d\r\n", ret);
+                g_file_download.state = OTA_FILE_DOWNLOAD_IDLE;
+                g_file_download.data_offset = 0;
+            }
+            break;
+        case OTA_FILE_DOWNLOAD_END:
+            g_file_download.state = OTA_FILE_DOWNLOAD_IDLE;
+        default:
+            break;
+    }
+}
+
+static void ota_file_download_prepare(void)
+{
+    memset(&g_file, 0, sizeof(OTA_FILE_t));
+    memset(&g_file_download, 0, sizeof(OTA_FILE_DOWNLOAD_t));
+    g_file_download.sem_start = xSemaphoreCreateBinary();
+    fault_assert(g_file_download.sem_start != NULL, FAULT_CODE_CONSOLE);
+    g_file_download.sem_data_download = xSemaphoreCreateBinary();
+    fault_assert(g_file_download.sem_data_download != NULL, FAULT_CODE_CONSOLE);
+}
+
+static void ota_file_download_task(void const *parameter)
+{
+    BaseType_t ret = pdFALSE;
+
+    ota_file_download_prepare();
+    while (1) {
+        ret = xSemaphoreTake(g_file_download.sem_start, portMAX_DELAY);
+        if (ret != pdPASS) {
+            log_e("osSemaphoreWait failed, xReturn:%d\r\n", ret);
+        }
+        ota_file_download_progress();
+    }
+}
 
 /*
  * ****************************************************************************
