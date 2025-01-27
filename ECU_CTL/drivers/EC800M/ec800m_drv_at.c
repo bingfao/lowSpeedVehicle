@@ -715,7 +715,14 @@ static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg)
 {
     int32_t ret = 0;
     bool ret_bool = false;
-    int32_t mode = *(int32_t *)arg;
+    int32_t mode = 0;
+
+    if (p_driver == NULL) {
+        return -EINVAL;
+    }
+    if (arg != NULL) {
+        mode = *(int32_t *)arg;
+    }
 
     switch (cmd) {
         case DRV_EC800M_CMD_TCP_SET_HOST:

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2025-01-22 15:15:18
+ * @LastEditTime: 2025-01-26 18:27:25
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -176,8 +176,10 @@ int32_t net_port_tcp_disconnect(void)
 
 int32_t net_port_tcp_reconnect(void)
 {
+    uint32_t arg = 0;
+
     net_port_tcp_disconnect();
-    driver_control(g_driver, NET_PORT_CMD_SET_DIS_STATE, NULL);
+    driver_control(g_driver, NET_PORT_CMD_SET_DIS_STATE, &arg);
     g_net_driver_need_connect_flag = 1;
     log_d("do reconnect \r\n");
 
@@ -274,6 +276,7 @@ static int32_t net_port_keep_tcp_mode(void)
     static uint8_t times = 20;
     static bool old_is_connected = false;
     bool now_is_connected = net_port_is_connected();
+    uint32_t arg = 0;
 
     if (old_is_connected == true && now_is_connected == true) {
         times = 20;
@@ -289,7 +292,7 @@ static int32_t net_port_keep_tcp_mode(void)
     old_is_connected = net_port_is_connected();
     if (times == 10) {
         log_d("net port keep tcp mode failed, restart the device \r\n");
-        driver_control(g_driver, NET_PORT_CMD_RESET, NULL);
+        driver_control(g_driver, NET_PORT_CMD_RESET, &arg);
     }
     if (times == 0) {
         log_d("net port keep tcp mode failed, times out \r\n");
@@ -305,6 +308,7 @@ static void net_port_monitor_task(void const *argument)
     int32_t times = NET_RETRY_TO_CONNECT_TCP_CYCLE;
     int32_t ret = 0;
     int32_t socket_refresh_times = NET_RETRY_TO_CONNECT_TCP_CYCLE;
+    uint32_t arg = 0;
 
     while (1) {
         if (g_net_driver_init_flag == 1) {
@@ -318,7 +322,7 @@ static void net_port_monitor_task(void const *argument)
             } else {
                 // if tcp disconnect, and after NET_RETRY_TO_CONNECT_TCP_CYCLE to retry connect
                 if (times <= 0) {
-                    driver_control(g_driver, NET_PORT_CMD_RESET, NULL);
+                    driver_control(g_driver, NET_PORT_CMD_RESET, &arg);
                     g_net_driver_need_connect_flag = 1;
                     times = NET_RETRY_TO_CONNECT_TCP_CYCLE;
                 }
