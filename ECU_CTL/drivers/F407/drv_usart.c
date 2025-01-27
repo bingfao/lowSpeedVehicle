@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:20:51
- * @LastEditTime: 2025-01-23 13:40:48
- * @LastEditors: DESKTOP-SPAS98O
+ * @LastEditTime: 2025-01-27 22:28:14
+ * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.c
  */
@@ -309,11 +309,15 @@ static int32_t drv_usart_deinit(DRIVER_OBJ_t *drv)
     DRV_USART_OBJ_t *usart_obj = NULL;
 
     for (i = 0; i < DRV_USART_NUM_MAX; i++) {
-        if (memcmp(drv->name, g_usart_name[i], strlen(g_usart_name[i])) != 0) {
+        if ((strlen(g_usart_name[i]) == 0) || (memcmp(drv->name, g_usart_name[i], strlen(g_usart_name[i])) != 0)) {
             continue;
         }
         usart_obj = &g_usart_obj[i];
-        memset(usart_obj, 0, sizeof(DRV_USART_OBJ_t));
+        vTaskDelete(usart_obj->tx_thread_def->thread_handle);
+        vSemaphoreDelete(usart_obj->tx_sem.xSemHandle);
+        vSemaphoreDelete(usart_obj->tx_start_sem.xSemHandle);
+        vSemaphoreDelete(usart_obj->rx_sem.xSemHandle);
+        // memset(usart_obj, 0, sizeof(DRV_USART_OBJ_t));
     }
 
     return 0;
@@ -389,6 +393,8 @@ static int32_t drv_usart_close(DRIVER_OBJ_t *drv)
         return -EACCES;
     }
     HAL_UART_AbortReceive_IT(usart_obj->ctl_uart);
+    HAL_UART_UnRegisterCallback(usart_obj->ctl_uart, HAL_UART_TX_COMPLETE_CB_ID);
+    HAL_UART_UnRegisterCallback(usart_obj->ctl_uart, HAL_UART_RX_COMPLETE_CB_ID);
     driver_clear_opened(drv);
 
     return 0;

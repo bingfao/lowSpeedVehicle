@@ -157,7 +157,7 @@ int32_t driver_deinit(DRIVER_OBJ_t *drv)
 {
     int32_t ret = 0;
 
-    if (drv == NULL || drv->driver == NULL || drv->driver->init == NULL) {
+    if (drv == NULL || drv->driver == NULL || drv->driver->deinit == NULL) {
         return -EINVAL;
     }
     ret = drv->driver->deinit(drv);

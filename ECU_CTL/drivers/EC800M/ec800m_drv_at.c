@@ -196,13 +196,13 @@ static int32_t ec800m_drv_init(DRIVER_OBJ_t *p_driver)
     if (g_ec800m_trans_driver != NULL) {
         ret = driver_init(g_ec800m_trans_driver);
         if (ret != 0) {
-            log_d("g_ec800m_trans_driver init failed, ret:%d\r\n", ret);
+            log_e("g_ec800m_trans_driver init failed, ret:%d\r\n", ret);
             return ret;
         }
         driver_set_inted(p_driver);
         ret = ec800m_drv_open(p_driver, 0);
         if (ret != 0) {
-            log_d("g_ec800m_trans_driver open failed, ret:%d\r\n", ret);
+            log_e("g_ec800m_trans_driver open failed, ret:%d\r\n", ret);
             return ret;
         }
     }
@@ -215,8 +215,7 @@ static int32_t ec800m_drv_init(DRIVER_OBJ_t *p_driver)
         }
         ret = driver_open(g_ec800m_rst_pin_driver, 0);
         if (ret != 0) {
-            log_d("g_ec800m_rst_pin_driver open failed, ret:%d\r\n", ret);
-            return ret;
+            log_e("g_ec800m_rst_pin_driver open failed, ret:%d\r\n", ret);
         }
     }
     g_ec800m_tx_sem_handler = xSemaphoreCreateBinary();
@@ -233,10 +232,13 @@ static int32_t ec800m_drv_init(DRIVER_OBJ_t *p_driver)
     ec800m_delay_ms(500);
     ec800m_device_reset();
     if (ec800m_is_ready() == false) {
+        driver_close(g_ec800m_rst_pin_driver);
+        driver_deinit(g_ec800m_rst_pin_driver);
         ec800m_drv_close(p_driver);
         ec800m_drv_deinit(p_driver);
         log_d("g_ec800m_drv inited failed\r\n");
         ret = -EBUSY;
+        return ret;
     } else {
         ec800m_drv_close(p_driver);
     }
@@ -252,6 +254,7 @@ static int32_t ec800m_drv_deinit(DRIVER_OBJ_t *p_driver)
     vSemaphoreDelete(g_ec800m_tx_sem_handler);
     vSemaphoreDelete(g_ec800m_rx_sem_handler);
     driver_deinit(g_ec800m_trans_driver);
+    driver_close(g_ec800m_rst_pin_driver);
     driver_deinit(g_ec800m_rst_pin_driver);
 
     return 0;
@@ -283,7 +286,7 @@ static int32_t ec800m_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag)
     }
     ret = driver_open(g_ec800m_trans_driver, 0);
     if (ret != 0) {
-        log_d("g_ec800m_trans_driver open failed, ret:%d\r\n", ret);
+        log_e("g_ec800m_trans_driver open failed, ret:%d\r\n", ret);
         return ret;
     }
     driver_control(g_ec800m_trans_driver, DRV_CMD_SET_WRITE_DONE_CALLBACK_ARG, NULL);
@@ -513,16 +516,16 @@ static int32_t ec800m_drv_close(DRIVER_OBJ_t *p_driver)
 {
     int32_t ret = 0;
 
-    ret = driver_close(g_ec800m_trans_driver);
-    if (ret != 0) {
-        log_d("g_ec800m_trans_driver close failed, ret:%d\r\n", ret);
-        return ret;
-    }
     driver_control(g_ec800m_trans_driver, DRV_CMD_SET_WRITE_DONE_CALLBACK_ARG, NULL);
     driver_control(g_ec800m_trans_driver, DRV_CMD_SET_WRITE_DONE_CALLBACK, NULL);
     driver_control(g_ec800m_trans_driver, DRV_CMD_SET_READ_DONE_CALLBACK_ARG, NULL);
     driver_control(g_ec800m_trans_driver, DRV_CMD_SET_READ_DONE_CALLBACK, NULL);
 
+    ret = driver_close(g_ec800m_trans_driver);
+    if (ret != 0) {
+        log_d("g_ec800m_trans_driver close failed, ret:%d\r\n", ret);
+        return ret;
+    }
     driver_clear_opened(p_driver);
 
     return 0;
