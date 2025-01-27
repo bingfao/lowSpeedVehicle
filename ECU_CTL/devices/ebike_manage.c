@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:23
- * @LastEditTime: 2025-01-26 17:16:52
+ * @LastEditTime: 2025-01-27 16:03:31
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.c
@@ -62,6 +62,7 @@ typedef struct
 EBIKE_MANAGE_OBJ_t g_ebike_manage_obj;
 USER_THREAD_OBJ_t g_ebike_rx_thread;
 QueueHandle_t g_ebike_rx_queue_handle;
+SemaphoreHandle_t g_ebike_mutex;
 
 static uint8_t g_default_aes_key[] = {0xfa, 0x91, 0x97, 0xfe, 0x55, 0xd5, 0x34, 0xe9,
                                       0x41, 0x5a, 0x89, 0x6a, 0x84, 0x1f, 0xb5, 0x4f};
@@ -123,6 +124,7 @@ int32_t ebike_manage_init(void)
         ebike_manage_read_start();
     }
     g_ebike_manage_obj.init_flg = 1;
+    g_ebike_mutex = xSemaphoreCreateMutex();
 
     return 0;
 }
@@ -417,10 +419,15 @@ int32_t ebike_device_register_to_server(void)
     if (g_ebike_manage_obj.connect_flg == 0) {
         return -ENOTCONN;
     }
+    if (xSemaphoreTake(g_ebike_mutex, 5000) != pdPASS) {
+        log_e("ebike_device_register_to_server failed, osSemaphoreTake failed\r\n");
+        return -ETIMEDOUT;
+    }
     len = sizeof(data);
     ret = net_agreement_device_register_package(g_ebike_manage_obj.net_agreement_obj, data, &len);
     if (ret != 0) {
         log_e("net_agreement_device_register_package failed\r\n");
+        xSemaphoreGive(g_ebike_mutex);
         return ret;
     }
     do {
@@ -436,10 +443,12 @@ int32_t ebike_device_register_to_server(void)
             if (message == EBIKE_ACK_QUEUE_OK) {
                 log_d("ebike_device_register success\r\n");
                 g_ebike_manage_obj.register_flg = 1;
+                xSemaphoreGive(g_ebike_mutex);
                 return 0;
             } else if (message == EBIKE_ACK_QUEUE_ERROR) {
                 g_ebike_manage_obj.register_flg = 0;
                 log_e("ebike_device_register failed\r\n");
+                xSemaphoreGive(g_ebike_mutex);
                 return -EIO;
             }
         }
@@ -447,6 +456,7 @@ int32_t ebike_device_register_to_server(void)
     log_e("ebike_device_register timeout\r\n");
     net_port_tcp_reconnect();
     g_ebike_manage_obj.register_flg = 0;
+    xSemaphoreGive(g_ebike_mutex);
 
     return -ETIMEDOUT;
 }
@@ -462,10 +472,15 @@ int32_t ebike_device_state_upload_to_server(void)
     if (g_ebike_manage_obj.connect_flg == 0) {
         return -ENOTCONN;
     }
+    if (xSemaphoreTake(g_ebike_mutex, 5000) != pdPASS) {
+        log_e("ebike_device_state_upload_to_server failed, osSemaphoreTake failed\r\n");
+        return -ETIMEDOUT;
+    }
     len = sizeof(data);
     ret = net_agreement_device_state_upload_package(g_ebike_manage_obj.net_agreement_obj, data, &len);
     if (ret != 0) {
         log_e("net_agreement_device_state_upload_package failed\r\n");
+        xSemaphoreGive(g_ebike_mutex);
         return ret;
     }
     do {
@@ -480,9 +495,11 @@ int32_t ebike_device_state_upload_to_server(void)
         if (ret == 0) {
             if (message == EBIKE_ACK_QUEUE_OK) {
                 log_d("ebike_state_upload success\r\n");
+                xSemaphoreGive(g_ebike_mutex);
                 return 0;
             } else if (message == EBIKE_ACK_QUEUE_ERROR) {
                 log_e("ebike_state_upload failed\r\n");
+                xSemaphoreGive(g_ebike_mutex);
                 return -EIO;
             }
         }
@@ -490,6 +507,7 @@ int32_t ebike_device_state_upload_to_server(void)
     log_e("ebike_state_upload timeout\r\n");
     net_port_tcp_reconnect();
     g_ebike_manage_obj.register_flg = 0;
+    xSemaphoreGive(g_ebike_mutex);
 
     return -ETIMEDOUT;
 }
@@ -505,10 +523,15 @@ int32_t ebike_device_traffic_report(void)
     if (g_ebike_manage_obj.connect_flg == 0) {
         return -ENOTCONN;
     }
+    if (xSemaphoreTake(g_ebike_mutex, 5000) != pdPASS) {
+        log_e("ebike_device_traffic_report failed, osSemaphoreTake failed\r\n");
+        return -ETIMEDOUT;
+    }
     len = sizeof(data);
     ret = net_agreement_device_traffic_report_package(g_ebike_manage_obj.net_agreement_obj, data, &len);
     if (ret != 0) {
         log_e("net_agreement_device_traffic_report_package failed\r\n");
+        xSemaphoreGive(g_ebike_mutex);
         return ret;
     }
     do {
@@ -523,14 +546,17 @@ int32_t ebike_device_traffic_report(void)
         if (ret == 0) {
             if (message == EBIKE_ACK_QUEUE_OK) {
                 log_d("ebike_traffic_report success\r\n");
+                xSemaphoreGive(g_ebike_mutex);
                 return 0;
             } else if (message == EBIKE_ACK_QUEUE_ERROR) {
                 log_e("ebike_traffic_report failed\r\n");
+                xSemaphoreGive(g_ebike_mutex);
                 return -EIO;
             }
         }
     } while (times-- > 0 && ret < 0);
     log_e("ebike_traffic_report timeout\r\n");
+    xSemaphoreGive(g_ebike_mutex);
 
     return -ETIMEDOUT;
 }
@@ -546,12 +572,17 @@ int32_t ebike_device_file_download_require(uint32_t r_adr, uint16_t r_len)
     if (g_ebike_manage_obj.connect_flg == 0) {
         return -ENOTCONN;
     }
+    if (xSemaphoreTake(g_ebike_mutex, 5000) != pdPASS) {
+        log_e("ebike_device_file_download_require failed, osSemaphoreTake failed\r\n");
+        return -ETIMEDOUT;
+    }
     len = sizeof(data);
     log_d("ebike_file_download_require [0x%08x, %d]\r\n", r_adr, r_len);
     ret = net_agreement_device_file_download_require_package(g_ebike_manage_obj.net_agreement_obj, data, &len, r_adr,
                                                              r_len);
     if (ret != 0) {
         log_e("net_agreement_device_file_download_require_package failed\r\n");
+        xSemaphoreGive(g_ebike_mutex);
         return ret;
     }
     do {
@@ -566,14 +597,17 @@ int32_t ebike_device_file_download_require(uint32_t r_adr, uint16_t r_len)
         if (ret == 0) {
             if (message == EBIKE_ACK_QUEUE_OK) {
                 log_d("ebike_file_download_require success\r\n");
+                xSemaphoreGive(g_ebike_mutex);
                 return 0;
             } else if (message == EBIKE_ACK_QUEUE_ERROR) {
                 log_e("ebike_file_download_require failed\r\n");
+                xSemaphoreGive(g_ebike_mutex);
                 return -EIO;
             }
         }
     } while (times-- > 0 && ret < 0);
     log_e("ebike_file_download_require timeout\r\n");
+    xSemaphoreGive(g_ebike_mutex);
 
     return -ETIMEDOUT;
 }

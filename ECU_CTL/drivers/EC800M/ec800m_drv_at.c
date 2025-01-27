@@ -90,6 +90,7 @@ SemaphoreHandle_t g_ec800m_tx_sem_handler = NULL;
 SemaphoreHandle_t g_ec800m_rx_sem_handler = NULL;
 
 QueueHandle_t g_ec800m_rx_queue_handle;
+SemaphoreHandle_t g_ec800m_tx_mutex;
 
 uint32_t g_ec800m_connect_mode = 0;
 char g_ec800m_tcp_host[64] = {0};
@@ -219,6 +220,7 @@ static int32_t ec800m_drv_init(DRIVER_OBJ_t *p_driver)
         }
     }
     g_ec800m_tx_sem_handler = xSemaphoreCreateBinary();
+    g_ec800m_tx_mutex = xSemaphoreCreateMutex();
     g_ec800m_rx_sem_handler = xSemaphoreCreateBinary();
     RingBuffer_Init(&g_ec800m_rx_ring_buf_handle, g_ec800m_rx_ring_buf_data, sizeof(uint8_t), EC800M_DRV_RX_BUF_SIZE);
     // osThreadDef(ec800m_rx, ec800m_rx_task, osPriorityNormal, 0, 512);
@@ -654,12 +656,17 @@ static int32_t ec800m_drv_send(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buffe
         log_e("ec800m_drv is not opened\r\n");
         return -EINVAL;
     }
+    if (xSemaphoreTake(g_ec800m_tx_mutex, 1000) != pdPASS) {
+        log_e("ec800m_drv_send failed, osSemaphoreTake failed\r\n");
+        return -ETIMEDOUT;
+    }
     if (g_ec800m_connect_mode == EC800M_CONNECT_MODE_DIRECT) {
         ret = ec800m_dev_send_direct_mode(pos, buffer, size);
     }
     if (g_ec800m_connect_mode == EC800M_CONNECT_MODE_STRAIGHT_OUT) {
         ret = ec800m_dev_send_straight_out_mode(pos, buffer, size);
     }
+    xSemaphoreGive(g_ec800m_tx_mutex);
 
     return ret;
 }
