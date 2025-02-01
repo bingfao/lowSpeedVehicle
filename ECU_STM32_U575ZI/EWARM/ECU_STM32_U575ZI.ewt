@@ -1475,6 +1475,9 @@
                     <name>$PROJ_DIR$\..\Core\Src\app_freertos.c</name>
                 </file>
                 <file>
+                    <name>$PROJ_DIR$\..\Core\Src\gpdma.c</name>
+                </file>
+                <file>
                     <name>$PROJ_DIR$\..\Core\Src\gpio.c</name>
                 </file>
                 <file>
@@ -1485,6 +1488,12 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\Core\Src\memorymap.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Core\Src\octospi.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\Core\Src\rtc.c</name>
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\Core\Src\stm32u5xx_hal_msp.c</name>
@@ -1548,6 +1557,9 @@
                 <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_icache.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_ospi.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_pwr.c</name>
             </file>
             <file>
@@ -1560,6 +1572,12 @@
                 <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_rcc_ex.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_rtc.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_rtc_ex.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_tim.c</name>
             </file>
             <file>
@@ -1570,6 +1588,9 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_uart_ex.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_ll_dlyb.c</name>
             </file>
         </group>
     </group>
@@ -1619,6 +1640,9 @@
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\shell_port.c</name>
             </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\utc.c</name>
+            </file>
         </group>
         <group>
             <name>drivers</name>
@@ -1635,6 +1659,9 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\driver_pin_ec800m.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\driver_rtc.c</name>
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\drv_usart.c</name>

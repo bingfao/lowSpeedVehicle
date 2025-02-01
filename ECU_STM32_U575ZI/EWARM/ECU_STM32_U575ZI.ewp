@@ -702,7 +702,7 @@
       <data>
         <extensions></extensions>
         <cmdline></cmdline>
-        <hasPrio>64</hasPrio>
+        <hasPrio>1</hasPrio>
         <buildSequence>inputOutputBased</buildSequence>
       </data>
     </settings>
@@ -1134,7 +1134,7 @@
           <name>$PROJ_DIR$\..\Core\Src\app_freertos.c</name>
         </file>
         <file>
-          <name>$PROJ_DIR$/../Core/Src/gpdma.c</name>
+          <name>$PROJ_DIR$\..\Core\Src\gpdma.c</name>
         </file>
         <file>
           <name>$PROJ_DIR$\..\Core\Src\icache.c</name>
@@ -1143,7 +1143,10 @@
           <name>$PROJ_DIR$\..\Core\Src\memorymap.c</name>
         </file>
         <file>
-          <name>$PROJ_DIR$/../Core/Src/octospi.c</name>
+          <name>$PROJ_DIR$\..\Core\Src\octospi.c</name>
+        </file>
+        <file>
+          <name>$PROJ_DIR$\..\Core\Src\rtc.c</name>
         </file>
         <file>
           <name>$PROJ_DIR$\..\Core\Src\usart.c</name>
@@ -1225,10 +1228,16 @@
         <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_icache.c</name>
       </file>
       <file>
-        <name>$PROJ_DIR$/../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_ospi.c</name>
+        <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_ospi.c</name>
       </file>
       <file>
-        <name>$PROJ_DIR$/../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_ll_dlyb.c</name>
+        <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_ll_dlyb.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_rtc.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_rtc_ex.c</name>
       </file>
       <file>
         <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_uart.c</name>
@@ -1284,6 +1293,9 @@
       <file>
         <name>$PROJ_DIR$\..\..\ECU_CTL\devices\shell_port.c</name>
       </file>
+      <file>
+        <name>$PROJ_DIR$\..\..\ECU_CTL\devices\utc.c</name>
+      </file>
     </group>
     <group>
       <name>drivers</name>
@@ -1300,6 +1312,9 @@
         </file>
         <file>
           <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\driver_pin_ec800m.c</name>
+        </file>
+        <file>
+          <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\driver_rtc.c</name>
         </file>
         <file>
           <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\drv_usart.c</name>
