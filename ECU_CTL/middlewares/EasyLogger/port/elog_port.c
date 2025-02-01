@@ -31,6 +31,8 @@
 #include <semphr.h>
 #include <stdio.h>
 
+#include "utc.h"
+
 static elog_output_func_t elog_output_func = NULL;
 
 /**
@@ -94,8 +96,15 @@ void elog_port_output_unlock(void)
 const char *elog_port_get_time(void)
 {
     /* add your code here */
+    static char time[128];
+    struct tm local_time = {0};
+    long nsec = 0;
+    utc_get_local_time(&local_time, &nsec);
+    snprintf(time, sizeof(time), "%04d-%02d-%02d %02d:%02d:%02d.%03d",
+        local_time.tm_year + 1900, local_time.tm_mon + 1, local_time.tm_mday,
+        local_time.tm_hour, local_time.tm_min, local_time.tm_sec, nsec/1000000);
 
-    return "";
+    return time;
 }
 
 /**

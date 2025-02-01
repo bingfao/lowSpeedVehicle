@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2025-01-23 10:36:17
- * @LastEditTime: 2025-01-23 13:56:07
- * @LastEditors: DESKTOP-SPAS98O
+ * @LastEditTime: 2025-01-31 15:00:19
+ * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_mcu.c
  */

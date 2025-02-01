@@ -19,6 +19,7 @@
 #include "stdlib.h"
 #include "util.h"
 #include "version.h"
+#include "utc.h"
 
 /*
  * ****************************************************************************
@@ -110,11 +111,46 @@ static int t_traffic_report(int argc, char *argv[])
     return 0;
 }
 
+static int t_write_utc(int argc, char *argv[])
+{
+    int year, month, day, hour, minute, second;
+    struct tm local_time = {0};
+
+    if (argc < 7) {
+        log_e("Usage: t_write_utc <year> <month> <day> <hour> <minute> <second>\r\n");
+        return 0;
+    }
+    year = atoi(argv[1]);
+    month = atoi(argv[2]);
+    day = atoi(argv[3]);
+    hour = atoi(argv[4]);
+    minute = atoi(argv[5]);
+    second = atoi(argv[6]);
+
+    log_d("UTC time set: %04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second);
+    local_time.tm_year = year - 1900;
+    local_time.tm_mon = month - 1;
+    local_time.tm_mday = day;
+    local_time.tm_hour = hour;
+    local_time.tm_min = minute;
+    local_time.tm_sec = second;
+    local_time.tm_isdst = -1;
+    if (utc_set_local_time(&local_time, 0) == 0) {
+        log_i("UTC time set success\r\n");
+    } else {
+        log_e("UTC time set failed\r\n");
+    }
+
+    return 0;
+}
+
 ShellCommand ebike_ctl[] = {
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_ebike_register, t_ebike_register, ebike register to server),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_ebike_state_upload, t_ebike_state_upload, ebike state upload to server),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_socket_state, t_socket_state, ebike socket state),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_traffic_report, t_traffic_report, ebike traffic report start file load),
+    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_write_utc, t_write_utc,
+                         write utc time: t_write_utc <year> <month> <day> <hour> <minute> <second>),
     SHELL_CMD_GROUP_END()};
 
 SHELL_EXPORT_CMD_GROUP(SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN), ebike_cmd, ebike_ctl, ebike_cmd);

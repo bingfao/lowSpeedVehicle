@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2025-01-23 15:19:41
- * @LastEditors: DESKTOP-SPAS98O
+ * @LastEditTime: 2025-01-31 22:39:50
+ * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.c
  */
@@ -26,6 +26,7 @@
 #include "net_unit.h"
 #include "shell_port.h"
 #include "user_os.h"
+#include "utc.h"
 #include "version.h"
 /*
  * ****************************************************************************
@@ -68,6 +69,7 @@ static void ecu_unit_task(void const *argument);
 int32_t ecu_unit_init(void)
 {
     driver_register_fun_doing();
+    utc_init();
     console_init();
     print_system_inf();
 
@@ -128,7 +130,7 @@ static void ecu_unit_task(void const *argument)
 
     log_d("ECU_UNIT task running...\r\n");
     while (1) {
-        // tick = osKernelSysTick();
+        // tick = xTaskGetTickCount();
         // log_d("tick: %d\r\n", tick);
         vTaskDelay(1000);
     }
