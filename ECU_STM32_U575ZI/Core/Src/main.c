@@ -23,6 +23,7 @@
 #include "icache.h"
 #include "memorymap.h"
 #include "octospi.h"
+#include "ramcfg.h"
 #include "rtc.h"
 #include "usart.h"
 #include "gpio.h"
@@ -101,6 +102,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_OCTOSPI1_Init();
   MX_RTC_Init();
+  MX_RAMCFG_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */

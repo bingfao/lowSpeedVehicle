@@ -1146,6 +1146,9 @@
           <name>$PROJ_DIR$\..\Core\Src\octospi.c</name>
         </file>
         <file>
+          <name>$PROJ_DIR$/../Core/Src/ramcfg.c</name>
+        </file>
+        <file>
           <name>$PROJ_DIR$\..\Core\Src\rtc.c</name>
         </file>
         <file>
@@ -1232,6 +1235,9 @@
       </file>
       <file>
         <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_ll_dlyb.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$/../Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_ramcfg.c</name>
       </file>
       <file>
         <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_rtc.c</name>
