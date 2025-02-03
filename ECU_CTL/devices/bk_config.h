@@ -1,10 +1,10 @@
 /*
  * @Author: your name
- * @Date: 2025-01-31 19:31:11
- * @LastEditTime: 2025-02-03 18:40:24
+ * @Date: 2025-02-03 15:21:50
+ * @LastEditTime: 2025-02-03 16:33:59
  * @LastEditors: stone_honor
  * @Description: In User Settings Edit
- * @FilePath: \ebike_ECU\ECU_CTL\devices\utc.h
+ * @FilePath: \ebike_ECU\ECU_CTL\devices\bk_sram_config.h
  */
 
 /*
@@ -13,8 +13,8 @@
  * ****************************************************************************
  */
 
-#ifndef __UTC_H
-#define __UTC_H
+#ifndef __BK_CONFIG_H
+#define __BK_CONFIG_H
 /*
  * ============================================================================
  * If building with a C++ compiler, make all of the definitions in this header
@@ -32,19 +32,24 @@ extern "C" {
 #include <stdint.h>
 
 #include "driver_com.h"
-#include "time.h"
 /*
  * ****************************************************************************
  * ******** Exported Types                                             ********
  * ****************************************************************************
  */
 
+typedef enum {
+    BK_CFG_UTC_SEC_NSEC = 0,
+    BK_CFG_MAX,
+} BK_CFG_TYPE_t;
+
 /*
  * ****************************************************************************
  * ******** Exported constants                                         ********
  * ****************************************************************************
  */
-#define UTC_DRIVER_NAME "rtc"
+#define BK_CFG_DRIVER_NAME "bk_sram"
+
 /*
  * ****************************************************************************
  * ******** Exported macro                                             ********
@@ -62,20 +67,16 @@ extern "C" {
  * ******** Exported Function                                          ********
  * ****************************************************************************
  */
-int32_t utc_init(void);
-int32_t utc_get_local_time(struct tm *local_time, long *nsec);
-int32_t utc_set_local_time(struct tm *local_time, long nsec);
-int32_t utc_get_time(struct tm *local_time, long *nsec);
-int32_t utc_set_time(struct tm *local_time, long nsec);
-int32_t utc_set_time_zone(int8_t time_zone);
-int8_t utc_get_time_zone(void);
-int32_t utc_time_store_bk_sram(void);
+int32_t bk_config_init(void);
+int32_t bk_config_utc_sec_nsec_read(uint8_t *data);
+int32_t bk_config_utc_sec_nsec_write(uint8_t *data);
+
 
 /* ************************************************************************* */
 #ifdef __cplusplus
 }
 #endif
-#endif /*__UTC_H */
+#endif /*__BK_CONFIG_H */
 /*
  * ****************************************************************************
  * End File

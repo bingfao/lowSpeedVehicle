@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2025-01-31 22:39:50
+ * @LastEditTime: 2025-02-03 18:40:55
  * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.c
@@ -18,6 +18,7 @@
 
 #include <error_code.h>
 
+#include "bk_config.h"
 #include "bms_port.h"
 #include "console.h"
 #include "driver_com.h"
@@ -69,6 +70,7 @@ static void ecu_unit_task(void const *argument);
 int32_t ecu_unit_init(void)
 {
     driver_register_fun_doing();
+    bk_config_init();
     utc_init();
     console_init();
     print_system_inf();
@@ -132,6 +134,7 @@ static void ecu_unit_task(void const *argument)
     while (1) {
         // tick = xTaskGetTickCount();
         // log_d("tick: %d\r\n", tick);
+        utc_time_store_bk_sram();
         vTaskDelay(1000);
     }
 }

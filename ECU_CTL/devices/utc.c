@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-31 19:31:02
- * @LastEditTime: 2025-01-31 20:08:40
+ * @LastEditTime: 2025-02-03 18:40:14
  * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\utc.c
@@ -15,6 +15,7 @@
 #define LOG_LVL ELOG_LVL_DEBUG
 #include "utc.h"
 
+#include "bk_config.h"
 #include "elog.h"
 #include "error_code.h"
 /*
@@ -49,6 +50,8 @@ static int8_t g_time_zone = 8;  // default time zone is 8 hours
  * ******** Private functions prototypes                               ********
  * ****************************************************************************
  */
+static void read_utc_save_data(void);
+static void write_utc_save_data(uint32_t utc_sec, uint32_t utc_nsec);
 
 /*
  * ****************************************************************************
@@ -74,6 +77,7 @@ int32_t utc_init(void)
         log_e("driver %s open failed", UTC_DRIVER_NAME);
         return ret;
     }
+    read_utc_save_data();
     g_utc_init_flag = 1;
 
     return 0;
@@ -96,6 +100,7 @@ int32_t utc_get_local_time(struct tm *local_time, long *nsec)
         log_e("driver %s read failed", UTC_DRIVER_NAME);
         return ret;
     }
+    write_utc_save_data(time_spec.tv_sec, time_spec.tv_nsec);
     time_spec.tv_sec += g_time_zone * 3600;  // add time zone
     read_time = localtime(&time_spec.tv_sec);
     memcpy(local_time, read_time, sizeof(struct tm));
@@ -118,6 +123,7 @@ int32_t utc_set_local_time(struct tm *local_time, long nsec)
     time_spec.tv_nsec = nsec;
 
     ret = driver_write(g_driver, 0, &time_spec, sizeof(struct timespec));
+    write_utc_save_data(time_spec.tv_sec, time_spec.tv_nsec);
 
     return ret;
 }
@@ -139,6 +145,7 @@ int32_t utc_get_time(struct tm *local_time, long *nsec)
         log_e("driver %s read failed", UTC_DRIVER_NAME);
         return ret;
     }
+    write_utc_save_data(time_spec.tv_sec, time_spec.tv_nsec);
     read_time = localtime(&time_spec.tv_sec);
     memcpy(local_time, read_time, sizeof(struct tm));
     *nsec = time_spec.tv_nsec;
@@ -157,6 +164,7 @@ int32_t utc_set_time(struct tm *local_time, long nsec)
     }
     time_spec.tv_sec = mktime(local_time);
     time_spec.tv_nsec = nsec;
+    write_utc_save_data(time_spec.tv_sec, time_spec.tv_nsec);
 
     ret = driver_write(g_driver, 0, &time_spec, sizeof(struct timespec));
 
@@ -174,11 +182,64 @@ int8_t utc_get_time_zone(void)
     return g_time_zone;
 }
 
+int32_t utc_time_store_bk_sram(void)
+{
+    struct timespec time_spec = {0, 0};
+    int32_t ret = 0;
+
+    if (g_utc_init_flag == 0) {
+        log_e("utc not init");
+        return -1;
+    }
+
+    ret = driver_read(g_driver, 0, &time_spec, sizeof(struct timespec));
+    if (ret != 0) {
+        log_e("driver %s read failed", UTC_DRIVER_NAME);
+        return ret;
+    }
+    write_utc_save_data(time_spec.tv_sec, time_spec.tv_nsec);
+
+    return 0;
+}
+
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
  * ****************************************************************************
  */
+static void read_utc_save_data(void)
+{
+    int32_t ret = 0;
+    uint32_t utc_data[2] = {0, 0};
+    struct timespec time_spec = {0, 0};
+
+
+    ret = bk_config_utc_sec_nsec_read((uint8_t *)utc_data);
+    if (ret != 0) {
+        log_e("bk_config_utc_sec_nsec_read failed");
+        return;
+    }
+    log_d("bk_config UTC sec %d nsec %d", utc_data[0], utc_data[1]);
+    time_spec.tv_sec = utc_data[0];
+    time_spec.tv_nsec = utc_data[1];
+    ret = driver_write(g_driver, 0, &time_spec, sizeof(struct timespec));
+    if (ret != 0) {
+        log_e("driver %s write failed", UTC_DRIVER_NAME);
+        return;
+    }
+}
+
+static void write_utc_save_data(uint32_t utc_sec, uint32_t utc_nsec)
+{
+    int32_t ret = 0;
+    uint32_t utc_data[2] = {utc_sec, utc_nsec};
+
+    ret = bk_config_utc_sec_nsec_write((uint8_t *)utc_data);
+    if (ret != 0) {
+        log_e("bk_config_utc_sec_nsec_write failed");
+        return;
+    }
+}
 
 /*
  * ****************************************************************************

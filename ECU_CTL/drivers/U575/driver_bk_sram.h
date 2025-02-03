@@ -1,11 +1,12 @@
 /*
  * @Author: your name
- * @Date: 2025-01-31 19:31:11
- * @LastEditTime: 2025-02-03 18:40:24
+ * @Date: 2025-02-03 11:21:54
+ * @LastEditTime: 2025-02-03 11:42:16
  * @LastEditors: stone_honor
  * @Description: In User Settings Edit
- * @FilePath: \ebike_ECU\ECU_CTL\devices\utc.h
+ * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_bk_sram.h
  */
+
 
 /*
  * ****************************************************************************
@@ -13,8 +14,8 @@
  * ****************************************************************************
  */
 
-#ifndef __UTC_H
-#define __UTC_H
+#ifndef __DRIVER_BK_SRAM_H
+#define __DRIVER_BK_SRAM_H
 /*
  * ============================================================================
  * If building with a C++ compiler, make all of the definitions in this header
@@ -22,17 +23,17 @@
  * ============================================================================
  */
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 /*
  * ****************************************************************************
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#include <stdint.h>
 
-#include "driver_com.h"
-#include "time.h"
+#include "main.h"
+
 /*
  * ****************************************************************************
  * ******** Exported Types                                             ********
@@ -44,7 +45,7 @@ extern "C" {
  * ******** Exported constants                                         ********
  * ****************************************************************************
  */
-#define UTC_DRIVER_NAME "rtc"
+
 /*
  * ****************************************************************************
  * ******** Exported macro                                             ********
@@ -62,20 +63,12 @@ extern "C" {
  * ******** Exported Function                                          ********
  * ****************************************************************************
  */
-int32_t utc_init(void);
-int32_t utc_get_local_time(struct tm *local_time, long *nsec);
-int32_t utc_set_local_time(struct tm *local_time, long nsec);
-int32_t utc_get_time(struct tm *local_time, long *nsec);
-int32_t utc_set_time(struct tm *local_time, long nsec);
-int32_t utc_set_time_zone(int8_t time_zone);
-int8_t utc_get_time_zone(void);
-int32_t utc_time_store_bk_sram(void);
 
 /* ************************************************************************* */
 #ifdef __cplusplus
 }
 #endif
-#endif /*__UTC_H */
+#endif /*__DRIVER_BK_SRAM_H */
 /*
  * ****************************************************************************
  * End File

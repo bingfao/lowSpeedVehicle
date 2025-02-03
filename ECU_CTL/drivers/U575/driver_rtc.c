@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-31 15:02:11
- * @LastEditTime: 2025-01-31 22:11:05
+ * @LastEditTime: 2025-02-03 18:35:13
  * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_rtc.c
@@ -125,7 +125,7 @@ static int32_t rtc_drv_read(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buffer, 
     timestamp = mktime(&time_info);
 
     p_time->tv_sec = timestamp;
-    p_time->tv_nsec = (data_time.SubSeconds % 0x100) * 1000 / 0x100 * 1000000;
+    p_time->tv_nsec = (1000 - (data_time.SubSeconds % 0x100) * 1000 / 0x100) * 1000000;
 
     return 0;
 }

@@ -1493,6 +1493,9 @@
                     <name>$PROJ_DIR$\..\Core\Src\octospi.c</name>
                 </file>
                 <file>
+                    <name>$PROJ_DIR$\..\Core\Src\ramcfg.c</name>
+                </file>
+                <file>
                     <name>$PROJ_DIR$\..\Core\Src\rtc.c</name>
                 </file>
                 <file>
@@ -1566,6 +1569,9 @@
                 <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_pwr_ex.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_ramcfg.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32U5xx_HAL_Driver\Src\stm32u5xx_hal_rcc.c</name>
             </file>
             <file>
@@ -1620,6 +1626,9 @@
         <group>
             <name>devices</name>
             <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\bk_config.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\bms_port.c</name>
             </file>
             <file>
@@ -1654,6 +1663,9 @@
             </group>
             <group>
                 <name>U575</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\driver_bk_sram.c</name>
+                </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\driver_mcu.c</name>
                 </file>
