@@ -189,7 +189,7 @@
                 <option>
                     <name>TrustZoneModes</name>
                     <version>0</version>
-                    <state>0</state>
+                    <state>1</state>
                 </option>
                 <option>
                     <name>OGAarch64Abi</name>
@@ -1139,6 +1139,9 @@
                     <name>$PROJ_DIR$\..\Core\Src\main.c</name>
                 </file>
                 <file>
+                    <name>$PROJ_DIR$\..\Core\Src\rtc.c</name>
+                </file>
+                <file>
                     <name>$PROJ_DIR$\..\Core\Src\stm32f4xx_hal_msp.c</name>
                 </file>
                 <file>
@@ -1200,10 +1203,10 @@
                 <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rcc_ex.c</name>
             </file>
             <file>
-                <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_tim.c</name>
+                <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rtc.c</name>
             </file>
             <file>
-                <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_tim_ex.c</name>
+                <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rtc_ex.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_uart.c</name>
@@ -1239,6 +1242,9 @@
         <group>
             <name>devices</name>
             <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\bk_config.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\bms_port.c</name>
             </file>
             <file>
@@ -1259,6 +1265,9 @@
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\shell_port.c</name>
             </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\utc.c</name>
+            </file>
         </group>
         <group>
             <name>drivers</name>
@@ -1271,10 +1280,16 @@
             <group>
                 <name>F407</name>
                 <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407\driver_bk_sram.c</name>
+                </file>
+                <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407\driver_mcu.c</name>
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407\driver_pin_ec800m.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407\driver_rtc.c</name>
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407\drv_usart.c</name>
