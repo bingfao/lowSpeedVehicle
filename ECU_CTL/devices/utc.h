@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-31 19:31:11
- * @LastEditTime: 2025-02-03 18:40:24
+ * @LastEditTime: 2025-02-04 10:28:00
  * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\utc.h
@@ -63,6 +63,7 @@ extern "C" {
  * ****************************************************************************
  */
 int32_t utc_init(void);
+bool utc_is_init(void);
 int32_t utc_get_local_time(struct tm *local_time, long *nsec);
 int32_t utc_set_local_time(struct tm *local_time, long nsec);
 int32_t utc_get_time(struct tm *local_time, long *nsec);

@@ -99,6 +99,10 @@ const char *elog_port_get_time(void)
     static char time[128];
     struct tm local_time = {0};
     long nsec = 0;
+
+    if (utc_is_init() != true) {
+        return "";
+    }
     utc_get_local_time(&local_time, &nsec);
     snprintf(time, sizeof(time), "%04d-%02d-%02d %02d:%02d:%02d.%03d",
         local_time.tm_year + 1900, local_time.tm_mon + 1, local_time.tm_mday,

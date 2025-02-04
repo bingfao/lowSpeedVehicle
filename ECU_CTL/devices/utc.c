@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-31 19:31:02
- * @LastEditTime: 2025-02-03 18:40:14
+ * @LastEditTime: 2025-02-04 10:31:10
  * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\utc.c
@@ -81,6 +81,11 @@ int32_t utc_init(void)
     g_utc_init_flag = 1;
 
     return 0;
+}
+
+bool utc_is_init(void)
+{
+    return g_utc_init_flag != 0;
 }
 
 int32_t utc_get_local_time(struct tm *local_time, long *nsec)
@@ -188,7 +193,7 @@ int32_t utc_time_store_bk_sram(void)
     int32_t ret = 0;
 
     if (g_utc_init_flag == 0) {
-        log_e("utc not init");
+        // log_e("utc not init");
         return -1;
     }
 
