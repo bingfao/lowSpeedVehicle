@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-31 19:31:02
- * @LastEditTime: 2025-02-04 10:31:10
+ * @LastEditTime: 2025-02-04 11:52:58
  * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\utc.c
@@ -218,7 +218,6 @@ static void read_utc_save_data(void)
     uint32_t utc_data[2] = {0, 0};
     struct timespec time_spec = {0, 0};
 
-
     ret = bk_config_utc_sec_nsec_read((uint8_t *)utc_data);
     if (ret != 0) {
         log_e("bk_config_utc_sec_nsec_read failed");
@@ -239,6 +238,9 @@ static void write_utc_save_data(uint32_t utc_sec, uint32_t utc_nsec)
     int32_t ret = 0;
     uint32_t utc_data[2] = {utc_sec, utc_nsec};
 
+    if (bk_config_is_init() != true) {
+        return;
+    }
     ret = bk_config_utc_sec_nsec_write((uint8_t *)utc_data);
     if (ret != 0) {
         log_e("bk_config_utc_sec_nsec_write failed");

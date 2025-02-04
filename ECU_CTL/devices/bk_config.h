@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-03 15:21:50
- * @LastEditTime: 2025-02-03 16:33:59
+ * @LastEditTime: 2025-02-04 11:32:40
  * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\bk_sram_config.h
@@ -68,6 +68,7 @@ typedef enum {
  * ****************************************************************************
  */
 int32_t bk_config_init(void);
+bool bk_config_is_init(void);
 int32_t bk_config_utc_sec_nsec_read(uint8_t *data);
 int32_t bk_config_utc_sec_nsec_write(uint8_t *data);
 

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-03 15:20:21
- * @LastEditTime: 2025-02-03 17:01:39
+ * @LastEditTime: 2025-02-04 11:32:28
  * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\bk_sram_config.c
@@ -90,6 +90,11 @@ int32_t bk_config_init(void)
     g_bk_config_init_flag = 1;
 
     return 0;
+}
+
+bool bk_config_is_init(void)
+{
+    return g_bk_config_init_flag != 0;
 }
 
 int32_t bk_config_utc_sec_nsec_read(uint8_t *data)
