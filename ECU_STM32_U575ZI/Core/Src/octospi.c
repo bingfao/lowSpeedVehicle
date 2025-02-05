@@ -60,6 +60,7 @@ void MX_OCTOSPI1_Init(void)
   {
     Error_Handler();
   }
+  sOspiManagerCfg.ClkPort = 1;
   sOspiManagerCfg.NCSPort = 1;
   sOspiManagerCfg.IOLowPort = HAL_OSPIM_IOPORT_1_HIGH;
   if (HAL_OSPIM_Config(&hospi1, &sOspiManagerCfg, HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
@@ -110,6 +111,7 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* ospiHandle)
     PC2     ------> OCTOSPIM_P1_IO5
     PC3     ------> OCTOSPIM_P1_IO6
     PA2     ------> OCTOSPIM_P1_NCS
+    PA3     ------> OCTOSPIM_P1_CLK
     */
     GPIO_InitStruct.Pin = GPIO_PIN_0;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -125,7 +127,7 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* ospiHandle)
     GPIO_InitStruct.Alternate = GPIO_AF10_OCTOSPI1;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_2;
+    GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -159,10 +161,11 @@ void HAL_OSPI_MspDeInit(OSPI_HandleTypeDef* ospiHandle)
     PC2     ------> OCTOSPIM_P1_IO5
     PC3     ------> OCTOSPIM_P1_IO6
     PA2     ------> OCTOSPIM_P1_NCS
+    PA3     ------> OCTOSPIM_P1_CLK
     */
     HAL_GPIO_DeInit(GPIOC, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3);
 
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_2);
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_2|GPIO_PIN_3);
 
     /* OCTOSPI1 interrupt Deinit */
     HAL_NVIC_DisableIRQ(OCTOSPI1_IRQn);
