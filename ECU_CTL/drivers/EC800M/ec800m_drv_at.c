@@ -60,6 +60,9 @@ typedef enum {
 #define EC800M_AT_ACK_QUEUE_TCP_DISCONNECT           0x0e  // tcp disconnect state
 
 #define PRINT_EC800M_RX_DATA                         1  // 1: print rx data, 0: not print
+
+#define QUEUE_LENGTH                                 10
+#define ITEM_SIZE                                    sizeof(int32_t)
 /*
  * ****************************************************************************
  * ******** Private macro                                              ********
@@ -85,11 +88,16 @@ RINGBUFF_T g_ec800m_rx_ring_buf_handle;
 
 // osSemaphoreDef(g_ec800m_tx_sem);
 // osSemaphoreId g_ec800m_tx_sem_handler = NULL;
+StaticSemaphore_t g_ec800m_tx_sem_buffer;
 SemaphoreHandle_t g_ec800m_tx_sem_handler = NULL;
 // osSemaphoreDef(g_ec800m_rx_sem);
+StaticSemaphore_t g_ec800m_rx_sem_buffer;
 SemaphoreHandle_t g_ec800m_rx_sem_handler = NULL;
 
-QueueHandle_t g_ec800m_rx_queue_handle;
+uint8_t g_ec800m_rx_queue_storage_area[QUEUE_LENGTH * ITEM_SIZE];
+static StaticQueue_t g_ec800m_rx_static_queue;
+QueueHandle_t g_ec800m_rx_queue_handle = NULL;
+StaticSemaphore_t g_ec800m_tx_mutex_buffer;
 SemaphoreHandle_t g_ec800m_tx_mutex;
 
 uint32_t g_ec800m_connect_mode = 0;
@@ -169,8 +177,9 @@ DRIVER_CTL_t g_ec800m_driver = {
     .control = ec800m_dev_ctl,
 };
 
+SET_THREAD_STACK(ec800m_rx, 512);
 USER_THREAD_OBJ_t g_ec800m_rx_thread =
-    USER_THREAD_OBJ_INIT(ec800m_rx_task, "ec800m_rx", 512, NULL, RTOS_PRIORITY_NORMAL);
+    USER_THREAD_OBJ_INIT(ec800m_rx_task, "ec800m_rx", 512, NULL, RTOS_PRIORITY_NORMAL, GET_THREAD_STACK(ec800m_rx));
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********
@@ -218,17 +227,16 @@ static int32_t ec800m_drv_init(DRIVER_OBJ_t *p_driver)
             log_e("g_ec800m_rst_pin_driver open failed, ret:%d\r\n", ret);
         }
     }
-    g_ec800m_tx_sem_handler = xSemaphoreCreateBinary();
-    g_ec800m_tx_mutex = xSemaphoreCreateMutex();
-    g_ec800m_rx_sem_handler = xSemaphoreCreateBinary();
+    g_ec800m_tx_sem_handler = xSemaphoreCreateBinaryStatic(&g_ec800m_tx_sem_buffer);
+    g_ec800m_tx_mutex = xSemaphoreCreateMutexStatic(&g_ec800m_tx_mutex_buffer);
+    g_ec800m_rx_sem_handler = xSemaphoreCreateBinaryStatic(&g_ec800m_rx_sem_buffer);
     RingBuffer_Init(&g_ec800m_rx_ring_buf_handle, g_ec800m_rx_ring_buf_data, sizeof(uint8_t), EC800M_DRV_RX_BUF_SIZE);
-    // osThreadDef(ec800m_rx, ec800m_rx_task, osPriorityNormal, 0, 512);
-    xTaskCreate((TaskFunction_t)thread->thread, thread->name, thread->stack_size, thread->parameter, thread->priority,
-                &thread->thread_handle);
+    thread->thread_handle = xTaskCreateStatic((TaskFunction_t)thread->thread, thread->name, thread->stack_size,
+                                              thread->parameter, thread->priority, thread->thread_stack, &thread->tcb);
     fault_assert(thread->thread_handle != NULL, FAULT_CODE_NORMAL);
 
     // osMessageQDef(ec800m_rx_queue, 10, uint8_t);
-    g_ec800m_rx_queue_handle = xQueueCreate(10, sizeof(uint32_t));
+    g_ec800m_rx_queue_handle = xQueueCreateStatic(QUEUE_LENGTH, ITEM_SIZE, g_ec800m_rx_queue_storage_area, &g_ec800m_rx_static_queue);
     ec800m_delay_ms(500);
     ec800m_device_reset();
     if (ec800m_is_ready() == false) {
@@ -252,6 +260,7 @@ static int32_t ec800m_drv_deinit(DRIVER_OBJ_t *p_driver)
     vQueueDelete(g_ec800m_rx_queue_handle);
     vTaskDelete(g_ec800m_rx_thread.thread_handle);
     vSemaphoreDelete(g_ec800m_tx_sem_handler);
+    vSemaphoreDelete(g_ec800m_tx_mutex);
     vSemaphoreDelete(g_ec800m_rx_sem_handler);
     driver_deinit(g_ec800m_trans_driver);
     driver_close(g_ec800m_rst_pin_driver);

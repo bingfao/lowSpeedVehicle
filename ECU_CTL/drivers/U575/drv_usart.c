@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:20:51
- * @LastEditTime: 2025-01-28 08:08:45
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-02-05 17:06:22
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.c
  */
@@ -215,12 +215,12 @@ DRIVER_CTL_t g_usart_ctl[DRV_USART_NUM_MAX] = {
 };
 
 USER_THREAD_OBJ_t g_usart_tx_thread[DRV_USART_NUM_MAX] = {
-    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart1_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL),
-    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart2_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL),
-    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart3_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL),
-    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart4_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL),
-    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart5_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL),
-    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart6_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL),
+    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart1_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL, NULL),
+    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart2_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL, NULL),
+    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart3_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL, NULL),
+    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart4_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL, NULL),
+    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart5_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL, NULL),
+    USER_THREAD_OBJ_INIT(usart_dma_tx_task, "usart6_dma_tx", 512, NULL, RTOS_PRIORITY_NORMAL, NULL),
 };
 
 /* define the uart tx dma rhread */

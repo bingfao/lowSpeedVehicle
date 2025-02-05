@@ -52,7 +52,7 @@ static void elog_output_func(const char *log, size_t size);
 static void shelltask_handle(void const *argument);
 
 USER_THREAD_OBJ_t g_shell_port_thread =
-    USER_THREAD_OBJ_INIT(shelltask_handle, "shell_p", 1024, NULL, RTOS_PRIORITY_LOW);
+    USER_THREAD_OBJ_INIT(shelltask_handle, "shell_p", 1024, NULL, RTOS_PRIORITY_LOW, NULL);
 /*
  * ****************************************************************************
  * ******** Extern function Definition                                 ********

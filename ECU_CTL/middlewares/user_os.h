@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-22 10:29:06
- * @LastEditTime: 2025-01-27 14:24:16
+ * @LastEditTime: 2025-02-05 17:01:12
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\user_os.h
@@ -75,8 +75,11 @@ typedef struct
 } USER_THREAD_OBJ_t;
 #pragma pack(pop)
 
-#define USER_THREAD_OBJ_INIT(thread, name, stack_size, parameter, priority) \
-    {thread, name, stack_size, parameter, priority, NULL, \
+#define SET_THREAD_STACK(thread_name, word_size) static StackType_t thread_name##_stack[word_size]
+#define GET_THREAD_STACK(thread_name) thread_name##_stack
+
+#define USER_THREAD_OBJ_INIT(thread, name, stack_size, parameter, priority, thread_stack) \
+    {thread, name, stack_size, parameter, priority, thread_stack, \
     {0}, NULL}
 
 

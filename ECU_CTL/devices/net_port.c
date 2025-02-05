@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2025-01-27 15:54:30
+ * @LastEditTime: 2025-02-05 17:05:24
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -67,7 +67,7 @@ int8_t g_net_driver_need_connect_flag = 0;
 static int32_t net_port_keep_tcp_mode(void);
 static void net_port_monitor_task(void const *argument);
 USER_THREAD_OBJ_t g_net_port_monitor_thread =
-    USER_THREAD_OBJ_INIT(net_port_monitor_task, "net_port_monitor", 1024, NULL, RTOS_PRIORITY_NORMAL);
+    USER_THREAD_OBJ_INIT(net_port_monitor_task, "net_port_monitor", 1024, NULL, RTOS_PRIORITY_NORMAL, NULL);
 
 /*
  * ****************************************************************************
