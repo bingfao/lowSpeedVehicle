@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2025-02-03 18:40:55
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-02-06 20:33:04
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.c
  */
@@ -23,6 +23,7 @@
 #include "console.h"
 #include "driver_com.h"
 #include "elog.h"
+#include "ex_flash.h"
 #include "mcu_ctl.h"
 #include "net_unit.h"
 #include "shell_port.h"
@@ -108,6 +109,7 @@ static int32_t ecu_unit_prepare(void)
     mcu_ctl_init();
     net_unit_start();
     bms_port_init();
+    ex_flash_init();
 
     return 0;
 }

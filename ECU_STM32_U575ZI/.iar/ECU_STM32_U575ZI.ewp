@@ -2377,6 +2377,9 @@
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\app\shell_cmd\t_cmd_test.c</name>
                 </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\app\shell_cmd\t_ex_flash.c</name>
+                </file>
             </group>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\app\ecu_unit.c</name>
@@ -2401,6 +2404,9 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\ebike_manage.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\ex_flash.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\mcu_ctl.c</name>
@@ -2439,6 +2445,9 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\driver_rtc.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\driver_w25q128.c</name>
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575\drv_usart.c</name>
