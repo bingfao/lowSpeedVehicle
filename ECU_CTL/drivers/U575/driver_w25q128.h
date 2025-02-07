@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-06 09:58:20
- * @LastEditTime: 2025-02-06 20:02:22
+ * @LastEditTime: 2025-02-07 09:38:04
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_w25q128.h
@@ -46,6 +46,7 @@ extern "C" {
 
 #define DRV_W25Q128_CMD_ERASE_BUFFER          DRV_CMD_ERASE_BUFFER
 #define DRV_W25Q128_CMD_GET_BUFFER_TOTAL_SIZE DRV_CMD_GET_BUFFER_TOTAL_SIZE
+#define DRV_W25Q128_CMD_SET_DATA_MODE         DRV_CMD_SET_DATA_MODE
 
 #define OSPI_W25Qxx_OK                        0   // W25Qxx通信正常
 #define W25Qxx_ERROR_INIT                     -1  // 初始化错误
@@ -66,7 +67,9 @@ extern "C" {
 #define W25Qxx_CMD_ChipErase                  0xC7  // 整片擦除，参考擦除时间 40S
 
 #define W25Qxx_CMD_QuadInputPageProgram       0x32  // 1-1-4模式下(1线指令1线地址4线数据)，页编程指令，参考写入时间 0.4ms
+#define W25Qxx_CMD_PageProgram                0x02  // 1-1-1模式下(1线指令1线地址1线数据)，页编程指令
 #define W25Qxx_CMD_FastReadQuad_IO            0xEB  // 1-4-4模式下(1线指令4线地址4线数据)，快速读取指令
+#define W25Qxx_CMD_FastRead                   0x0B  // 1-1-1模式下(1线指令1线地址1线数据)，快速读取指令
 
 #define W25Qxx_CMD_ReadStatus_REG1            0X05  // 读状态寄存器1
 #define W25Qxx_Status_REG1_BUSY               0x01  // 读状态寄存器1的第0位（只读），Busy标志位，当正在擦除/写入数据/写命令时会被置1

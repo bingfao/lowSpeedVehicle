@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-06 09:58:02
- * @LastEditTime: 2025-02-06 20:17:54
+ * @LastEditTime: 2025-02-07 11:34:15
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_w25q128.c
@@ -27,6 +27,7 @@
 typedef struct
 {
     uint8_t spi_index;  //  0 : SPI1, 1 : SPI2
+    uint8_t spi_mode;   //  0 : QSPI, 1 : SPI
     OSPI_HandleTypeDef *h_ospi;
     uint8_t inited_flg;
     uint8_t open_flag;
@@ -43,6 +44,8 @@ typedef struct
  * ******** Private macro                                              ********
  * ****************************************************************************
  */
+#define SPI_MODE_QSPI 0
+#define SPI_MODE_SPI  1
 
 /*
  * ****************************************************************************
@@ -182,6 +185,7 @@ static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *a
     W25Q128_PRIV_t *p_priv = (W25Q128_PRIV_t *)p_driver->driver->drv_priv;
     uint32_t address = 0;
     uint32_t size = 0;
+    uint32_t *data = (uint32_t *)args;
 
     if (p_priv->open_flag == 0) {
         return -EACCES;
@@ -189,6 +193,9 @@ static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *a
 
     switch (cmd) {
         case DRV_W25Q128_CMD_ERASE_BUFFER:
+            if (data == NULL) {
+                return -EINVAL;
+            }
             address = *(uint32_t *)args;
             size = *((uint32_t *)args + 1);
             if (ospi_w25qxx_erase_buffer(address, size) != 0) {
@@ -197,6 +204,16 @@ static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *a
             break;
         case DRV_W25Q128_CMD_GET_BUFFER_TOTAL_SIZE:
             *(uint32_t *)args = W25Qxx_FlashSize;
+            break;
+        case DRV_W25Q128_CMD_SET_DATA_MODE:
+            if (data == NULL) {
+                return -EINVAL;
+            }
+            if (data[0] == 0) {
+                p_priv->spi_mode = SPI_MODE_QSPI;
+            } else {
+                p_priv->spi_mode = SPI_MODE_SPI;
+            }
             break;
         default:
             return -EINVAL;
@@ -477,7 +494,11 @@ static int32_t ospi_w25qxx_write_page(uint8_t *pBuffer, uint32_t WriteAddr, uint
     sCommand.OperationType = HAL_OSPI_OPTYPE_COMMON_CFG;  // 通用配置
     sCommand.FlashId = HAL_OSPI_FLASH_ID_1;               // flash ID
 
-    sCommand.Instruction = W25Qxx_CMD_QuadInputPageProgram;          // 1-1-4模式下(1线指令1线地址4线数据)，页编程指令
+    if (g_w25q128_priv.spi_mode == SPI_MODE_QSPI) {
+        sCommand.Instruction = W25Qxx_CMD_QuadInputPageProgram;  // 1-1-4模式下(1线指令1线地址4线数据)，页编程指令
+    } else {
+        sCommand.Instruction = W25Qxx_CMD_PageProgram;  // 1-1-1模式下(1线指令1线地址1线数据)，页编程指令
+    }
     sCommand.InstructionMode = HAL_OSPI_INSTRUCTION_1_LINE;          // 1线指令模式
     sCommand.InstructionSize = HAL_OSPI_INSTRUCTION_8_BITS;          // 指令长度8位
     sCommand.InstructionDtrMode = HAL_OSPI_INSTRUCTION_DTR_DISABLE;  // 禁止指令DTR模式
@@ -490,7 +511,11 @@ static int32_t ospi_w25qxx_write_page(uint8_t *pBuffer, uint32_t WriteAddr, uint
     sCommand.AlternateBytesMode = HAL_OSPI_ALTERNATE_BYTES_NONE;            // 无交替字节
     sCommand.AlternateBytesDtrMode = HAL_OSPI_ALTERNATE_BYTES_DTR_DISABLE;  // 禁止替字节DTR模式
 
-    sCommand.DataMode = HAL_OSPI_DATA_4_LINES;         // 4线数据模式
+    if (g_w25q128_priv.spi_mode == SPI_MODE_QSPI) {
+        sCommand.DataMode = HAL_OSPI_DATA_4_LINES;  // 4线数据模式
+    } else {
+        sCommand.DataMode = HAL_OSPI_DATA_1_LINE;  // 1线数据模式
+    }
     sCommand.DataDtrMode = HAL_OSPI_DATA_DTR_DISABLE;  // 禁止数据DTR模式
     sCommand.NbData = NumByteToWrite;                  // 数据长度
 
@@ -603,24 +628,40 @@ static int32_t ospi_w25qxx_read_buffer(uint8_t *pBuffer, uint32_t ReadAddr, uint
     sCommand.OperationType = HAL_OSPI_OPTYPE_COMMON_CFG;  // 通用配置
     sCommand.FlashId = HAL_OSPI_FLASH_ID_1;               // flash ID
 
-    sCommand.Instruction = W25Qxx_CMD_FastReadQuad_IO;               // 1-4-4模式下(1线指令4线地址4线数据)，快速读取指令
+    if (g_w25q128_priv.spi_mode == SPI_MODE_QSPI) {
+        sCommand.Instruction = W25Qxx_CMD_FastReadQuad_IO;  // 1-4-4模式下(1线指令4线地址4线数据)，快速读取指令
+    } else {
+        sCommand.Instruction = W25Qxx_CMD_FastRead;  // 1-1-1模式下(1线指令1线地址1线数据)，快速读取指令
+    }
     sCommand.InstructionMode = HAL_OSPI_INSTRUCTION_1_LINE;          // 1线指令模式
     sCommand.InstructionSize = HAL_OSPI_INSTRUCTION_8_BITS;          // 指令长度8位
     sCommand.InstructionDtrMode = HAL_OSPI_INSTRUCTION_DTR_DISABLE;  // 禁止指令DTR模式
 
-    sCommand.Address = ReadAddr;                             // 地址
-    sCommand.AddressMode = HAL_OSPI_ADDRESS_4_LINES;         // 4线地址模式
+    sCommand.Address = ReadAddr;  // 地址
+    if (g_w25q128_priv.spi_mode == SPI_MODE_QSPI) {
+        sCommand.AddressMode = HAL_OSPI_ADDRESS_4_LINES;  // 4线地址模式
+    } else {
+        sCommand.AddressMode = HAL_OSPI_ADDRESS_1_LINE;  // 1线地址模式
+    }
     sCommand.AddressSize = HAL_OSPI_ADDRESS_24_BITS;         // 地址长度24位
     sCommand.AddressDtrMode = HAL_OSPI_ADDRESS_DTR_DISABLE;  // 禁止地址DTR模式
 
     sCommand.AlternateBytesMode = HAL_OSPI_ALTERNATE_BYTES_NONE;            // 无交替字节
     sCommand.AlternateBytesDtrMode = HAL_OSPI_ALTERNATE_BYTES_DTR_DISABLE;  // 禁止替字节DTR模式
 
-    sCommand.DataMode = HAL_OSPI_DATA_4_LINES;         // 4线数据模式
+    if (g_w25q128_priv.spi_mode == SPI_MODE_QSPI) {
+        sCommand.DataMode = HAL_OSPI_DATA_4_LINES;  // 4线数据模式
+    } else {
+        sCommand.DataMode = HAL_OSPI_DATA_1_LINE;  // 1线数据模式
+    }
     sCommand.DataDtrMode = HAL_OSPI_DATA_DTR_DISABLE;  // 禁止数据DTR模式
     sCommand.NbData = NumByteToRead;                   // 数据长度
 
-    sCommand.DummyCycles = 6;                          // 空周期个数
+    if (g_w25q128_priv.spi_mode == SPI_MODE_QSPI) {
+        sCommand.DummyCycles = 6;  // 空周期个数
+    } else {
+        sCommand.DummyCycles = 8;  // 空周期个数
+    }
     sCommand.DQSMode = HAL_OSPI_DQS_DISABLE;           // 不使用DQS
     sCommand.SIOOMode = HAL_OSPI_SIOO_INST_EVERY_CMD;  // 每次传输数据都发送指令
 

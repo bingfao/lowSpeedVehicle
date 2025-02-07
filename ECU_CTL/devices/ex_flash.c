@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-06 17:48:00
- * @LastEditTime: 2025-02-06 21:08:39
+ * @LastEditTime: 2025-02-07 11:27:53
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ex_flash.c
@@ -36,7 +36,12 @@
  * ******** Private macro                                              ********
  * ****************************************************************************
  */
-#define EX_FLASH_DRV_NAME "w25q128"
+#define EX_FLASH_DRV_NAME  "w25q128"
+
+#define EX_FLASH_QSPI_MODE 0
+#define EX_FLASH_SPI_MODE  1
+
+#define EX_FLASH_DEFAULT_SPI_MODE  EX_FLASH_SPI_MODE
 /*
  * ****************************************************************************
  * ******** Private global variables                                   ********
@@ -60,6 +65,7 @@ DRIVER_OBJ_t *g_ex_flash_drv = NULL;
 int32_t ex_flash_init(void)
 {
     int32_t ret = 0;
+    uint32_t ex_flash_mode = EX_FLASH_DEFAULT_SPI_MODE;
 
     g_ex_flash_drv = get_driver(EX_FLASH_DRV_NAME);
     if (g_ex_flash_drv == NULL) {
@@ -78,6 +84,11 @@ int32_t ex_flash_init(void)
         return ret;
     }
     log_d("ex_flash size: %d bytes\r\n", g_ex_flash_size);
+    ret = driver_control(g_ex_flash_drv, DRV_CMD_SET_DATA_MODE, &ex_flash_mode);
+    if (ret != 0) {
+        log_e("driver %s set data mode :%d failed\r\n", EX_FLASH_DRV_NAME, ex_flash_mode);
+        return ret;
+    }
     g_ex_flash_inited = 1;
 
     return 0;
@@ -125,7 +136,6 @@ int32_t ex_flash_write(uint32_t addr, uint8_t *data, uint32_t len)
     }
 
     return len;
-
 }
 
 int32_t ex_flash_erase(uint32_t addr, uint32_t len)

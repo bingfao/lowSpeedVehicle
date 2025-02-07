@@ -76,6 +76,7 @@ typedef enum {
     DRV_CMD_GET_ID,                       // get id of driver
     DRV_CMD_ERASE_BUFFER,                 // erase driver buffer
     DRV_CMD_GET_BUFFER_TOTAL_SIZE,        // get size of driver buffer
+    DRV_CMD_SET_DATA_MODE,                // set data mode
     DRV_CMD_MAX,
 } DRV_CMD_t;
 

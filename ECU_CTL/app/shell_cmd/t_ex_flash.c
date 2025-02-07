@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-06 21:21:16
- * @LastEditTime: 2025-02-06 21:32:35
+ * @LastEditTime: 2025-02-07 13:48:10
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\app\shell_cmd\t_ex_flash.c
@@ -77,6 +77,10 @@ static int t_ex_flash_read(int argc, char *argv[])
     uint32_t len = 0;
     uint8_t data[64] = {0};
 
+    if (argc < 3) {
+        log_e("Usage: ex_flash_read <addr> <len>\r\n");
+        return -1;
+    }
     addr = (uint32_t)strtoul(argv[1], NULL, 16);
     len = (uint32_t)atoi(argv[2]);
 
@@ -94,7 +98,7 @@ static int t_ex_flash_read(int argc, char *argv[])
         }
         for (int j = 0; j < ret; j++) {
             if (j % 16 == 0) {
-                printf("\r\n");
+                printf("\r\n0x%08x: ", addr + i + j);
             }
             printf("%02x ", data[j]);
         }
@@ -110,6 +114,10 @@ static int t_ex_flash_erase(int argc, char *argv[])
     uint32_t addr = 0;
     uint32_t len = 0;
 
+    if (argc < 3) {
+        log_e("Usage: ex_flash_erase <addr> <len>\r\n");
+        return -1;
+    }
     addr = (uint32_t)strtoul(argv[1], NULL, 16);
     len = (uint32_t)atoi(argv[2]);
 
@@ -130,6 +138,10 @@ static int t_ex_flash_write(int argc, char *argv[])
     uint32_t len = 0;
     uint8_t data[16] = {0xf0, 0xe1, 0xd2, 0xc3, 0xb4, 0xa5, 0x96, 0x87, 0x78, 0x69, 0x5a, 0x4b, 0x3c, 0x2d, 0x1e, 0x0f};
 
+    if (argc < 3) {
+        log_e("Usage: ex_flash_write <addr> <len>\r\n");
+        return -1;
+    }
     addr = (uint32_t)strtoul(argv[1], NULL, 16);
     len = (uint32_t)atoi(argv[2]);
 

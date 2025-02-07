@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2025-02-05 17:05:24
+ * @LastEditTime: 2025-02-07 11:02:04
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -79,6 +79,9 @@ int32_t net_port_init(void)
     int32_t ret = 0;
     BaseType_t res;
 
+    if (g_net_driver_init_flag == 1) {
+        return 0;
+    }
     g_driver = get_driver(NET_PORT_DRV_NAME);
     if (g_driver == NULL) {
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
@@ -115,6 +118,7 @@ int32_t net_port_deinit(void)
         return -ENODEV;
     }
     driver_deinit(g_driver);
+    g_net_driver_init_flag = 0;
     return 0;
 }
 
