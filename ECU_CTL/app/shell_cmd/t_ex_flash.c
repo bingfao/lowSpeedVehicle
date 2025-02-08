@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-06 21:21:16
- * @LastEditTime: 2025-02-07 13:48:10
+ * @LastEditTime: 2025-02-08 22:03:47
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\app\shell_cmd\t_ex_flash.c
@@ -12,7 +12,7 @@
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#define LOG_TAG "T_BOOT"
+#define LOG_TAG "T_EX_FLASH"
 #define LOG_LVL ELOG_LVL_DEBUG
 
 #include <FreeRTOS.h>
@@ -26,7 +26,6 @@
 #include "shell_cmd_group.h"
 #include "stdlib.h"
 #include "util.h"
-
 
 /*
  * ****************************************************************************
@@ -86,7 +85,7 @@ static int t_ex_flash_read(int argc, char *argv[])
 
     log_i("ex_flash_read addr = 0x%x len = %d :\r\n", addr, len);
 
-    for (int i = 0; i < len; ) {
+    for (int i = 0; i < len;) {
         if (len - i > 64) {
             ret = ex_flash_read(addr + i, data, 64);
         } else {
@@ -147,7 +146,7 @@ static int t_ex_flash_write(int argc, char *argv[])
 
     log_i("ex_flash_write addr = 0x%x len = %d :\r\n", addr, len);
 
-    for (int i = 0; i < len; ) {
+    for (int i = 0; i < len;) {
         if (len - i > 16) {
             ret = ex_flash_write(addr + i, data, 16);
         } else {
@@ -164,9 +163,9 @@ static int t_ex_flash_write(int argc, char *argv[])
 }
 
 ShellCommand ex_flash_ctl[] = {
-    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, read, t_ex_flash_read, ex_flash_read <addr> <len>),
-    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, erase, t_ex_flash_erase, ex_flash_erase <addr> <len>),
-    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, write, t_ex_flash_write, ex_flash_write <addr> <len>),
+    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, read, t_ex_flash_read, ex_flash read<addr><len>),
+    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, erase, t_ex_flash_erase, ex_flash erase<addr><len>),
+    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, write, t_ex_flash_write, ex_flash write<addr><len>),
     SHELL_CMD_GROUP_END()};
 
 SHELL_EXPORT_CMD_GROUP(SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN), ex_flash, ex_flash_ctl, extern_flash operation);

@@ -3073,6 +3073,9 @@
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\app\shell_cmd\t_ex_flash.c</name>
                 </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\app\shell_cmd\t_file.c</name>
+                </file>
             </group>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\app\ecu_unit.c</name>
@@ -3100,6 +3103,9 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\ex_flash.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\lfs_port.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\mcu_ctl.c</name>
@@ -3199,6 +3205,15 @@
                         <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\LetterShell\extensions\shell_enhance\shell_secure_user.c</name>
                     </file>
                 </group>
+            </group>
+            <group>
+                <name>littlefs</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\littlefs\lfs.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\littlefs\lfs_util.c</name>
+                </file>
             </group>
             <group>
                 <name>net_agreement</name>

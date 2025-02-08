@@ -3,7 +3,7 @@
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#define LOG_TAG "T_BOOT"
+#define LOG_TAG "T_CMD_TEST"
 #define LOG_LVL ELOG_LVL_DEBUG
 
 #include <FreeRTOS.h>
@@ -17,9 +17,9 @@
 #include "shell.h"
 #include "shell_cmd_group.h"
 #include "stdlib.h"
+#include "utc.h"
 #include "util.h"
 #include "version.h"
-#include "utc.h"
 
 /*
  * ****************************************************************************
@@ -150,7 +150,7 @@ ShellCommand ebike_ctl[] = {
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_socket_state, t_socket_state, ebike socket state),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_traffic_report, t_traffic_report, ebike traffic report start file load),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_write_utc, t_write_utc,
-                         write utc time: t_write_utc <year> <month> <day> <hour> <minute> <second>),
+                         write utc time : t_write_utc<year><month><day><hour><minute><second>),
     SHELL_CMD_GROUP_END()};
 
 SHELL_EXPORT_CMD_GROUP(SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN), ebike_cmd, ebike_ctl, ebike_cmd);

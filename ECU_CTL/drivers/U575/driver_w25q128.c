@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-06 09:58:02
- * @LastEditTime: 2025-02-07 11:34:15
+ * @LastEditTime: 2025-02-08 09:57:25
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_w25q128.c
@@ -204,6 +204,9 @@ static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *a
             break;
         case DRV_W25Q128_CMD_GET_BUFFER_TOTAL_SIZE:
             *(uint32_t *)args = W25Qxx_FlashSize;
+            break;
+        case DRV_W25Q128_CMD_GET_BUFFER_BLOCK_SIZE:
+            *(uint32_t *)args = W25Qxx_SectorSize;
             break;
         case DRV_W25Q128_CMD_SET_DATA_MODE:
             if (data == NULL) {

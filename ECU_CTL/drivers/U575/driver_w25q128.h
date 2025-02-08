@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-06 09:58:20
- * @LastEditTime: 2025-02-07 09:38:04
+ * @LastEditTime: 2025-02-08 09:56:41
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_w25q128.h
@@ -46,6 +46,7 @@ extern "C" {
 
 #define DRV_W25Q128_CMD_ERASE_BUFFER          DRV_CMD_ERASE_BUFFER
 #define DRV_W25Q128_CMD_GET_BUFFER_TOTAL_SIZE DRV_CMD_GET_BUFFER_TOTAL_SIZE
+#define DRV_W25Q128_CMD_GET_BUFFER_BLOCK_SIZE DRV_CMD_GET_BUFFER_BLOCK_SIZE
 #define DRV_W25Q128_CMD_SET_DATA_MODE         DRV_CMD_SET_DATA_MODE
 
 #define OSPI_W25Qxx_OK                        0   // W25Qxx通信正常

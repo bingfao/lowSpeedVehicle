@@ -1,10 +1,10 @@
 /*
  * @Author: your name
- * @Date: 2025-02-06 17:48:12
- * @LastEditTime: 2025-02-08 10:59:16
+ * @Date: 2025-02-07 22:08:51
+ * @LastEditTime: 2025-02-08 18:04:58
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
- * @FilePath: \ebike_ECU\ECU_CTL\devices\ex_flash.h
+ * @FilePath: \ebike_ECU\ECU_CTL\devices\lfs_port.h
  */
 
 /*
@@ -13,8 +13,8 @@
  * ****************************************************************************
  */
 
-#ifndef __EX_FLASH_H
-#define __EX_FLASH_H
+#ifndef __LFS_PORT_H
+#define __LFS_PORT_H
 /*
  * ============================================================================
  * If building with a C++ compiler, make all of the definitions in this header
@@ -29,8 +29,9 @@ extern "C" {
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 
 /*
  * ****************************************************************************
@@ -61,19 +62,24 @@ extern "C" {
  * ******** Exported Function                                          ********
  * ****************************************************************************
  */
-int32_t ex_flash_init(void);
-bool ex_flash_is_inited(void);
-int32_t ex_flash_read(uint32_t addr, uint8_t *data, uint32_t len);
-int32_t ex_flash_write(uint32_t addr, uint8_t *data, uint32_t len);
-int32_t ex_flash_erase(uint32_t addr, uint32_t len);
-int32_t ex_flash_get_sector_size(uint32_t *size);
-int32_t ex_flash_get_total_size(uint32_t *size);
+int32_t lfs_port_init(void);
+int32_t lfs_port_uninit(void);
+bool lfs_port_file_is_open(const char *path);
+int32_t lfs_port_open(const char *path);
+int32_t lfs_port_close(void);
+int32_t lfs_port_read(const char *path, uint32_t pos, uint8_t *buf, uint32_t len);
+int32_t lfs_port_write(const char *path, uint32_t pos, const uint8_t *buf, uint32_t len);
+int32_t lfs_port_write_continue(const char *path, const uint8_t *buf, uint32_t len);
+int32_t lfs_port_erase(const char *path);
+int32_t lfs_port_scan_file(const char *path, uint8_t *buf, uint32_t size);
+int32_t lfs_port_get_file_size(const char *path);
+int32_t lfs_port_get_files(uint8_t *buf, uint32_t size);
 
 /* ************************************************************************* */
 #ifdef __cplusplus
 }
 #endif
-#endif /*__EX_FLASH_H */
+#endif /*__LFS_PORT_H */
 /*
  * ****************************************************************************
  * End File
