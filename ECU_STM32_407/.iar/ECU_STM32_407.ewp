@@ -374,6 +374,7 @@
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\soft_aes</state>
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\net_agreement</state>
                     <state>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407</state>
+                    <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\littlefs</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -1484,6 +1485,7 @@
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\soft_aes</state>
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\net_agreement</state>
                     <state>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407</state>
+                    <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\littlefs</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -2252,6 +2254,9 @@
                     <name>$PROJ_DIR$\..\Core\Src\rtc.c</name>
                 </file>
                 <file>
+                    <name>$PROJ_DIR$\..\Core\Src\spi.c</name>
+                </file>
+                <file>
                     <name>$PROJ_DIR$\..\Core\Src\stm32f4xx_hal_msp.c</name>
                 </file>
                 <file>
@@ -2319,6 +2324,9 @@
                 <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rtc_ex.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_spi.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\Drivers\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_uart.c</name>
             </file>
         </group>
@@ -2334,6 +2342,12 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\app\shell_cmd\t_cmd_test.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\app\shell_cmd\t_ex_flash.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\app\shell_cmd\t_file.c</name>
                 </file>
             </group>
             <file>
@@ -2362,6 +2376,12 @@
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\ebike_manage.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\ex_flash.c</name>
+            </file>
+            <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\lfs_port.c</name>
             </file>
             <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\mcu_ctl.c</name>
@@ -2400,6 +2420,9 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407\driver_rtc.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407\driver_w25q128.c</name>
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\drivers\F407\drv_usart.c</name>
@@ -2468,6 +2491,15 @@
                         <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\LetterShell\extensions\shell_enhance\shell_secure_user.c</name>
                     </file>
                 </group>
+            </group>
+            <group>
+                <name>littlefs</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\littlefs\lfs.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\littlefs\lfs_util.c</name>
+                </file>
             </group>
             <group>
                 <name>net_agreement</name>
