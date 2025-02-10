@@ -1490,6 +1490,7 @@
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\soft_aes</state>
                     <state>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575</state>
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\littlefs</state>
+                    <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\md5</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -1817,7 +1818,7 @@
             <data>
                 <extensions></extensions>
                 <cmdline></cmdline>
-                <hasPrio>1</hasPrio>
+                <hasPrio>112</hasPrio>
                 <buildSequence>inputOutputBased</buildSequence>
             </data>
         </settings>
