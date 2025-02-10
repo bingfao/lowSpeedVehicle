@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:34
- * @LastEditTime: 2025-01-27 10:01:36
+ * @LastEditTime: 2025-02-10 18:57:36
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.c
@@ -251,6 +251,7 @@ typedef struct
 #define NET_MSG_RX_STATE_WAIT_BODY_END     6
 #define NET_MSG_RX_STATE_PROGRESS          7
 
+#define AES_DATA_LOG_ENABLE                1
 /*
  * ****************************************************************************
  * ******** Private macro                                              ********
@@ -797,7 +798,8 @@ int32_t net_agreement_device_traffic_report_ack(void *obj, uint8_t *data, uint32
     return 0;
 }
 
-int32_t net_agreement_device_file_download_require_package(void *obj, uint8_t *data, uint32_t *len, uint32_t r_adr, uint16_t r_len)
+int32_t net_agreement_device_file_download_require_package(void *obj, uint8_t *data, uint32_t *len, uint32_t r_adr,
+                                                           uint16_t r_len)
 {
     EBIKE_FILE_DOWNLOAD_REQUIRE_t *p_data = (EBIKE_FILE_DOWNLOAD_REQUIRE_t *)data;
 
@@ -984,7 +986,16 @@ static int32_t net_msg_body_aes_decoder(uint8_t *data)
     }
     memcpy(&msg_body[out_len], &msg_body[aes_len], 6);
     msg_header->msg_body_len = out_len + 6;
-
+#if AES_DATA_LOG_ENABLE
+    printf("net msg rx after aes decoder: ");
+    for (int i = 0; i < (out_len < 256 ? out_len : 256); i++) {
+        if (i % 16 == 0) {
+            printf("\r\n");
+        }
+        printf("%02x ", data[i]);
+    }
+    printf("\r\n");
+#endif
     return 0;
 }
 
@@ -1140,6 +1151,16 @@ static int32_t net_agreement_byte_in(NET_AGREEMENT_OBJ_t *net_obj, uint8_t byte,
             if (temp_index > 0) {
                 break;
             }
+#if AES_DATA_LOG_ENABLE
+            printf("net msg rx: ");
+            for (int i = 0; i < (*rx_data_index < 256 ? *rx_data_index : 256); i++) {
+                if (i % 16 == 0) {
+                    printf("\r\n");
+                }
+                printf("%02x ", rx_data[i]);
+            }
+            printf("\r\n");
+#endif
             ret = net_msg_body_aes_decoder(rx_data);
             if (ret < 0) {
                 log_e("AES decoder fail \r\n");

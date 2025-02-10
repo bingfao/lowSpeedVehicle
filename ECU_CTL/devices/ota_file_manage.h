@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-09 15:11:34
- * @LastEditTime: 2025-01-26 17:04:20
+ * @LastEditTime: 2025-02-10 17:11:01
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\file_manage.h

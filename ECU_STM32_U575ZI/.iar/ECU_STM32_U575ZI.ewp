@@ -376,6 +376,7 @@
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\soft_aes</state>
                     <state>$PROJ_DIR$\..\..\ECU_CTL\drivers\U575</state>
                     <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\littlefs</state>
+                    <state>$PROJ_DIR$\..\..\ECU_CTL\middlewares\md5</state>
                 </option>
                 <option>
                     <name>CCStdIncCheck</name>
@@ -2522,6 +2523,12 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\littlefs\lfs_util.c</name>
+                </file>
+            </group>
+            <group>
+                <name>md5</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\md5\md5.c</name>
                 </file>
             </group>
             <group>

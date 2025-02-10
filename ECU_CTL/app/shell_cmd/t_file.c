@@ -129,7 +129,7 @@ static int t_file_erase(int argc, char *argv[])
         return -1;
     }
     log_i("file delete: %s\r\n", argv[1]);
-    ret = lfs_port_erase(argv[1]);
+    ret = lfs_port_delete(argv[1]);
     if (ret < 0) {
         log_e("file delete failed\r\n");
     }

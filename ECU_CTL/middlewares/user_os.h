@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-22 10:29:06
- * @LastEditTime: 2025-02-06 10:32:38
+ * @LastEditTime: 2025-02-10 14:06:39
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\user_os.h
@@ -34,6 +34,7 @@ extern "C"
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include <timers.h>
 #include <semphr.h>
 
 /*
@@ -93,6 +94,15 @@ typedef struct
     StaticSemaphore_t mutex_buf;
     SemaphoreHandle_t mutex_handle;
 } USER_MUTEX_OBJ_T;
+
+typedef struct
+{
+    StaticTimer_t timer_buf;
+    TimerHandle_t timer_handle;
+    char *name;
+    uint32_t period;
+    uint32_t auto_reload;
+} USER_TIMER_OBJ_t;
 /*
  * ****************************************************************************
  * ******** Exported constants                                         ********

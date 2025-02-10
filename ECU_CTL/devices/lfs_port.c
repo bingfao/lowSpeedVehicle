@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-07 22:08:34
- * @LastEditTime: 2025-02-10 09:39:18
+ * @LastEditTime: 2025-02-10 19:11:35
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\lfs_port.c
@@ -22,6 +22,7 @@
 #include "ex_flash.h"
 #include "lfs.h"
 #include "user_os.h"
+#include "md5.h"
 
 /*
  * ****************************************************************************
@@ -367,7 +368,7 @@ int32_t lfs_port_write_continue(const char *path, const uint8_t *buf, uint32_t l
     return len;
 }
 
-int32_t lfs_port_erase(const char *path)
+int32_t lfs_port_delete(const char *path)
 {
     int32_t ret = 0;
 
@@ -399,6 +400,7 @@ int32_t lfs_port_scan_file(const char *path, uint8_t *buf, uint32_t size)
 {
     struct lfs_info info;
     uint32_t index = 0;
+    uint8_t md5[16] = {0};
 
     int32_t ret = 0;
     if (g_lfs_port_inited == false) {
@@ -418,9 +420,15 @@ int32_t lfs_port_scan_file(const char *path, uint8_t *buf, uint32_t size)
         ret = -ENOENT;
         return ret;
     }
+    ret = lfs_port_get_md5(path, md5, sizeof(md5));
     index = sprintf((char *)&buf[index], "File: %s\r\n", path);
     index += sprintf((char *)&buf[index], "Type: %s\r\n", info.type == LFS_TYPE_REG ? "File" : "Directory");
     index += sprintf((char *)&buf[index], "Size: %d\r\n", info.size);
+    index += sprintf((char *)&buf[index], "md5: ");
+    for (int i = 0; i < 16; i++) {
+        index += sprintf((char *)&buf[index], "%02x", md5[i]);
+    }
+    index += sprintf((char *)&buf[index], "\r\n");
 
     xSemaphoreGive(g_lfs_mutex.mutex_handle);
 
@@ -524,6 +532,76 @@ int32_t lfs_port_get_avail_size(int32_t *total_sz, int32_t *avail_sz)
 
     return ret;
 }
+
+int32_t lfs_port_get_md5(const char *path, uint8_t *md5_buf, uint32_t md5_len)
+{
+    int32_t ret = 0;
+    MD5_CTX md5_ctx;
+    uint8_t md5_sum[16];
+    int32_t file_size = 0;
+    int32_t len = 0;
+    int32_t read_len = 0;
+    uint8_t read_buf[1024] = {0};
+
+    if (g_lfs_port_inited == false) {
+        return -EACCES;
+    }
+    if (path == NULL || md5_buf == NULL || md5_len < 16) {
+        return -EINVAL;
+    }
+    if (lfs_port_file_is_open(path) == true) {
+        return -EBUSY;
+    }
+    ret = lfs_port_open(path);
+    if (ret != 0) {
+        return ret;
+    }
+    file_size = lfs_file_size(&lfs_flash, &g_lfs_files.lfs_file);
+    MD5Init(&md5_ctx);
+    for(len = 0; len < file_size;) {
+        read_len = file_size - len > sizeof(read_buf) ? sizeof(read_buf) : file_size - len;
+        ret = lfs_file_read(&lfs_flash, &g_lfs_files.lfs_file, read_buf, read_len);
+        if (ret <= 0) {
+            log_e("read file error, path: %s, ret: %d", path, ret);
+            lfs_port_close();
+            ret = -EIO;
+            return ret;
+        }
+        MD5Update(&md5_ctx, read_buf, read_len);
+        len += read_len;
+    }
+    lfs_port_close();
+    MD5Final(&md5_ctx, md5_sum);
+    memcpy(md5_buf, md5_sum, 16);
+
+    return 0;
+}
+
+int32_t lfs_port_rename(const char *old_path, const char *new_path)
+{
+    int32_t ret = 0;
+
+    if (g_lfs_port_inited == false) {
+        return -EACCES;
+    }
+    if (old_path == NULL || new_path == NULL) {
+        return -EINVAL;
+    }
+    if (xSemaphoreTake(g_lfs_mutex.mutex_handle, 2000) != pdTRUE) {
+        log_e("take mutex timeout");
+        return -EBUSY;
+    }
+    ret = lfs_rename(&lfs_flash, old_path, new_path);
+    if (ret != 0) {
+        log_e("rename file error, old_path: %s, new_path: %s, ret: %d", old_path, new_path, ret);
+    } else {
+        log_d("rename file success, old_path: %s, new_path: %s", old_path, new_path);
+    }
+    xSemaphoreGive(g_lfs_mutex.mutex_handle);
+
+    return ret;
+}
+
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
