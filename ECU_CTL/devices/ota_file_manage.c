@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-09 15:11:21
- * @LastEditTime: 2025-02-10 19:18:39
+ * @LastEditTime: 2025-02-10 23:39:05
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\file_manage.c
@@ -80,6 +80,7 @@ typedef struct
     char name[32];
     uint32_t done_size;
     uint8_t start_flg;
+    uint8_t start_src;
     USER_TIMER_OBJ_t timer;
     uint8_t md5_sum[16];
 } FILE_WRITE_t;
@@ -93,6 +94,9 @@ typedef struct
 
 #define OTA_FILE_WRITE_TIMEOUT_MS          (10 * 1000)
 #define OTA_FILE_WRITE_TIMER_NAME          "f_write_timer"
+
+#define F_WRITE_START_SRC_CMD_SERVER_SEND  (0)  // from server send data to client,cmd 2020/2021
+#define F_WRITE_START_SRC_CMD_CLIENT_REQ   (1)  // from client request data, cmd 1022
 /*
  * ****************************************************************************
  * ******** Private macro                                              ********
@@ -160,6 +164,7 @@ int32_t ota_file_head_in(uint8_t *data, uint32_t size)
     printf("\r\n");
     memset(&g_file_write, 0, sizeof(FILE_WRITE_t));
     memcpy(&g_file_write.file_info, &g_file.file_head_data.file_head.file_info, sizeof(OTA_FILE_INFO_t));
+    g_file_write.start_src = F_WRITE_START_SRC_CMD_SERVER_SEND;
     ret = file_write_start(&g_file_write);
     if (ret != 0) {
         log_e("file write start error, ret:%d", ret);
@@ -211,6 +216,7 @@ int32_t ota_file_data_in(uint8_t *data, uint32_t size)
 int32_t ota_file_data_download_inform(uint8_t *data, uint32_t size)
 {
     OTA_FILE_DOWNLOAD_INFORM_t *inform = (OTA_FILE_DOWNLOAD_INFORM_t *)data;
+    int32_t ret = 0;
 
     if (inform->target_info.session_id != ebike_get_session_id()) {
         log_e("session id not match, target:%d, local:%d", inform->target_info.session_id, ebike_get_session_id());
@@ -222,6 +228,22 @@ int32_t ota_file_data_download_inform(uint8_t *data, uint32_t size)
 
     log_d("file_name:%s, size:%d,type:%d\r\n", g_file_download.file_inform.file_info.name,
           g_file_download.file_inform.file_info.size, g_file_download.file_inform.file_info.type);
+    printf("md5:");
+    for (int i = 0; i < 16; i++) {
+        printf("%02x", g_file_download.file_inform.file_info.md5[i]);
+    }
+    printf("\r\n");
+    if (g_file_write.start_flg != 0) {
+        log_e("file write start error, start_flg:%d", g_file_write.start_flg);
+        return -EBUSY;
+    }
+    memset(&g_file_write, 0, sizeof(FILE_WRITE_t));
+    memcpy(&g_file_write.file_info, &g_file_download.file_inform.file_info, sizeof(OTA_FILE_INFO_t));
+    ret = file_write_start(&g_file_write);
+    if (ret != 0) {
+        log_e("file write start error, ret:%d", ret);
+        return ret;
+    }
     xSemaphoreGive(g_file_download.sem_start);
 
     return 0;
@@ -253,8 +275,9 @@ int32_t ota_file_data_download_in(uint8_t *data, uint32_t size)
         return -1;
     }
     log_d("size:%d offset:[0x%08x]\r\n", file_data.data_len, file_data.data_pos);
-    vTaskDelay(100);
-    ret = bms_port_send(file_data.data, file_data.data_len);
+    // vTaskDelay(100);
+    // ret = bms_port_send(file_data.data, file_data.data_len);
+    ret = file_write_data(&g_file_write, file_data.data, file_data.data_len);
     if (ret < 0) {
         log_e("ota_file_data_download_in failed, ret:%d\r\n", ret);
         return -1;
@@ -492,12 +515,14 @@ static int32_t file_write_end(FILE_WRITE_t *file_write)
         log_e("file md5 check fail\r\n");
         return -EIO;
     }
-    ret = lfs_port_delete((char *)file_write->file_info.name);
-    if (ret < 0) {
-        log_e("delete file: %s failed, ret:%d\r\n", file_write->file_info.name, ret);
-        return -EIO;
+    if (strcmp((const char *)file_write->file_info.name, (const char *)file_write->name) != 0) {
+        ret = lfs_port_delete((char *)file_write->file_info.name);
+        if (ret < 0) {
+            log_e("delete file: %s failed, ret:%d\r\n", file_write->file_info.name, ret);
+            return -EIO;
+        }
+        ret = lfs_port_rename((char *)file_write->name, (char *)file_write->file_info.name);
     }
-    ret = lfs_port_rename((char *)file_write->name, (char *)file_write->file_info.name);
 
     return ret;
 }

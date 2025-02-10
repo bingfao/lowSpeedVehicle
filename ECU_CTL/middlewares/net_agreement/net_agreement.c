@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:34
- * @LastEditTime: 2025-02-10 18:57:36
+ * @LastEditTime: 2025-02-10 23:30:23
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.c
@@ -987,7 +987,7 @@ static int32_t net_msg_body_aes_decoder(uint8_t *data)
     memcpy(&msg_body[out_len], &msg_body[aes_len], 6);
     msg_header->msg_body_len = out_len + 6;
 #if AES_DATA_LOG_ENABLE
-    printf("net msg rx after aes decoder: ");
+    printf("\r\nnet msg rx after aes decoder: ");
     for (int i = 0; i < (out_len < 256 ? out_len : 256); i++) {
         if (i % 16 == 0) {
             printf("\r\n");
@@ -1152,7 +1152,7 @@ static int32_t net_agreement_byte_in(NET_AGREEMENT_OBJ_t *net_obj, uint8_t byte,
                 break;
             }
 #if AES_DATA_LOG_ENABLE
-            printf("net msg rx: ");
+            printf("\r\n net msg rx: ");
             for (int i = 0; i < (*rx_data_index < 256 ? *rx_data_index : 256); i++) {
                 if (i % 16 == 0) {
                     printf("\r\n");
