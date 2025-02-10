@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-08 17:35:54
- * @LastEditTime: 2025-02-08 21:57:45
+ * @LastEditTime: 2025-02-10 09:39:42
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\app\shell_cmd\t_file.c
@@ -222,6 +222,25 @@ static int t_file_close(int argc, char *argv[])
     return 0;
 }
 
+static int t_lfs_size_info(int argc, char *argv[])
+{
+    int32_t ret = 0;
+    int32_t total_sz = 0;
+    int32_t avail_sz = 0;
+
+    if (argc != 1) {
+        log_e("Usage: file df\r\n");
+        return -1;
+    }
+    ret = lfs_port_get_avail_size(&total_sz, &avail_sz);
+    if (ret < 0) {
+        log_e("get avail size failed\r\n");
+    }
+    log_i("total size: %d, avail size: %d, used size: %d%%\r\n", total_sz, avail_sz, (int)(avail_sz * 100 / total_sz));
+
+    return 0;
+}
+
 ShellCommand file_ctl[] = {
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, cat, t_file_read, file cat <path> <len>),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, rm, t_file_erase, file rm <path>),
@@ -229,6 +248,7 @@ ShellCommand file_ctl[] = {
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, echo_c, t_file_write_continue, file echo_c <char> <path>),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, ls, t_file_info, file ls / ls <path>),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, close, t_file_close, file close),
+    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, df, t_lfs_size_info, file df),
     SHELL_CMD_GROUP_END()};
 
 SHELL_EXPORT_CMD_GROUP(SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN), file, file_ctl, extern_flash operation);

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-07 22:08:34
- * @LastEditTime: 2025-02-08 22:13:35
+ * @LastEditTime: 2025-02-10 09:39:18
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\lfs_port.c
@@ -498,6 +498,32 @@ int32_t lfs_port_get_files(uint8_t *buf, uint32_t size)
     return 0;
 }
 
+int32_t lfs_port_get_avail_size(int32_t *total_sz, int32_t *avail_sz)
+{
+    int32_t ret = 0;
+    if (g_lfs_port_inited == false) {
+        return -EACCES;
+    }
+    if (total_sz == NULL || avail_sz == NULL) {
+        return -EINVAL;
+    }
+    if (xSemaphoreTake(g_lfs_mutex.mutex_handle, 2000) != pdTRUE) {
+        log_e("take mutex timeout");
+        return -EBUSY;
+    }
+    lfs_ssize_t total_size = g_lfs_cfg.block_count * g_lfs_cfg.block_size;
+    lfs_ssize_t avail_size = total_size - lfs_fs_size(&lfs_flash) * g_lfs_cfg.block_size;
+    if (total_size < 0 || avail_size < 0) {
+        log_e("get size error, total_size: %d, avail_size: %d", total_size, avail_size);
+        ret = -EIO;
+    } else {
+        *total_sz = total_size;
+        *avail_sz = avail_size;
+    }
+    xSemaphoreGive(g_lfs_mutex.mutex_handle);
+
+    return ret;
+}
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********

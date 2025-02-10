@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-07 22:08:51
- * @LastEditTime: 2025-02-08 18:04:58
+ * @LastEditTime: 2025-02-10 08:39:29
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\lfs_port.h
@@ -74,6 +74,7 @@ int32_t lfs_port_erase(const char *path);
 int32_t lfs_port_scan_file(const char *path, uint8_t *buf, uint32_t size);
 int32_t lfs_port_get_file_size(const char *path);
 int32_t lfs_port_get_files(uint8_t *buf, uint32_t size);
+int32_t lfs_port_get_avail_size(int32_t *total_sz, int32_t *avail_sz);
 
 /* ************************************************************************* */
 #ifdef __cplusplus
