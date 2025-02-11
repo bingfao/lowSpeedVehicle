@@ -144,6 +144,20 @@ static int t_write_utc(int argc, char *argv[])
     return 0;
 }
 
+static int t_sync_utc(int argc, char *argv[])
+{
+    int32_t ret = 0;
+
+    ret = utc_time_sync_from_net(1);
+    if (ret == 0) {
+        log_i("UTC time sync success\r\n");
+    } else {
+        log_e("UTC time sync failed\r\n");
+    }
+
+    return 0;
+}
+
 ShellCommand ebike_ctl[] = {
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_ebike_register, t_ebike_register, ebike register to server),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_ebike_state_upload, t_ebike_state_upload, ebike state upload to server),
@@ -151,6 +165,7 @@ ShellCommand ebike_ctl[] = {
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_traffic_report, t_traffic_report, ebike traffic report start file load),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_write_utc, t_write_utc,
                          write utc time : t_write_utc<year><month><day><hour><minute><second>),
+    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_sync_utc, t_sync_utc, sync UTC: t_sync_utc),
     SHELL_CMD_GROUP_END()};
 
 SHELL_EXPORT_CMD_GROUP(SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN), ebike_cmd, ebike_ctl, ebike_cmd);

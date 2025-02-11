@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-08 17:35:54
- * @LastEditTime: 2025-02-10 09:39:42
+ * @LastEditTime: 2025-02-11 16:36:17
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\app\shell_cmd\t_file.c
@@ -251,7 +251,7 @@ ShellCommand file_ctl[] = {
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, df, t_lfs_size_info, file df),
     SHELL_CMD_GROUP_END()};
 
-SHELL_EXPORT_CMD_GROUP(SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN), file, file_ctl, extern_flash operation);
+SHELL_EXPORT_CMD_GROUP(SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN), file, file_ctl, file operation);
 
 /*
  * ****************************************************************************

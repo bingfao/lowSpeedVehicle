@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2025-01-31 19:31:02
- * @LastEditTime: 2025-02-04 11:52:58
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-02-11 13:40:55
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\utc.c
  */
@@ -15,9 +15,12 @@
 #define LOG_LVL ELOG_LVL_DEBUG
 #include "utc.h"
 
+#include <stdlib.h>
+
 #include "bk_config.h"
 #include "elog.h"
 #include "error_code.h"
+#include "net_port.h"
 /*
  * ****************************************************************************
  * ******** Private Types                                              ********
@@ -44,6 +47,7 @@
 static DRIVER_OBJ_t *g_driver = NULL;
 static int8_t g_utc_init_flag = 0;
 static int8_t g_time_zone = 8;  // default time zone is 8 hours
+static time_t g_last_sync_utc_sec = 0;
 
 /*
  * ****************************************************************************
@@ -205,6 +209,67 @@ int32_t utc_time_store_bk_sram(void)
     write_utc_save_data(time_spec.tv_sec, time_spec.tv_nsec);
 
     return 0;
+}
+
+int32_t utc_time_sync_from_net(uint8_t is_force)
+{
+    struct tm temp_tm;
+    int32_t ret = 0;
+    long nsec = 0;
+    struct tm local_time = {0};
+    int64_t difftime = 0;
+
+    ret = net_port_get_utc(&temp_tm);
+    if (ret != 0) {
+        log_e("net_port_get_utc failed");
+        return ret;
+    }
+    if (is_force == 0) {
+        // if not force, check the time diff between local and net time, if less than 1 minute, no need to sync
+        ret = utc_get_time(&local_time, &nsec);
+        if (ret != 0) {
+            log_e("utc_get_time failed");
+            return ret;
+        }
+        difftime = abs(mktime(&temp_tm) - mktime(&local_time));
+        if (difftime < UTC_TIME_NEED_SYNC_GAP_S) {
+            return 0;
+        }
+    }
+    ret = utc_set_time(&temp_tm, 0);
+    if (ret != 0) {
+        log_e("utc_set_time failed");
+    }
+    g_last_sync_utc_sec = mktime(&temp_tm);
+
+    return ret;
+}
+
+/**
+ * @brief this function is used to check if the time needs to be synchronized from the network, synchronize period is be
+ * defined by UTC_NEED_TIME_SYNC_PERIOD_S
+ *
+ * @return true
+ * @return false
+ */
+bool utc_need_time_sync(void)
+{
+    int32_t ret = 0;
+    struct tm local_time = {0};
+    long nsec = 0;
+    int64_t difftime = 0;
+
+    ret = utc_get_time(&local_time, &nsec);
+    if (ret != 0) {
+        log_e("utc_get_time failed");
+        return true;
+    }
+    difftime = abs(mktime(&local_time) - g_last_sync_utc_sec);
+    if (difftime < UTC_NEED_TIME_SYNC_PERIOD_S) {
+        return false;
+    }
+
+    return true;
 }
 
 /*

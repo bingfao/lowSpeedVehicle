@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2025-02-08 22:03:28
+ * @LastEditTime: 2025-02-11 13:55:14
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.c
@@ -62,6 +62,7 @@ USER_THREAD_OBJ_t g_ecu_unit_thread = {0};
  * ****************************************************************************
  */
 static int32_t ecu_unit_prepare(void);
+static void ecu_unit_utc_check(uint32_t used_tick);
 static void ecu_unit_task(void const *argument);
 
 /*
@@ -117,6 +118,27 @@ static int32_t ecu_unit_prepare(void)
     return 0;
 }
 
+#define NEED_TIME_SYNC_PERIOD_S (1000 * 60 * 60 * 24)  // 1 day
+#define NEED_TIME_SYNC_PERIOD_S_MIN (1000 * 60 * 10)  // 10 min
+static void ecu_unit_utc_check(uint32_t used_tick)
+{
+    static int32_t time_out = 0;
+    int32_t ret = 0;
+
+    if (time_out <= 0) {
+        ret = utc_time_sync_from_net(0);
+        if (ret != 0) {
+            log_e("Sync time from net failed\r\n");
+            time_out = NEED_TIME_SYNC_PERIOD_S_MIN;
+        } else {
+            log_d("Sync time from net success\r\n");
+            time_out = NEED_TIME_SYNC_PERIOD_S;
+        }
+    } else {
+        time_out -= used_tick;
+    }
+}
+
 static void ecu_unit_task(void const *argument)
 {
     ecu_unit_prepare();
@@ -140,6 +162,7 @@ static void ecu_unit_task(void const *argument)
         // tick = xTaskGetTickCount();
         // log_d("tick: %d\r\n", tick);
         utc_time_store_bk_sram();
+        ecu_unit_utc_check(1000);
         vTaskDelay(1000);
     }
 }

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2025-02-07 11:02:04
+ * @LastEditTime: 2025-02-11 10:49:14
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -264,6 +264,25 @@ int32_t net_port_socket_refresh(void)
         return state;
     }
     return -1;
+}
+
+int32_t net_port_get_utc(struct tm *tm_time)
+{
+    int32_t ret = 0;
+    struct tm tm_temp = {0};
+
+    if (g_driver == NULL) {
+        log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
+        return -ENODEV;
+    }
+    ret = driver_control(g_driver, NET_PORT_CMD_GET_UTC_TIME, &tm_temp);
+    if (ret != 0) {
+        log_e("get utc time failed \r\n");
+        return -EIO;
+    }
+    memcpy(tm_time, &tm_temp, sizeof(struct tm));
+
+    return ret;
 }
 
 /*

@@ -15,8 +15,9 @@
 #include "ebike_manage.h"
 #include "elog.h"
 #include "net_port.h"
-#include "user_os.h"
 #include "ota_file_manage.h"
+#include "user_os.h"
+#include "utc.h"
 
 /*
  * ****************************************************************************
@@ -112,6 +113,7 @@ static void net_upload_data(int32_t ticks_used)
         return;
     }
     if (ebike_is_register() != true) {
+        utc_time_sync_from_net(0);
         ret = ebike_device_register_to_server();
         if (ret == 0) {
             ebike_device_state_upload_to_server();

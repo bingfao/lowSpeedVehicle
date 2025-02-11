@@ -22,6 +22,7 @@
 #include "fault.h"
 #include "main.h"
 #include "ring_buffer.h"
+#include "time.h"
 #include "usart.h"
 #include "user_os.h"
 /*
@@ -58,11 +59,14 @@ typedef enum {
 #define EC800M_AT_ACK_QUEUE_TCP_DIRECT_CONNECT       0x0c  // tcp direct connect state
 #define EC800M_AT_ACK_QUEUE_TCP_STRAIGHT_OUT_CONNECT 0x0d  // tcp straight out connect state
 #define EC800M_AT_ACK_QUEUE_TCP_DISCONNECT           0x0e  // tcp disconnect state
+#define EC800M_AT_ACK_QUEUE_UTC_SUCCESS              0x0f  // get UTC time success
 
 #define PRINT_EC800M_RX_DATA                         1  // 1: print rx data, 0: not print
 
 #define QUEUE_LENGTH                                 10
 #define ITEM_SIZE                                    sizeof(int32_t)
+
+#define EC800M_INTER_TRAN_BUF_SIZE                   50
 /*
  * ****************************************************************************
  * ******** Private macro                                              ********
@@ -115,6 +119,8 @@ uint8_t g_ec800m_no_carrier_index = 0;
 uint8_t g_ec800m_qiurc_closed[] = {"+QIURC: \"closed\","};
 uint8_t g_ec800m_qiurc_closed_index = 0;
 
+static uint8_t g_ec800m_inter_tran_buf[EC800M_INTER_TRAN_BUF_SIZE] = {0};
+static uint8_t g_ec800m_inter_tran_buf_index = 0;
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
@@ -166,6 +172,8 @@ static int32_t ec800m_device_quit_tcp_transparent(void);
 static int32_t ec800m_device_tcp_disconnect(int32_t mode);
 static void ec800m_device_reset_pin(void);
 static int32_t ec800m_device_reset(void);
+static int32_t ec800m_device_utc_str_analysis(void *args, char *str);
+static int32_t ec800m_device_get_utc(struct tm *local_time);
 
 DRIVER_CTL_t g_ec800m_driver = {
     .init = ec800m_drv_init,
@@ -236,7 +244,8 @@ static int32_t ec800m_drv_init(DRIVER_OBJ_t *p_driver)
     fault_assert(thread->thread_handle != NULL, FAULT_CODE_NORMAL);
 
     // osMessageQDef(ec800m_rx_queue, 10, uint8_t);
-    g_ec800m_rx_queue_handle = xQueueCreateStatic(QUEUE_LENGTH, ITEM_SIZE, g_ec800m_rx_queue_storage_area, &g_ec800m_rx_static_queue);
+    g_ec800m_rx_queue_handle =
+        xQueueCreateStatic(QUEUE_LENGTH, ITEM_SIZE, g_ec800m_rx_queue_storage_area, &g_ec800m_rx_static_queue);
     ec800m_delay_ms(500);
     ec800m_device_reset();
     if (ec800m_is_ready() == false) {
@@ -802,6 +811,9 @@ static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg)
         case DRV_EC800M_CMD_SET_DIS_STATE:
             g_ec800m_connect_mode = EC800M_CONNECT_MODE_DISCONNECT;
             break;
+        case DRV_EC800M_CMD_GET_UTC_TIME:
+            ret = ec800m_device_get_utc((struct tm *)arg);
+            break;
         default:
             break;
     }
@@ -885,7 +897,7 @@ static bool ec800m_is_ready(void)
         res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 5000);
         if (res != pdPASS) {
             log_e("ec800m_is_ready osMessageGet failed\r\n");
-            return false;
+            return -ETIMEDOUT;
         }
         rx_queue_num--;
         switch (msg) {
@@ -968,7 +980,7 @@ static bool ec800m_is_cs_registered(void)
         res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
         if (res != pdPASS) {
             log_e("ec800m_is_cs_registered osMessageGet failed\r\n");
-            return false;
+            return -ETIMEDOUT;
         }
         rx_queue_num--;
         switch (msg) {
@@ -1058,7 +1070,7 @@ static bool ec800m_socket_is_connected(void)
         res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
         if (res != pdPASS) {
             log_e("socket state osMessageGet failed,[%d] \r\n", rx_queue_num);
-            return false;
+            return -ETIMEDOUT;
         }
         rx_queue_num--;
         switch (msg) {
@@ -1353,6 +1365,80 @@ static int32_t ec800m_device_reset(void)
         }
     }
     log_d("ec800m_device_reset fail\r\n");
+
+    return -ETIME;
+}
+
+static int32_t ec800m_device_utc_str_analysis(void *args, char *str)
+{
+    struct tm *local_time = (struct tm *)g_ec800m_inter_tran_buf;
+    uint32_t year, month, day, hour, minute, second;
+    int32_t ret = 0;
+    if (str == NULL) {
+        log_e("str is NULL\r\n");
+        return -EINVAL;
+    }
+
+    ret = sscanf(str, "+CCLK: \"%2d/%2d/%2d,%2d:%2d:%2d+32\"", &year, &month, &day, &hour, &minute, &second);
+    if (ret != 6) {
+        log_e("utc str analysis failed, ret:%d (%s)\r\n", ret, str);
+        return -EINVAL;
+    }
+    local_time->tm_year = 2000 + year - 1900;
+    local_time->tm_mon = month - 1;
+    local_time->tm_mday = day;
+    local_time->tm_hour = hour;
+    local_time->tm_min = minute;
+    local_time->tm_sec = second;
+    g_ec800m_inter_tran_buf_index = sizeof(struct tm);
+    log_d("utc str analysis success, year:%d, month:%d, day:%d, hour:%d, minute:%d, second:%d\r\n",
+           local_time->tm_year, local_time->tm_mon, local_time->tm_mday, local_time->tm_hour, local_time->tm_min, local_time->tm_sec);
+    ret = ec800m_device_ack_message_send(EC800M_AT_ACK_QUEUE_UTC_SUCCESS);
+
+    return ret;
+}
+
+static int32_t ec800m_device_get_utc(struct tm *local_time)
+{
+    AT_CMP_STR_NODE_t at_str_ack[2] = {0};
+    int8_t rx_queue_num = 0;
+    char cmd[20] = {0};
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
+
+    at_com_clr_cmp_str(&g_ec800m_at_com);
+    at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_CMD_GET_UTC_CCLK_ACK, NULL, ec800m_device_utc_str_analysis);
+    at_com_add_cmp_str(&g_ec800m_at_com, &at_str_ack[0]);
+    memset(g_ec800m_inter_tran_buf, 0, sizeof(g_ec800m_inter_tran_buf));
+    g_ec800m_inter_tran_buf_index = 0;
+    sprintf(cmd, "%s\r\n", EC800M_AT_CMD_GET_UTC_CCLK);
+    at_com_send_str(&g_ec800m_at_com, cmd, strlen(cmd), 2000);  // send AT+CCLK?
+    rx_queue_num = 1;
+    while (rx_queue_num > 0) {
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
+        if (res != pdPASS) {
+            log_e("ec800m get utc osMessageGet failed\r\n");
+            return -ETIME;
+        }
+        rx_queue_num--;
+        switch (msg) {
+            case EC800M_AT_ACK_QUEUE_UTC_SUCCESS:
+                if (g_ec800m_inter_tran_buf_index == sizeof(struct tm)) {
+                    memcpy(local_time, g_ec800m_inter_tran_buf, sizeof(struct tm));
+                    log_d("ec800m_device_get_utc success\r\n");
+                    log_d("ec800m get_utc local_time:%d-%d-%d %d:%d:%d\r\n",
+                           local_time->tm_year + 1900, local_time->tm_mon + 1, local_time->tm_mday,
+                           local_time->tm_hour, local_time->tm_min, local_time->tm_sec);
+                } else {
+                    log_e("ec800m utc buffer size error\r\n");
+                    return -EINVAL;
+                }
+                return 0;
+            default:
+                break;
+        }
+    }
+    log_d("ec800m_device_get_utc fail\r\n");
 
     return -ETIME;
 }

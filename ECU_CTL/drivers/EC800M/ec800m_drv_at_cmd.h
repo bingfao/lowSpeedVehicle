@@ -63,6 +63,8 @@ extern "C" {
 #define EC800M_AT_CMD_QISTATE                "AT+QISTATE\r\n"
 #define EC800M_AT_CMD_QISTATE_ACK            "+QISTATE:"
 
+#define EC800M_AT_CMD_GET_UTC_CCLK           "AT+CCLK?"
+#define EC800M_AT_CMD_GET_UTC_CCLK_ACK       "+CCLK:"
 /*
  * ****************************************************************************
  * ******** Exported macro                                             ********
