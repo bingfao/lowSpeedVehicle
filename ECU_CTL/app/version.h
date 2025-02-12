@@ -23,11 +23,34 @@ extern "C"
  * ****************************************************************************
  */
 #include <stdio.h>
+#include "stdint.h"
 /*
  * ****************************************************************************
  * ******** Exported Types                                             ********
  * ****************************************************************************
  */
+#pragma pack(push, 1)
+typedef struct
+{
+    uint8_t major;
+    uint8_t minor;
+    uint8_t sub;
+    uint8_t build;
+    uint8_t release;
+} SOFT_VERSION_t;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct
+{
+    SOFT_VERSION_t version;
+    uint8_t reserve[3];
+    char name[32];
+    char date[16];
+    char time[16];
+    uint8_t md5[16];
+} INFO_HEAD_t;
+#pragma pack(pop)
 
 /*
  * ****************************************************************************
@@ -44,13 +67,19 @@ extern "C"
 #define VERSION_MINOR           0
 #define VERSION_SUB             0
 #define VERSION_BUILD           1
+#ifdef _RELEASE_
+#define VERSION_RELEASE        'r'
+#else
 #define VERSION_RELEASE        'd'
+#endif
 
+#define INFO_HEAD_NAME          "EBike_ECU"
 /*
  * ****************************************************************************
  * ******** Exported variables                                         ********
  * ****************************************************************************
  */
+extern const INFO_HEAD_t g_info_head;
 
 /*
  * ****************************************************************************

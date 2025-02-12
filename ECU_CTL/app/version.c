@@ -28,24 +28,26 @@
  * ****************************************************************************
  */
 const char *logo =
-        "\r\n"
-        "\033[2J\033[1H"
-        "       ##     ## #### ##    ##    ########   #######  ##    ##  ######\r\n"
-        "        ##   ##   ##  ###   ##    ##     ## ##     ## ###   ## ##    ##\r\n"
-        "         ## ##    ##  ####  ##    ##     ## ##     ## ####  ## ##\r\n"
-        "          ###     ##  ## ## ##    ##     ## ##     ## ## ## ## ##   ####\r\n"
-        "         ## ##    ##  ##  ####    ##     ## ##     ## ##  #### ##    ##\r\n"
-        "        ##   ##   ##  ##   ###    ##     ## ##     ## ##   ### ##    ##\r\n"
-        "       ##     ## #### ##    ##    ########   #######  ##    ##  ######\r\n"
-        "\r\n"
-        "Copyright\t: (c) 2024 Dec\r\n"
-        "\n\r";
+    "\r\n"
+    "\033[2J\033[1H"
+    "          _                 _\r\n"
+    "    __  _(_)_ __         __| | ___  _ __   __ _\r\n"
+    "    \\ \\/ / | '_ \\ _____ / _` |/ _ \\| '_ \\ / _` |\r\n"
+    "     >  <| | | | |_____| (_| | (_) | | | | (_| |\r\n"
+    "    /_/\\_\\_|_| |_|      \\__,_|\\___/|_| |_|\\__, |\r\n"
+    "                                          |___/\r\n"
+    "\r\n"
+    "\n\r";
 
-const char *build =
-#ifndef NDEBUG
-        "Build\t\t: "__DATE__" "__TIME__"\r\n"
-#endif
-        "";
+#pragma location = ".infohead"
+const INFO_HEAD_t g_info_head = {
+    {VERSION_MAJOR, VERSION_MINOR, VERSION_SUB, VERSION_BUILD, VERSION_RELEASE},
+    {0},
+    INFO_HEAD_NAME,
+    __DATE__,
+    __TIME__,
+    {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
+};
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
@@ -62,7 +64,8 @@ void print_system_inf(void)
     printf("%s", logo);
     printf("Version\t\t: %d.%d.%d.%d.%c\n\r", VERSION_MAJOR, VERSION_MINOR, VERSION_SUB, VERSION_BUILD,
            VERSION_RELEASE);
-    printf("%s", build);
+    printf("build name\t: %s\n\r", g_info_head.name);
+    printf("build info\t: %s %s\n\r", g_info_head.date, g_info_head.time);
 }
 
 /*
