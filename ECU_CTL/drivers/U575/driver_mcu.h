@@ -25,6 +25,7 @@ extern "C" {
 #include <main.h>
 
 #include "driver_com.h"
+#include "mcu_ctl.h"
 
 /*
  * ****************************************************************************
@@ -37,6 +38,18 @@ extern "C" {
  * ******** Exported constants                                         ********
  * ****************************************************************************
  */
+
+#define DRV_MCU_CTL_CMD_RESET    MCU_CTL_CMD_RESET
+#define DRV_MCU_CTL_GET_RUN_BANK MCU_CTL_GET_RUN_BANK
+#define DRV_MCU_CTL_SET_RUN_BANK MCU_CTL_SET_RUN_BANK
+
+#define DRV_MCU_BANK_1_BASS_ADDR 0x08000000
+#define DRV_MCU_BANK_1_BASS_END  0x080FFFFF
+#define DRV_MCU_BANK_1_SIZE      0x00100000
+
+#define DRV_MCU_BANK_2_BASS_ADDR 0x08100000
+#define DRV_MCU_BANK_2_BASS_END  0x081FFFFF
+#define DRV_MCU_BANK_2_SIZE      0x00100000
 
 /*
  * ****************************************************************************

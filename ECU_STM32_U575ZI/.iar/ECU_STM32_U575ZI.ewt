@@ -2933,6 +2933,9 @@
                     <name>$PROJ_DIR$\..\Core\Src\app_freertos.c</name>
                 </file>
                 <file>
+                    <name>$PROJ_DIR$\..\Core\Src\flash.c</name>
+                </file>
+                <file>
                     <name>$PROJ_DIR$\..\Core\Src\gpdma.c</name>
                 </file>
                 <file>
@@ -3075,6 +3078,9 @@
                 </file>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\app\shell_cmd\t_file.c</name>
+                </file>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\app\shell_cmd\t_mcu.c</name>
                 </file>
             </group>
             <file>

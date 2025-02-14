@@ -1134,6 +1134,9 @@
           <name>$PROJ_DIR$\..\Core\Src\app_freertos.c</name>
         </file>
         <file>
+          <name>$PROJ_DIR$/../Core/Src/flash.c</name>
+        </file>
+        <file>
           <name>$PROJ_DIR$\..\Core\Src\gpdma.c</name>
         </file>
         <file>

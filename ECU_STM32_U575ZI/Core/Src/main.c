@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os2.h"
+#include "flash.h"
 #include "gpdma.h"
 #include "icache.h"
 #include "memorymap.h"
@@ -103,6 +104,7 @@ int main(void)
   MX_OCTOSPI1_Init();
   MX_RTC_Init();
   MX_RAMCFG_Init();
+  MX_FLASH_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */

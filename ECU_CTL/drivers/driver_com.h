@@ -91,6 +91,7 @@ typedef enum {
  * @brief The base CMD of drivers operation command.
  */
 #define DRV_CMD_NET_PORT_OPERATION_BASE 0x0100  // 0x0100~0x01FF The base CMD of the network port operation command.
+#define DRV_CMD_MCU_OPERATION_BASE      0x0200  // 0x0200~0x02FF The base CMD of the MCU operation command.
 
 /**
  * @brief the driver states

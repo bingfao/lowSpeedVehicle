@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-30 15:05:50
- * @LastEditTime: 2024-10-30 15:21:53
+ * @LastEditTime: 2025-02-14 13:47:13
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\mcu_ctl.h
@@ -31,11 +31,21 @@ extern "C"
  * ****************************************************************************
  */
 #include <stdint.h>
+
+#include "driver_com.h"
 /*
  * ****************************************************************************
  * ******** Exported Types                                             ********
  * ****************************************************************************
  */
+
+typedef enum
+{
+    MCU_CTL_CMD_NONE = DRV_CMD_MCU_OPERATION_BASE,
+    MCU_CTL_CMD_RESET,
+    MCU_CTL_GET_RUN_BANK,
+    MCU_CTL_SET_RUN_BANK,
+} MCU_CTL_CMD_t;
 
 /*
  * ****************************************************************************
@@ -62,7 +72,9 @@ extern "C"
  */
 int32_t mcu_ctl_init(void);
 int32_t mcu_ctl_get_id(uint8_t *id);
-
+int32_t mcu_ctl_reset(void);
+int32_t mcu_ctl_get_run_bank(uint32_t *bank);
+int32_t mcu_ctl_set_run_bank(uint32_t bank);
 /* ************************************************************************* */
 #ifdef __cplusplus
 }

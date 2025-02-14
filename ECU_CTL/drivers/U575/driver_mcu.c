@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2025-01-23 10:36:17
- * @LastEditTime: 2025-01-31 15:00:19
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-02-14 11:16:46
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_mcu.c
  */
@@ -13,6 +13,7 @@
  */
 #include "driver_mcu.h"
 
+#include <stdint.h>
 #include "error_code.h"
 
 /*
@@ -48,6 +49,8 @@ static int32_t mcu_drv_init(DRIVER_OBJ_t *p_driver);
 static int32_t mcu_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag);
 static int32_t get_mcu_id(uint8_t *id);
 static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args);
+static int32_t drv_mcu_get_run_bank(uint32_t *bank);
+static int32_t drv_mcu_set_run_bank(uint32_t *bank);
 
 DRIVER_CTL_t g_mcu_driver = {
     .init = mcu_drv_init,
@@ -98,6 +101,60 @@ static int32_t get_mcu_id(uint8_t *id)
     return 12;
 }
 
+static int32_t drv_mcu_get_run_bank(uint32_t *bank)
+{
+    FLASH_OBProgramInitTypeDef OBInit;
+
+    HAL_FLASH_Unlock();
+    HAL_FLASH_OB_Unlock();
+    HAL_FLASHEx_OBGetConfig(&OBInit);
+    if ((OBInit.USERConfig & OB_SWAP_BANK_ENABLE) == OB_SWAP_BANK_DISABLE) {
+        *bank = 1;
+    } else {
+        *bank = 2;
+    }
+    HAL_FLASH_OB_Lock();
+    HAL_FLASH_Lock();
+
+    return 0;
+}
+
+static int32_t drv_mcu_set_run_bank(uint32_t *bank)
+{
+    FLASH_OBProgramInitTypeDef OBInit;
+    if (bank == NULL || *bank < 1 || *bank > 2) {
+        return -EINVAL;
+    }
+
+    HAL_FLASH_Unlock();
+    HAL_FLASH_OB_Unlock();
+    HAL_FLASHEx_OBGetConfig(&OBInit);
+    if ((OBInit.USERConfig & OB_SWAP_BANK_ENABLE) == OB_SWAP_BANK_DISABLE) {
+        if (*bank == 2) {
+            OBInit.OptionType = OPTIONBYTE_USER;
+            OBInit.USERType = OB_USER_SWAP_BANK;;
+            OBInit.USERConfig = OB_SWAP_BANK_ENABLE;
+            HAL_FLASHEx_OBProgram(&OBInit);
+            /* Launch Option bytes loading */
+            HAL_FLASH_OB_Launch();
+        }
+    } else {
+        if (*bank == 1) {
+            OBInit.OptionType = OPTIONBYTE_USER;
+            OBInit.USERType = OB_USER_SWAP_BANK;
+            OBInit.USERConfig = OB_SWAP_BANK_DISABLE;
+            HAL_FLASHEx_OBProgram(&OBInit);
+
+            /* Launch Option bytes loading */
+            HAL_FLASH_OB_Launch();
+        }
+    }
+    HAL_FLASH_OB_Lock();
+    HAL_FLASH_Lock();
+
+    return 0;
+}
+
 static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args)
 {
     int32_t ret = 0;
@@ -109,7 +166,15 @@ static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args)
         case DRV_CMD_GET_ID:
             ret = get_mcu_id((uint8_t *)args);
             break;
-
+        case DRV_MCU_CTL_CMD_RESET:
+            HAL_NVIC_SystemReset();
+            break;
+        case DRV_MCU_CTL_GET_RUN_BANK:
+            ret = drv_mcu_get_run_bank((uint32_t *)args);
+            break;
+        case DRV_MCU_CTL_SET_RUN_BANK:
+            ret = drv_mcu_set_run_bank((uint32_t *)args);
+            break;
         default:
             return -EINVAL;
     }
