@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2025-02-11 10:49:14
- * @LastEditors: DESKTOP-SPAS98O
+ * @LastEditTime: 2025-02-16 20:33:09
+ * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
  */
@@ -285,6 +285,26 @@ int32_t net_port_get_utc(struct tm *tm_time)
     return ret;
 }
 
+int32_t net_port_get_gnss(NET_PORT_GNSS_t *gnss)
+{
+    int32_t ret = 0;
+    uint8_t data[64] = {0};
+    uint32_t *size = (uint32_t *)data;
+
+    *size = sizeof(NET_PORT_GNSS_t);
+    if (g_driver == NULL) {
+        log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
+        return -ENODEV;
+    }
+    ret = driver_control(g_driver, NET_PORT_CMD_GET_GNSS, data);
+    if (ret != 0) {
+        log_e("get gnss failed \r\n");
+        return -EIO;
+    }
+    memcpy(gnss, (uint32_t *)data + 1, sizeof(NET_PORT_GNSS_t));
+
+    return 0;
+}
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********

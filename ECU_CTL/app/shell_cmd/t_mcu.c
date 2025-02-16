@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2025-02-14 15:13:00
- * @LastEditTime: 2025-02-14 15:17:45
- * @LastEditors: DESKTOP-SPAS98O
+ * @LastEditTime: 2025-02-16 22:09:11
+ * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\app\shell_cmd\t_mcu copy.c
  */

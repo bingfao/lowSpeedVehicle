@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:23
- * @LastEditTime: 2025-01-27 16:03:31
- * @LastEditors: DESKTOP-SPAS98O
+ * @LastEditTime: 2025-02-15 20:37:16
+ * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.c
  */
@@ -22,6 +22,7 @@
 
 #include "elog.h"
 #include "error_code.h"
+#include "gnss_port.h"
 #include "net_agreement.h"
 #include "net_port.h"
 #include "ota_file_manage.h"
@@ -88,8 +89,8 @@ static int32_t ebike_device_state_upload_ack(uint8_t *in_data, int32_t in_len, u
 static int32_t ebike_device_traffic_report_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 static int32_t ebike_device_file_download_require_ack(uint8_t *in_data, int32_t in_len, uint8_t *out_data,
                                                       int32_t *out_len);
-    // server cmd function
-    static int32_t ebike_rev_file_head(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
+// server cmd function
+static int32_t ebike_rev_file_head(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 static int32_t ebike_rev_file_data(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 static int32_t ebike_rev_file_download_require(uint8_t *in_data, int32_t in_len, uint8_t *out_data, int32_t *out_len);
 
@@ -159,8 +160,21 @@ uint32_t ebike_get_session_id(void)
 
 int32_t ebike_get_location(double *lng, double *lat)
 {
-    *lng = 121.47;
-    *lat = 31.23;
+    int32_t ret = 0;
+    float lng_f = 0.0;
+    float lat_f = 0.0;
+
+    if (lng == NULL || lat == NULL) {
+        return -EINVAL;
+    }
+    ret = gnss_get_latitude_longitude(&lat_f, &lng_f);
+    if (ret != 0) {
+        return ret;
+    }
+    *lng = (double)lng_f;
+    *lat = (double)lat_f;
+    // *lng = 121.47;
+    // *lat = 31.23;
 
     return 0;
 }

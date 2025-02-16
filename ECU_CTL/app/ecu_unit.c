@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2025-02-11 13:55:14
- * @LastEditors: DESKTOP-SPAS98O
+ * @LastEditTime: 2025-02-16 20:23:25
+ * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.c
  */
@@ -24,6 +24,7 @@
 #include "driver_com.h"
 #include "elog.h"
 #include "ex_flash.h"
+#include "gnss_port.h"
 #include "lfs_port.h"
 #include "mcu_ctl.h"
 #include "net_unit.h"
@@ -114,12 +115,13 @@ static int32_t ecu_unit_prepare(void)
     if (ex_flash_init() == 0) {
         lfs_port_init();
     }
+    gnss_init();
 
     return 0;
 }
 
-#define NEED_TIME_SYNC_PERIOD_S (1000 * 60 * 60 * 24)  // 1 day
-#define NEED_TIME_SYNC_PERIOD_S_MIN (1000 * 60 * 10)  // 10 min
+#define NEED_TIME_SYNC_PERIOD_S     (1000 * 60 * 60 * 24)  // 1 day
+#define NEED_TIME_SYNC_PERIOD_S_MIN (1000 * 60 * 10)       // 10 min
 static void ecu_unit_utc_check(uint32_t used_tick)
 {
     static int32_t time_out = 0;

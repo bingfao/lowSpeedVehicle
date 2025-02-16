@@ -12,6 +12,7 @@
 
 #include "ebike_manage.h"
 #include "elog.h"
+#include "gnss_port.h"
 #include "main.h"
 #include "net_port.h"
 #include "shell.h"
@@ -158,6 +159,23 @@ static int t_sync_utc(int argc, char *argv[])
     return 0;
 }
 
+static int t_gnss_info(int argc, char *argv[])
+{
+    int32_t ret = 0;
+    GNSS_LOCATION_t location = {0};
+
+    ret = gnss_do_get_location(&location);
+    if (ret == 0) {
+        log_i("GNSS get location success\r\n");
+        log_i("latitude = %f, longitude = %f, altitude = %f, hdop = %f\r\n", (double)location.latitude,
+              (double)location.longitude, (double)location.altitude, (double)location.hdop);
+    } else {
+        log_e("GNSS get location failed\r\n");
+    }
+
+    return 0;
+}
+
 ShellCommand ebike_ctl[] = {
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_ebike_register, t_ebike_register, ebike register to server),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_ebike_state_upload, t_ebike_state_upload, ebike state upload to server),
@@ -165,7 +183,8 @@ ShellCommand ebike_ctl[] = {
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_traffic_report, t_traffic_report, ebike traffic report start file load),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_write_utc, t_write_utc,
                          write utc time : t_write_utc<year><month><day><hour><minute><second>),
-    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_sync_utc, t_sync_utc, sync UTC: t_sync_utc),
+    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_sync_utc, t_sync_utc, sync UTC : t_sync_utc),
+    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_gnss_info, t_gnss_info, get gnss : t_gnss_info),
     SHELL_CMD_GROUP_END()};
 
 SHELL_EXPORT_CMD_GROUP(SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN), ebike_cmd, ebike_ctl, ebike_cmd);

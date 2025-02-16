@@ -11,6 +11,7 @@
 #include <error_code.h>
 #include <queue.h>
 #include <semphr.h>
+#include <stdlib.h>
 #include <string.h>
 #include <task.h>
 
@@ -60,6 +61,7 @@ typedef enum {
 #define EC800M_AT_ACK_QUEUE_TCP_STRAIGHT_OUT_CONNECT 0x0d  // tcp straight out connect state
 #define EC800M_AT_ACK_QUEUE_TCP_DISCONNECT           0x0e  // tcp disconnect state
 #define EC800M_AT_ACK_QUEUE_UTC_SUCCESS              0x0f  // get UTC time success
+#define EC800M_AT_ACK_QUEUE_GNSS_SUCCESS             0x10  // get GNSS location success
 
 #define PRINT_EC800M_RX_DATA                         1  // 1: print rx data, 0: not print
 
@@ -174,6 +176,8 @@ static void ec800m_device_reset_pin(void);
 static int32_t ec800m_device_reset(void);
 static int32_t ec800m_device_utc_str_analysis(void *args, char *str);
 static int32_t ec800m_device_get_utc(struct tm *local_time);
+static int32_t ec800m_device_gnss_qgpsloc_str_analysis(void *args, char *str);
+static int32_t ec800m_device_get_gnss(NET_PORT_GNSS_t *gnss_location);
 
 DRIVER_CTL_t g_ec800m_driver = {
     .init = ec800m_drv_init,
@@ -744,6 +748,7 @@ static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg)
     int32_t ret = 0;
     bool ret_bool = false;
     int32_t mode = 0;
+    uint32_t size = 0;
 
     if (p_driver == NULL) {
         return -EINVAL;
@@ -814,6 +819,17 @@ static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg)
         case DRV_EC800M_CMD_GET_UTC_TIME:
             ret = ec800m_device_get_utc((struct tm *)arg);
             break;
+        case DRV_EC800M_CMD_GET_GNSS:
+            if (arg == NULL) {
+                ret = -EINVAL;
+                break;
+            }
+            size = *(uint32_t *)arg;
+            if (size < sizeof(NET_PORT_GNSS_t)) {
+                log_e("size:%d is not equal to NET_PORT_GNSS_t size:%d\r\n", size, sizeof(NET_PORT_GNSS_t));
+                return -EINVAL;
+            }
+            ret = ec800m_device_get_gnss((NET_PORT_GNSS_t *)((uint32_t *)arg + 1));
         default:
             break;
     }
@@ -1391,8 +1407,8 @@ static int32_t ec800m_device_utc_str_analysis(void *args, char *str)
     local_time->tm_min = minute;
     local_time->tm_sec = second;
     g_ec800m_inter_tran_buf_index = sizeof(struct tm);
-    log_d("utc str analysis success, year:%d, month:%d, day:%d, hour:%d, minute:%d, second:%d\r\n",
-           local_time->tm_year, local_time->tm_mon, local_time->tm_mday, local_time->tm_hour, local_time->tm_min, local_time->tm_sec);
+    log_d("utc str analysis success, year:%d, month:%d, day:%d, hour:%d, minute:%d, second:%d\r\n", local_time->tm_year,
+          local_time->tm_mon, local_time->tm_mday, local_time->tm_hour, local_time->tm_min, local_time->tm_sec);
     ret = ec800m_device_ack_message_send(EC800M_AT_ACK_QUEUE_UTC_SUCCESS);
 
     return ret;
@@ -1426,11 +1442,120 @@ static int32_t ec800m_device_get_utc(struct tm *local_time)
                 if (g_ec800m_inter_tran_buf_index == sizeof(struct tm)) {
                     memcpy(local_time, g_ec800m_inter_tran_buf, sizeof(struct tm));
                     log_d("ec800m_device_get_utc success\r\n");
-                    log_d("ec800m get_utc local_time:%d-%d-%d %d:%d:%d\r\n",
-                           local_time->tm_year + 1900, local_time->tm_mon + 1, local_time->tm_mday,
-                           local_time->tm_hour, local_time->tm_min, local_time->tm_sec);
+                    log_d("ec800m get_utc local_time:%d-%d-%d %d:%d:%d\r\n", local_time->tm_year + 1900,
+                          local_time->tm_mon + 1, local_time->tm_mday, local_time->tm_hour, local_time->tm_min,
+                          local_time->tm_sec);
                 } else {
                     log_e("ec800m utc buffer size error\r\n");
+                    return -EINVAL;
+                }
+                return 0;
+            default:
+                break;
+        }
+    }
+    log_d("ec800m_device_get_utc fail\r\n");
+
+    return -ETIME;
+}
+
+static int32_t ec800m_device_gnss_qgpsloc_str_analysis(void *args, char *str)
+{
+    int32_t ret = 0;
+    float time = 0;
+    float latitude = 0;
+    float longitude = 0;
+    float hdop = 0;
+    float altitude = 0;
+    int32_t fix_type = 0;
+    float cog = 0;
+    float spkm = 0;
+    float spkn = 0;
+    float date = 0;
+    float nsat = 0;
+    struct tm utc_time = {0};
+
+    NET_PORT_GNSS_t *gnss_location = (NET_PORT_GNSS_t *)g_ec800m_inter_tran_buf;
+    if (str == NULL) {
+        log_e("str is NULL\r\n");
+        return -EINVAL;
+    }
+    ret = sscanf(str, "+QGPSLOC: %f,%f,%f,%f,%f,%d,%f,%f,%f,%f,%f", &time, &latitude, &longitude, &hdop, &altitude,
+                 &fix_type, &cog, &spkm, &spkn, &date, &nsat);
+    if (ret != 11) {
+        log_e("gnss str analysis 1 failed, ret:%d (%s)\r\n", ret, str);
+        ret = sscanf(str, "+QGPSLOC: %f,%f,%f,%f,%f,%d,,%f,%f,%f,%f", &time, &latitude, &longitude, &hdop, &altitude,
+                     &fix_type, &spkm, &spkn, &date, &nsat);
+        if (ret != 10) {
+            log_e("gnss str analysis 2 failed, ret:%d\r\n", ret);
+            return -EINVAL;
+        }
+    }
+    gnss_location->latitude = latitude;
+    gnss_location->longitude = longitude;
+    gnss_location->altitude = altitude;
+    gnss_location->hdop = hdop;
+    gnss_location->hour = (int32_t)time / 10000;
+    gnss_location->minute = (int32_t)(time - gnss_location->hour * 10000) / 100;
+    gnss_location->second = (int32_t)(time - gnss_location->hour * 10000 - gnss_location->minute * 100);
+    gnss_location->day = (int32_t)date / 10000;
+    gnss_location->month = (int32_t)(date - gnss_location->day * 10000) / 100;
+    gnss_location->year = 2000 + (int32_t)(date - gnss_location->day * 10000 - gnss_location->month * 100);
+    // convert utc time to time_t format, and save it to timestamp
+    utc_time.tm_year = gnss_location->year - 1900;
+    utc_time.tm_mon = gnss_location->month - 1;
+    utc_time.tm_mday = gnss_location->day;
+    utc_time.tm_hour = gnss_location->hour;
+    utc_time.tm_min = gnss_location->minute;
+    utc_time.tm_sec = gnss_location->second;
+    gnss_location->timestamp = mktime(&utc_time);
+
+    g_ec800m_inter_tran_buf_index = sizeof(NET_PORT_GNSS_t);
+    log_d(
+        "gnss str analysis success, time:%f, latitude:%f, longitude:%f, hdop:%f, altitude:%f, fix_type:%d, cog:%f, "
+        "spkm:%f, spkn:%f, date:%f, nsat:%f\r\n",
+        (double)time, (double)latitude, (double)longitude, (double)hdop, (double)altitude, fix_type, (double)cog,
+        (double)spkm, (double)spkn, (double)date, (double)nsat);
+    ret = ec800m_device_ack_message_send(EC800M_AT_ACK_QUEUE_GNSS_SUCCESS);
+
+    return ret;
+}
+
+static int32_t ec800m_device_get_gnss(NET_PORT_GNSS_t *gnss_location)
+{
+    AT_CMP_STR_NODE_t at_str_ack[2] = {0};
+    int8_t rx_queue_num = 0;
+    char cmd[20] = {0};
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
+
+    if (gnss_location == NULL) {
+        log_e("gnss_location is NULL\r\n");
+        return -EINVAL;
+    }
+    at_com_clr_cmp_str(&g_ec800m_at_com);
+    at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_CMD_GET_GNSS_QGPSLOC_ACK, NULL,
+                       ec800m_device_gnss_qgpsloc_str_analysis);
+    at_com_add_cmp_str(&g_ec800m_at_com, &at_str_ack[0]);
+    memset(g_ec800m_inter_tran_buf, 0, sizeof(g_ec800m_inter_tran_buf));
+    g_ec800m_inter_tran_buf_index = 0;
+    sprintf(cmd, "%s\r\n", EC800M_AT_CMD_GET_GNSS_QGPSLOC);
+    at_com_send_str(&g_ec800m_at_com, cmd, strlen(cmd), 2000);  // send AT+QGPSLOC=2
+    rx_queue_num = 1;
+    while (rx_queue_num > 0) {
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
+        if (res != pdPASS) {
+            log_e("ec800m get gnss osMessageGet failed\r\n");
+            return -ETIME;
+        }
+        rx_queue_num--;
+        switch (msg) {
+            case EC800M_AT_ACK_QUEUE_GNSS_SUCCESS:
+                if (g_ec800m_inter_tran_buf_index == sizeof(NET_PORT_GNSS_t)) {
+                    memcpy(gnss_location, g_ec800m_inter_tran_buf, sizeof(NET_PORT_GNSS_t));
+                    log_d("ec800m_device_get_gnss success\r\n");
+                } else {
+                    log_e("ec800m gnss buffer size error\r\n");
                     return -EINVAL;
                 }
                 return 0;

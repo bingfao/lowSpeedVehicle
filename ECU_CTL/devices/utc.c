@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2025-01-31 19:31:02
- * @LastEditTime: 2025-02-11 13:40:55
- * @LastEditors: DESKTOP-SPAS98O
+ * @LastEditTime: 2025-02-15 15:43:32
+ * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\utc.c
  */
@@ -110,7 +110,7 @@ int32_t utc_get_local_time(struct tm *local_time, long *nsec)
         return ret;
     }
     write_utc_save_data(time_spec.tv_sec, time_spec.tv_nsec);
-    time_spec.tv_sec += g_time_zone * 3600;  // add time zone
+    time_spec.tv_sec += (int32_t)g_time_zone * 3600;  // add time zone
     read_time = localtime(&time_spec.tv_sec);
     memcpy(local_time, read_time, sizeof(struct tm));
     *nsec = time_spec.tv_nsec;
@@ -128,7 +128,7 @@ int32_t utc_set_local_time(struct tm *local_time, long nsec)
         return -1;
     }
     time_spec.tv_sec = mktime(local_time);
-    time_spec.tv_sec -= g_time_zone * 3600;  // sub time zone
+    time_spec.tv_sec -= (int32_t)g_time_zone * 3600;  // sub time zone
     time_spec.tv_nsec = nsec;
 
     ret = driver_write(g_driver, 0, &time_spec, sizeof(struct timespec));

@@ -1,10 +1,10 @@
 /*
  * @Author: your name
- * @Date: 2024-10-24 15:09:26
- * @LastEditTime: 2025-02-15 15:10:58
+ * @Date: 2025-02-14 21:34:33
+ * @LastEditTime: 2025-02-16 22:08:05
  * @LastEditors: stone_honor
  * @Description: In User Settings Edit
- * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.h
+ * @FilePath: \ebike_ECU\ECU_CTL\devices\gnss.h
  */
 
 /*
@@ -13,8 +13,8 @@
  * ****************************************************************************
  */
 
-#ifndef __NET_PORT_H
-#define __NET_PORT_H
+#ifndef __GNSS_PORT_H
+#define __GNSS_PORT_H
 /*
  * ============================================================================
  * If building with a C++ compiler, make all of the definitions in this header
@@ -29,9 +29,8 @@ extern "C" {
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#include <stdint.h>
-
-#include "driver_com.h"
+#include "stdint.h"
+#include "stdio.h"
 #include "time.h"
 
 /*
@@ -39,28 +38,12 @@ extern "C" {
  * ******** Exported Types                                             ********
  * ****************************************************************************
  */
-typedef enum {
-    NET_PORT_CMD_NONE = DRV_CMD_NET_PORT_OPERATION_BASE,
-    NET_PORT_CMD_TCP_SET_HOST,
-    NET_PORT_CMD_TCP_SET_PORT,
-    NET_PORT_CMD_TCP_CONNECT,
-    NET_PORT_CMD_TCP_DISCONNECT,
-    NET_PORT_CMD_TCP_GET_MODE,
-    NET_PORT_CMD_GET_CS_REGISTERED,  // Check Internet access (0: not registered, 1: registered)
-    NET_PORT_CMD_RESET,
-    NET_PORT_CMD_TCP_REFRESH_STATE,  // refresh socket state (0: not connected, 1: connected)
-    NET_PORT_CMD_SET_DIS_STATE,
-    NET_PORT_CMD_GET_UTC_TIME,
-    NET_PORT_CMD_GET_GNSS,
-    NET_PORT_CMD_TCP_MAX
-} NET_PORT_CMD_t;
-
 typedef struct
 {
     float latitude;
     float longitude;
     float altitude;
-    float hdop;             // Horizontal Dilution of Precision
+    float hdop;  // Horizontal Dilution of Precision
     uint8_t hour;
     uint8_t minute;
     uint8_t second;
@@ -68,27 +51,26 @@ typedef struct
     uint8_t month;
     uint16_t year;
     time_t timestamp;
-} NET_PORT_GNSS_t;
+    uint8_t time_type;  // 0: UTC, 1: LOCAL
+} GNSS_LOCATION_t;
 
 /*
  * ****************************************************************************
  * ******** Exported constants                                         ********
  * ****************************************************************************
  */
-#define NET_PORT_TCP_CONNECT_MODE_DISCONNECT   0  // tcp is disconnect
-#define NET_PORT_TCP_CONNECT_MODE_STRAIGHT_OUT 1  // tcp connect with straight out mode
-#define NET_PORT_TCP_CONNECT_MODE_TRANSPARENT  2  // tcp connect with transparent  mode
-
-// #define NET_PORT_TCP_TEST_HOST "s352373a61.vicp.fun"
-// #define NET_PORT_TCP_TEST_PORT "37494"
-#define NET_PORT_TCP_TEST_HOST                 "kingxun.site"
-#define NET_PORT_TCP_TEST_PORT                 "10086"
 
 /*
  * ****************************************************************************
  * ******** Exported macro                                             ********
  * ****************************************************************************
  */
+#define GNSS_LOCATION_READ_INTERVAL_IN_STOP_MS (5 * 60 * 1000)  //  5 minutes
+#define GNSS_LOCATION_READ_INTERVAL_IN_MOVE_MS (1 * 60 * 1000)  //  1 minutes
+#define GNSS_LOCATION_READ_INTERVAL_IN_RUN_MS  (1 * 1000)       //  1 second
+#define GNSS_LOCATION_READ_INTERVAL_RETRY_MS   (1 * 60 * 1000)  //  1 minutes
+
+#define GNSS_ERR_CODE_GPS_GET_ERROR            (1 << 0)  // GPS get location error
 
 /*
  * ****************************************************************************
@@ -102,24 +84,17 @@ typedef struct
  * ****************************************************************************
  */
 
-int32_t net_port_init(void);
-int32_t net_port_deinit(void);
-int32_t net_port_tcp_connect(const char *host, const char *port);
-int32_t net_port_tcp_disconnect(void);
-bool net_port_is_connected(void);
-int32_t net_port_send(const uint8_t *buf, uint32_t len);
-int32_t net_port_recv(uint8_t *buf, uint32_t len);
-int32_t net_port_socket_refresh(void);
-int32_t net_port_tcp_reconnect(void);
-int32_t net_port_get_utc(struct tm *tm_time);
-int32_t net_port_get_gnss(NET_PORT_GNSS_t *gnss);
-
+int32_t gnss_init(void);
+int32_t gnss_get_location(GNSS_LOCATION_t *location);
+int32_t gnss_get_latitude_longitude(float *latitude, float *longitude);
+void gnss_set_location_read_interval(int32_t interval_ms);
+int32_t gnss_do_get_location(GNSS_LOCATION_t *location);  // for test only, get location without cache
 
 /* ************************************************************************* */
 #ifdef __cplusplus
 }
 #endif
-#endif /*__NET_PORT_H */
+#endif /*__GNSS_PORT_H */
 /*
  * ****************************************************************************
  * End File

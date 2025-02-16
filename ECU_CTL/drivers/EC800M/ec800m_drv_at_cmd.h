@@ -65,6 +65,9 @@ extern "C" {
 
 #define EC800M_AT_CMD_GET_UTC_CCLK           "AT+CCLK?"
 #define EC800M_AT_CMD_GET_UTC_CCLK_ACK       "+CCLK:"
+
+#define EC800M_AT_CMD_GET_GNSS_QGPSLOC       "AT+QGPSLOC=2"
+#define EC800M_AT_CMD_GET_GNSS_QGPSLOC_ACK   "+QGPSLOC:"
 /*
  * ****************************************************************************
  * ******** Exported macro                                             ********
