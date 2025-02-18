@@ -21,6 +21,7 @@ extern "C" {
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
+#include <stdbool.h>
 #include <stdint.h>
 
 /*
@@ -34,6 +35,13 @@ extern "C" {
  * ******** Exported constants                                         ********
  * ****************************************************************************
  */
+#define LOG_SW_AT_READ         0x00000001
+#define LOG_SW_AT_WRITE        0x00000002
+#define LOG_SW_NET_READ        0x00000004
+#define LOG_SW_NET_WRITE       0x00000008
+#define LOG_SW_NET_ACK_ANALYZE 0x00000010
+#define LOG_SW_ALL_ON          0xFFFFFFFF
+#define LOG_SW_ALL_OFF         0x00000000
 
 /*
  * ****************************************************************************
@@ -53,7 +61,11 @@ extern "C" {
  * ****************************************************************************
  */
 int32_t shell_port_init(void);
-
+int32_t shell_port_stop(void);
+int32_t shell_port_restart(void);
+void log_switch_close(uint32_t sw);
+void log_switch_open(uint32_t sw);
+bool log_switch_is_on(uint32_t sw);
 
 /* ************************************************************************* */
 #ifdef __cplusplus

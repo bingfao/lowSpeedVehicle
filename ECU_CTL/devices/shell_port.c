@@ -41,6 +41,7 @@
 static Shell shell_data;
 static Shell *shell = &shell_data;
 static char buffer[BUFFER_SIZE];
+static uint32_t log_switch_on = 0;
 /*
  * ****************************************************************************
  * ******** Private functions prototypes                               ********
@@ -71,6 +72,7 @@ int32_t shell_port_init(void)
     shellInit(shell, buffer, BUFFER_SIZE);
     /* 启动elog */
     logger_startup(elog_output_func);
+    log_switch_open(LOG_SW_ALL_ON);
     g_shell_port_thread.parameter = shell;
     USER_THREAD_OBJ_t *thread = &g_shell_port_thread;
     xTaskCreate((TaskFunction_t)thread->thread, thread->name, thread->stack_size, thread->parameter, thread->priority,
@@ -79,6 +81,34 @@ int32_t shell_port_init(void)
 
     return 0;
 }
+
+int32_t shell_port_stop(void)
+{
+    vTaskSuspend(g_shell_port_thread.thread_handle);
+    return 0;
+}
+
+int32_t shell_port_restart(void)
+{
+    vTaskResume(g_shell_port_thread.thread_handle);
+    return 0;
+}
+
+void log_switch_close(uint32_t sw)
+{
+    log_switch_on &= ~sw;
+}
+
+void log_switch_open(uint32_t sw)
+{
+    log_switch_on |= sw;
+}
+
+bool log_switch_is_on(uint32_t sw)
+{
+    return (log_switch_on & sw) != 0;
+}
+
 /*
  * ****************************************************************************
  * ******** Private function Definition                                ********
@@ -107,13 +137,14 @@ static short shell_port_write(char *data, unsigned short size)
 }
 
 /*!
- * 嵌入式elog输出通道
- * @param log
- * @param size
- */
+* 嵌入式elog输出通道
+* @param log
+* @param size
+*/
 static void elog_output_func(const char *log, size_t size)
 {
-    shellWriteEndLine(shell, (char *)log, (int)size);
+    // shellWriteEndLine(shell, (char *)log, (int)size);
+    console_write((const uint8_t *)log, size);
 }
 /*
  * ****************************************************************************

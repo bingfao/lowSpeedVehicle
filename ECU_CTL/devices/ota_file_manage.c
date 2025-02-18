@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-09 15:11:21
- * @LastEditTime: 2025-02-10 23:39:05
+ * @LastEditTime: 2025-02-18 11:23:08
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\file_manage.c
@@ -157,11 +157,11 @@ int32_t ota_file_head_in(uint8_t *data, uint32_t size)
         log_e("file write start error, start_flg:%d", g_file_write.start_flg);
         return -EBUSY;
     }
-    printf("md5:");
+    log_i("md5:");
     for (int i = 0; i < 16; i++) {
-        printf("%02x", g_file.file_head_data.file_head.file_info.md5[i]);
+        log_raw("%02x", g_file.file_head_data.file_head.file_info.md5[i]);
     }
-    printf("\r\n");
+    log_raw("\r\n");
     memset(&g_file_write, 0, sizeof(FILE_WRITE_t));
     memcpy(&g_file_write.file_info, &g_file.file_head_data.file_head.file_info, sizeof(OTA_FILE_INFO_t));
     g_file_write.start_src = F_WRITE_START_SRC_CMD_SERVER_SEND;
@@ -226,13 +226,13 @@ int32_t ota_file_data_download_inform(uint8_t *data, uint32_t size)
     g_file_download.state = OTA_FILE_DOWNLOAD_DATA_REQUIRE;
     g_file_download.data_offset = 0;
 
-    log_d("file_name:%s, size:%d,type:%d\r\n", g_file_download.file_inform.file_info.name,
+    log_i("file_name:%s, size:%d,type:%d\r\n", g_file_download.file_inform.file_info.name,
           g_file_download.file_inform.file_info.size, g_file_download.file_inform.file_info.type);
-    printf("md5:");
+    log_raw("md5:");
     for (int i = 0; i < 16; i++) {
-        printf("%02x", g_file_download.file_inform.file_info.md5[i]);
+        log_raw("%02x", g_file_download.file_inform.file_info.md5[i]);
     }
-    printf("\r\n");
+    log_raw("\r\n");
     if (g_file_write.start_flg != 0) {
         log_e("file write start error, start_flg:%d", g_file_write.start_flg);
         return -EBUSY;
@@ -506,11 +506,11 @@ static int32_t file_write_end(FILE_WRITE_t *file_write)
         return -EIO;
     }
     lfs_port_get_md5(file_write->name, file_write->md5_sum, sizeof(file_write->md5_sum));
-    printf("file write end, name:%s, size:%d, md5:", file_write->name, file_write->done_size);
+    log_i("file write end, name:%s, size:%d, md5:", file_write->name, file_write->done_size);
     for (int i = 0; i < 16; i++) {
-        printf("%02x", file_write->md5_sum[i]);
+        log_raw("%02x", file_write->md5_sum[i]);
     }
-    printf("\r\n");
+    log_raw("\r\n");
     if (memcmp(file_write->md5_sum, file_write->file_info.md5, sizeof(file_write->md5_sum)) != 0) {
         log_e("file md5 check fail\r\n");
         return -EIO;

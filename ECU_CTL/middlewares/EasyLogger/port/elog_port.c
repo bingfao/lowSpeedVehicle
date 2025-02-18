@@ -104,9 +104,8 @@ const char *elog_port_get_time(void)
         return "";
     }
     utc_get_local_time(&local_time, &nsec);
-    snprintf(time, sizeof(time), "%04d-%02d-%02d %02d:%02d:%02d.%03d",
-        local_time.tm_year + 1900, local_time.tm_mon + 1, local_time.tm_mday,
-        local_time.tm_hour, local_time.tm_min, local_time.tm_sec, nsec/1000000);
+    snprintf(time, sizeof(time), "%04d-%02d-%02d %02d:%02d:%02d.%03d", local_time.tm_year + 1900, local_time.tm_mon + 1,
+             local_time.tm_mday, local_time.tm_hour, local_time.tm_min, local_time.tm_sec, nsec / 1000000);
 
     return time;
 }
@@ -143,7 +142,7 @@ void logger_startup(elog_output_func_t output_func)
     elog_set_fmt(ELOG_LVL_ASSERT, ELOG_FMT_ALL);
     elog_set_fmt(ELOG_LVL_ERROR, ELOG_FMT_LVL | ELOG_FMT_TIME | ELOG_FMT_T_INFO | ELOG_FMT_DIR | ELOG_FMT_LINE);
     elog_set_fmt(ELOG_LVL_WARN, ELOG_FMT_LVL | ELOG_FMT_T_INFO | ELOG_FMT_DIR | ELOG_FMT_LINE);
-    elog_set_fmt(ELOG_LVL_INFO, ELOG_FMT_LVL | ELOG_FMT_DIR | ELOG_FMT_LINE);
+    elog_set_fmt(ELOG_LVL_INFO, ELOG_FMT_LVL | ELOG_FMT_TIME | ELOG_FMT_DIR | ELOG_FMT_LINE);
     elog_set_fmt(ELOG_LVL_DEBUG, ELOG_FMT_ALL & ~ELOG_FMT_FUNC);
 
     /* 打开颜色显示 */

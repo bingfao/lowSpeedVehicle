@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2025-02-16 20:23:25
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-02-17 10:26:45
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.c
  */
@@ -152,11 +152,11 @@ static void ecu_unit_task(void const *argument)
     if (size < 0) {
         log_e("Get MCU ID failed\r\n");
     } else {
-        printf("CPU ID: 0x");
+        log_raw("CPU ID: 0x");
         for (int i = 0; i < size; i++) {
-            printf("%02X ", mcuID[i]);
+            log_raw("%02X ", mcuID[i]);
         }
-        printf("\r\n");
+        log_raw("\r\n");
     }
 
     log_d("ECU_UNIT task running...\r\n");

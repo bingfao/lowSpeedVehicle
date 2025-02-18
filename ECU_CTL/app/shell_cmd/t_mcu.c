@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2025-02-14 15:13:00
- * @LastEditTime: 2025-02-16 22:09:11
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-02-18 13:35:11
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\app\shell_cmd\t_mcu copy.c
  */
@@ -17,6 +17,7 @@
 #include "main.h"
 #include "mcu_ctl.h"
 #include "shell.h"
+#include "shell_port.h"
 #include "shell_cmd_group.h"
 #include "stdlib.h"
 #include "util.h"
@@ -50,9 +51,19 @@ static int set_mcu_run_bank_handler(int argc, char *argv[])
     return 0;
 }
 
+static int mcu_start_ymodem_handler(int argc, char *argv[])
+{
+    log_d("ymodem start");
+    elog_stop();
+    shell_port_stop();
+
+    return 0;
+}
+
 ShellCommand mcu_ctl_sub_cmd[] = {
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, get_bank, get_mcu_run_bank_handler, get MCU run bank),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, set_bank, set_mcu_run_bank_handler, set MCU run bank),
+    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, log_ymodem, mcu_start_ymodem_handler, log port start ymoden),
     SHELL_CMD_GROUP_END()};
 
 SHELL_EXPORT_CMD_GROUP(SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN), mcu, mcu_ctl_sub_cmd, mcu control commands);

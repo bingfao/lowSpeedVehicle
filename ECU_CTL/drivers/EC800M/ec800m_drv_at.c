@@ -23,6 +23,7 @@
 #include "fault.h"
 #include "main.h"
 #include "ring_buffer.h"
+#include "shell_port.h"
 #include "time.h"
 #include "usart.h"
 #include "user_os.h"
@@ -486,7 +487,7 @@ static void ec800m_rx_task(void const *argument)
             log_e("osSemaphoreWait failed, xReturn:%d\r\n", ret);
         }
 #if PRINT_EC800M_RX_DATA
-        log_raw("ec800m_rx_task data:\r\n");
+        log_i("ec800m_rx_task data:\r\n");
 #endif
         if (driver_is_opened(g_ec800m_driver.drv_obj) != true) {
             log_e("ec800m_drv is not opened\r\n");
@@ -498,24 +499,31 @@ static void ec800m_rx_task(void const *argument)
             if (size > 0) {
                 timeout = 100;
                 ret_size = driver_read(g_ec800m_trans_driver, 0, data, size);
-                ret = ec800m_drv_save_data(data, ret_size);
-                at_com_data_process(&g_ec800m_at_com, data, ret_size, 0);
 #if PRINT_EC800M_RX_DATA
-                if (ret > 0) {
-                    if (in_data_size < 1000) {
+                if (log_switch_is_on(LOG_SW_AT_READ)) {
+                    if (ret > 0) {
+                        if (in_data_size < 1000) {
+                            for (int i = 0; i < ret_size; i++) {
+                                if ((in_data_size + i) % 16 == 0) {
+                                    log_raw("\r\n");
+                                }
+                                log_raw("%02x ", data[i]);
+                            }
+                            in_data_size += ret_size;
+                            if (in_data_size >= 1000) {
+                                log_raw("\r\n");
+                            }
+                        }
+                    } else {
                         for (int i = 0; i < ret_size; i++) {
                             // printf("0x%02x[%c] ", data[i], data[i]);
-                            printf("%02x ", data[i]);
+                            log_raw("%c", data[i]);
                         }
-                    }
-                    in_data_size += ret;
-                } else {
-                    for (int i = 0; i < ret_size; i++) {
-                        // printf("0x%02x[%c] ", data[i], data[i]);
-                        printf("%c", data[i]);
                     }
                 }
 #endif
+                ret = ec800m_drv_save_data(data, ret_size);
+                at_com_data_process(&g_ec800m_at_com, data, ret_size, 0);
             } else {
                 timeout -= 10;
                 ec800m_delay_ms(10);
@@ -1030,13 +1038,13 @@ static int32_t ec800m_device_tcp_state_check(void *args, char *str)
     token = strtok(str, delim);
     if (token != NULL) {
         index++;
-        printf("[%d]%s\r\n", index, token);
+        // log_raw("[%d]%s\r\n", index, token);
     }
 
     // get next token
     while ((token = strtok(NULL, delim)) != NULL) {
         index++;
-        printf("[%d]%s\r\n", index, token);
+        // log_raw("[%d]%s\r\n", index, token);
         if (index == 6) {
             if (strcmp(token, "2") == 0) {
                 connect_flg = 1;

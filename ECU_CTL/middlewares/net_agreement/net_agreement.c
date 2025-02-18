@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:34
- * @LastEditTime: 2025-02-10 23:30:23
+ * @LastEditTime: 2025-02-18 11:07:40
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.c
@@ -25,6 +25,7 @@
 #include "error_code.h"
 #include "fault.h"
 #include "ota_file_manage.h"
+#include "shell_port.h"
 #include "user_crc.h"
 #include "version.h"
 
@@ -478,6 +479,16 @@ int32_t net_agreement_send_msg(void *obj, uint16_t msg_id, uint8_t msg_type, uin
                 comm_msg->msg_state = NET_COMM_MSG_STATE_IDLE;
             }
         }
+    }
+    if (log_switch_is_on(LOG_SW_NET_WRITE)) {
+        log_i(" net msg tx[%d]:", sizeof(NET_REQUIRE_HEADER_t) + tx_msg->req_head.head.msg_body_len);
+        for (i = 0; i < sizeof(NET_REQUIRE_HEADER_t) + tx_msg->req_head.head.msg_body_len; i++) {
+            if (i % 16 == 0) {
+                log_raw("\r\n");
+            }
+            log_raw("%02x ", *((uint8_t *)tx_msg + i));
+        }
+        log_raw("\r\n");
     }
 
     return ret;
@@ -987,14 +998,16 @@ static int32_t net_msg_body_aes_decoder(uint8_t *data)
     memcpy(&msg_body[out_len], &msg_body[aes_len], 6);
     msg_header->msg_body_len = out_len + 6;
 #if AES_DATA_LOG_ENABLE
-    printf("\r\nnet msg rx after aes decoder: ");
-    for (int i = 0; i < (out_len < 256 ? out_len : 256); i++) {
-        if (i % 16 == 0) {
-            printf("\r\n");
+    if (log_switch_is_on(LOG_SW_NET_READ)) {
+        log_i("net msg rx after aes decoder[%d]: ", out_len);
+        for (int i = 0; i < (out_len < 256 ? out_len : 256); i++) {
+            if (i % 16 == 0) {
+                log_raw("\r\n");
+            }
+            log_raw("%02x ", data[i]);
         }
-        printf("%02x ", data[i]);
+        log_raw("\r\n");
     }
-    printf("\r\n");
 #endif
     return 0;
 }
@@ -1106,9 +1119,9 @@ static int32_t net_agreement_byte_in(NET_AGREEMENT_OBJ_t *net_obj, uint8_t byte,
             if (net_msg_id_is_registered(net_obj, rx_data) == false) {
                 log_e("msg_id is not registered \r\n");
                 for (int i = 0; i < *rx_data_index; i++) {
-                    printf("%02x ", rx_data[i]);
+                    log_raw("%02x ", rx_data[i]);
                 }
-                printf("\r\n");
+                log_raw("\r\n");
                 net_obj->msg_rx_state = NET_MSG_RX_STATE_IDLE;
                 break;
             }
@@ -1152,14 +1165,16 @@ static int32_t net_agreement_byte_in(NET_AGREEMENT_OBJ_t *net_obj, uint8_t byte,
                 break;
             }
 #if AES_DATA_LOG_ENABLE
-            printf("\r\n net msg rx: ");
-            for (int i = 0; i < (*rx_data_index < 256 ? *rx_data_index : 256); i++) {
-                if (i % 16 == 0) {
-                    printf("\r\n");
+            if (log_switch_is_on(LOG_SW_NET_READ)) {
+                log_i("net msg rx [%d]:", *rx_data_index);
+                for (int i = 0; i < (*rx_data_index < 256 ? *rx_data_index : 256); i++) {
+                    if (i % 16 == 0) {
+                        log_raw("\r\n");
+                    }
+                    log_raw("%02x ", rx_data[i]);
                 }
-                printf("%02x ", rx_data[i]);
+                log_raw("\r\n");
             }
-            printf("\r\n");
 #endif
             ret = net_msg_body_aes_decoder(rx_data);
             if (ret < 0) {

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:22:37
- * @LastEditTime: 2025-01-15 17:53:12
+ * @LastEditTime: 2025-02-17 10:34:35
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.h
@@ -52,7 +52,7 @@ extern "C" {
 #define DRV_USART_NUM_MAX 6
 
 #if DRV_USAER_1_OPEN
-#define DRV_USART_1_RX_BUF_SIZE     512
+#define DRV_USART_1_RX_BUF_SIZE     2048
 #define DRV_USART_1_TX_BUF_SIZE     2048
 #define DRV_USART_1_TX_DMA_BUF_SIZE 512
 #define DRV_USART_1_TX_DMA_FLG      1

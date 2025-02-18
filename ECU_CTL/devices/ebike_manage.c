@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:23
- * @LastEditTime: 2025-02-15 20:37:16
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-02-18 11:29:24
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.c
  */
@@ -26,6 +26,7 @@
 #include "net_agreement.h"
 #include "net_port.h"
 #include "ota_file_manage.h"
+#include "shell_port.h"
 #include "user_os.h"
 #include "version.h"
 
@@ -674,11 +675,13 @@ static int32_t ebike_device_register_ack(uint8_t *in_data, int32_t in_len, uint8
     int32_t i = 0;
     int32_t ret = 0;
 
-    printf("ebike_device_register_ack :\r\n");
-    for (i = 0; i < in_len; i++) {
-        printf("0x%02x ", in_data[i]);
+    if (log_switch_is_on(LOG_SW_NET_ACK_ANALYZE)) {
+        log_i("ebike_device_register_ack :\r\n");
+        for (i = 0; i < in_len; i++) {
+            log_raw("0x%02x ", in_data[i]);
+        }
+        log_raw("\r\n");
     }
-    printf("\r\n");
     ret = net_agreement_device_register_ack(g_ebike_manage_obj.net_agreement_obj, in_data, in_len,
                                             &g_ebike_manage_obj.session_id, g_ebike_manage_obj.aes_iv);
     if (ret != 0) {
@@ -696,11 +699,13 @@ static int32_t ebike_device_state_upload_ack(uint8_t *in_data, int32_t in_len, u
     int32_t i = 0;
     int32_t ret = 0;
 
-    printf("ebike_device_state_upload_ack :\r\n");
-    for (i = 0; i < in_len; i++) {
-        printf("0x%02x ", in_data[i]);
+    if (log_switch_is_on(LOG_SW_NET_ACK_ANALYZE)) {
+        log_i("ebike_device_state_upload_ack :\r\n");
+        for (i = 0; i < in_len; i++) {
+            log_raw("0x%02x ", in_data[i]);
+        }
+        log_raw("\r\n");
     }
-    printf("\r\n");
     ret = net_agreement_device_state_upload_ack(g_ebike_manage_obj.net_agreement_obj, in_data, in_len);
     if (ret != 0) {
         ebike_msg_send_queue(EBIKE_ACK_QUEUE_ERROR);
@@ -716,11 +721,13 @@ static int32_t ebike_device_traffic_report_ack(uint8_t *in_data, int32_t in_len,
     int32_t i = 0;
     int32_t ret = 0;
 
-    printf("ebike_device_traffic_report_ack :\r\n");
-    for (i = 0; i < in_len; i++) {
-        printf("0x%02x ", in_data[i]);
+    if (log_switch_is_on(LOG_SW_NET_ACK_ANALYZE)) {
+        log_i("ebike_device_traffic_report_ack :\r\n");
+        for (i = 0; i < in_len; i++) {
+            log_raw("0x%02x ", in_data[i]);
+        }
+        log_raw("\r\n");
     }
-    printf("\r\n");
     ret = net_agreement_device_traffic_report_ack(g_ebike_manage_obj.net_agreement_obj, in_data, in_len);
     if (ret != 0) {
         ebike_msg_send_queue(EBIKE_ACK_QUEUE_ERROR);
