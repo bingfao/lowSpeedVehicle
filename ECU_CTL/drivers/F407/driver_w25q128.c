@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2025-02-09 11:08:12
- * @LastEditTime: 2025-02-09 17:37:25
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-02-20 10:57:42
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\F407\driver_w25q128.c
  */
@@ -66,7 +66,7 @@ static int32_t w25q128_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag);
 static int32_t w25q128_drv_close(DRIVER_OBJ_t *p_driver);
 static int32_t w25q128_drv_read(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buffer, uint32_t size);
 static int32_t w25q128_drv_write(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buffer, uint32_t size);
-static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *args);
+static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *args, uint32_t size);
 
 /* w25q128 driver interface */
 static void spi_cs_control(uint8_t enable);
@@ -181,11 +181,11 @@ static int32_t w25q128_drv_write(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buf
     return size;
 }
 
-static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *args)
+static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *args, uint32_t size)
 {
     W25Q128_PRIV_t *p_priv = (W25Q128_PRIV_t *)p_driver->driver->drv_priv;
     uint32_t address = 0;
-    uint32_t size = 0;
+    uint32_t erasesize = 0;
     uint32_t *data = (uint32_t *)args;
 
     if (p_priv->open_flag == 0) {
@@ -198,8 +198,8 @@ static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *a
                 return -EINVAL;
             }
             address = *(uint32_t *)args;
-            size = *((uint32_t *)args + 1);
-            if (ospi_w25qxx_erase_buffer(address, size) != 0) {
+            erasesize = *((uint32_t *)args + 1);
+            if (ospi_w25qxx_erase_buffer(address, erasesize) != 0) {
                 return -EIO;
             }
             break;
@@ -244,7 +244,7 @@ static int32_t ospi_w25qxx_auto_polling_mem_ready(void)
     HAL_StatusTypeDef ret;
     uint8_t send_buff[2] = {0};
     uint8_t rev_buff[2] = {0};  // 存储OSPI读到的数据
-    uint32_t times = 2000;   // 超时时间
+    uint32_t times = 2000;      // 超时时间
 
     send_buff[0] = W25Qxx_CMD_ReadStatus_REG1;  // 查询状态寄存器命令
     rev_buff[1] = 0;
@@ -306,15 +306,14 @@ static int32_t ospi_w25qxx_write_enable(void)
     HAL_StatusTypeDef ret;
     uint8_t send_buff[2] = {0};
     uint8_t rev_buff[2] = {0};  // 存储OSPI读到的数据
-    uint32_t times = 2000;   // 超时时间
+    uint32_t times = 2000;      // 超时时间
 
     send_buff[0] = W25Qxx_CMD_WriteEnable;  // 写使能命令
 
     spi_cs_control(0);
     ret = HAL_SPI_Transmit(g_ospi_handle, (uint8_t *)send_buff, 1, 1000);
     spi_cs_control(1);
-    if (ret != HAL_OK)
-    {
+    if (ret != HAL_OK) {
         return W25Qxx_ERROR_WriteEnable;
     }
     send_buff[0] = W25Qxx_CMD_ReadStatus_REG1;  // 查询状态寄存器命令
@@ -552,7 +551,7 @@ static int32_t ospi_w25qxx_read_buffer(uint8_t *pBuffer, uint32_t ReadAddr, uint
 
     // 写命令
     spi_cs_control(0);
-    if (HAL_SPI_Transmit(g_ospi_handle, send_buff, 4, 1000)!= HAL_OK) {
+    if (HAL_SPI_Transmit(g_ospi_handle, send_buff, 4, 1000) != HAL_OK) {
         spi_cs_control(1);
         return W25Qxx_ERROR_TRANSMIT;  // 传输数据错误
     }

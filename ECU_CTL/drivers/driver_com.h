@@ -56,7 +56,7 @@ struct DRIVER_CTL
     int32_t (*close)(DRIVER_OBJ_t *drv);
     int32_t (*read)(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
     int32_t (*write)(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
-    int32_t (*control)(DRIVER_OBJ_t *drv, uint32_t cmd, void *args);
+    int32_t (*control)(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint32_t size);
 };
 
 typedef enum {
@@ -157,7 +157,7 @@ int32_t driver_open(DRIVER_OBJ_t *drv, uint32_t oflag);
 int32_t driver_close(DRIVER_OBJ_t *drv);
 int32_t driver_read(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
 int32_t driver_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
-int32_t driver_control(DRIVER_OBJ_t *drv, int cmd, void *args);
+int32_t driver_control(DRIVER_OBJ_t *drv, int cmd, void *args, uint32_t size);
 int32_t get_driver_status(DRIVER_OBJ_t *drv);
 void driver_set_inted(DRIVER_OBJ_t *drv);
 void driver_clear_inted(DRIVER_OBJ_t *drv);

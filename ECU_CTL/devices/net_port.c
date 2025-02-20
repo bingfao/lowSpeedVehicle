@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2025-02-16 20:33:09
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-02-20 10:59:08
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
  */
@@ -141,7 +141,7 @@ int32_t net_port_tcp_connect(const char *host, const char *port)
     memset(g_tcp_port, 0, sizeof(g_tcp_port));
     strncpy(g_tcp_port, temp_port, sizeof(g_tcp_port) - 1);
     while (is_registered == false && time_out > 0) {
-        driver_control(g_driver, NET_PORT_CMD_GET_CS_REGISTERED, &is_registered);
+        driver_control(g_driver, NET_PORT_CMD_GET_CS_REGISTERED, &is_registered, sizeof(is_registered));
         vTaskDelay(100);
         time_out -= 100;
     }
@@ -149,9 +149,9 @@ int32_t net_port_tcp_connect(const char *host, const char *port)
         log_d("cs not registered \r\n");
         return -EAGAIN;
     }
-    ret += driver_control(g_driver, NET_PORT_CMD_TCP_SET_HOST, (void *)temp_host);
-    ret += driver_control(g_driver, NET_PORT_CMD_TCP_SET_PORT, (void *)temp_port);
-    ret += driver_control(g_driver, NET_PORT_CMD_TCP_CONNECT, &g_set_tcp_connect_mode);
+    ret += driver_control(g_driver, NET_PORT_CMD_TCP_SET_HOST, (void *)temp_host, strlen(temp_host));
+    ret += driver_control(g_driver, NET_PORT_CMD_TCP_SET_PORT, (void *)temp_port, strlen(temp_port));
+    ret += driver_control(g_driver, NET_PORT_CMD_TCP_CONNECT, &g_set_tcp_connect_mode, sizeof(g_set_tcp_connect_mode));
     if (ret != 0) {
         log_e("tcp connect failed \r\n");
         return -EIO;
@@ -169,7 +169,7 @@ int32_t net_port_tcp_disconnect(void)
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
         return -ENODEV;
     }
-    ret += driver_control(g_driver, NET_PORT_CMD_TCP_DISCONNECT, &g_set_tcp_connect_mode);
+    ret += driver_control(g_driver, NET_PORT_CMD_TCP_DISCONNECT, &g_set_tcp_connect_mode, sizeof(int32_t));
     if (ret != 0) {
         log_e("tcp disconnect failed \r\n");
         return -EIO;
@@ -184,7 +184,7 @@ int32_t net_port_tcp_reconnect(void)
     uint32_t arg = 0;
 
     net_port_tcp_disconnect();
-    driver_control(g_driver, NET_PORT_CMD_SET_DIS_STATE, &arg);
+    driver_control(g_driver, NET_PORT_CMD_SET_DIS_STATE, &arg, sizeof(uint32_t));
     g_net_driver_need_connect_flag = 1;
     log_d("do reconnect \r\n");
 
@@ -199,7 +199,7 @@ bool net_port_is_connected(void)
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
         return -ENODEV;
     }
-    driver_control(g_driver, NET_PORT_CMD_TCP_GET_MODE, &connect_mode);
+    driver_control(g_driver, NET_PORT_CMD_TCP_GET_MODE, &connect_mode, sizeof(int32_t));
     if (connect_mode == NET_PORT_TCP_CONNECT_MODE_STRAIGHT_OUT ||
         connect_mode == NET_PORT_TCP_CONNECT_MODE_TRANSPARENT) {
         return true;
@@ -258,7 +258,7 @@ int32_t net_port_socket_refresh(void)
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
         return -ENODEV;
     }
-    driver_control(g_driver, NET_PORT_CMD_TCP_REFRESH_STATE, &state);
+    driver_control(g_driver, NET_PORT_CMD_TCP_REFRESH_STATE, &state, sizeof(int32_t));
     if (state == NET_PORT_TCP_CONNECT_MODE_STRAIGHT_OUT || state == NET_PORT_TCP_CONNECT_MODE_TRANSPARENT ||
         state == NET_PORT_TCP_CONNECT_MODE_DISCONNECT) {
         return state;
@@ -275,7 +275,7 @@ int32_t net_port_get_utc(struct tm *tm_time)
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
         return -ENODEV;
     }
-    ret = driver_control(g_driver, NET_PORT_CMD_GET_UTC_TIME, &tm_temp);
+    ret = driver_control(g_driver, NET_PORT_CMD_GET_UTC_TIME, &tm_temp, sizeof(struct tm));
     if (ret != 0) {
         log_e("get utc time failed \r\n");
         return -EIO;
@@ -296,7 +296,7 @@ int32_t net_port_get_gnss(NET_PORT_GNSS_t *gnss)
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
         return -ENODEV;
     }
-    ret = driver_control(g_driver, NET_PORT_CMD_GET_GNSS, data);
+    ret = driver_control(g_driver, NET_PORT_CMD_GET_GNSS, data, *size + 4);
     if (ret != 0) {
         log_e("get gnss failed \r\n");
         return -EIO;
@@ -329,14 +329,14 @@ static int32_t net_port_keep_tcp_mode(void)
     if (g_set_tcp_connect_mode != NET_PORT_TCP_CONNECT_MODE_DISCONNECT) {
         if (now_is_connected == false) {
             times--;
-            driver_control(g_driver, NET_PORT_CMD_TCP_DISCONNECT, &g_set_tcp_connect_mode);
+            driver_control(g_driver, NET_PORT_CMD_TCP_DISCONNECT, &g_set_tcp_connect_mode, sizeof(int32_t));
             net_port_tcp_connect(g_tcp_host, g_tcp_port);
         }
     }
     old_is_connected = net_port_is_connected();
     if (times == 10) {
         log_d("net port keep tcp mode failed, restart the device \r\n");
-        driver_control(g_driver, NET_PORT_CMD_RESET, &arg);
+        driver_control(g_driver, NET_PORT_CMD_RESET, &arg, sizeof(uint32_t));
     }
     if (times == 0) {
         log_d("net port keep tcp mode failed, times out \r\n");
@@ -366,7 +366,7 @@ static void net_port_monitor_task(void const *argument)
             } else {
                 // if tcp disconnect, and after NET_RETRY_TO_CONNECT_TCP_CYCLE to retry connect
                 if (times <= 0) {
-                    driver_control(g_driver, NET_PORT_CMD_RESET, &arg);
+                    driver_control(g_driver, NET_PORT_CMD_RESET, &arg, sizeof(uint32_t));
                     g_net_driver_need_connect_flag = 1;
                     times = NET_RETRY_TO_CONNECT_TCP_CYCLE;
                 }

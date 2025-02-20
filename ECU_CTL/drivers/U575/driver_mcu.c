@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-23 10:36:17
- * @LastEditTime: 2025-02-14 11:16:46
+ * @LastEditTime: 2025-02-20 10:51:15
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_mcu.c
@@ -48,7 +48,7 @@
 static int32_t mcu_drv_init(DRIVER_OBJ_t *p_driver);
 static int32_t mcu_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag);
 static int32_t get_mcu_id(uint8_t *id);
-static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args);
+static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint32_t size);
 static int32_t drv_mcu_get_run_bank(uint32_t *bank);
 static int32_t drv_mcu_set_run_bank(uint32_t *bank);
 
@@ -155,7 +155,7 @@ static int32_t drv_mcu_set_run_bank(uint32_t *bank)
     return 0;
 }
 
-static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args)
+static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint32_t size)
 {
     int32_t ret = 0;
 

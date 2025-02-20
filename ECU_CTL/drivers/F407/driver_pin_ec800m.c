@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2025-01-23 11:10:42
- * @LastEditTime: 2025-01-28 09:50:11
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-02-20 10:48:56
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\F407\driver_ec800m.c
  */
@@ -51,7 +51,7 @@ static int32_t ec800m_pin_drv_init(DRIVER_OBJ_t *p_driver);
 static int32_t ec800m_pin_drv_deinit(DRIVER_OBJ_t *p_driver);
 static int32_t ec800m_pin_open(DRIVER_OBJ_t *p_driver, uint32_t oflag);
 static int32_t ec800m_pin_close(DRIVER_OBJ_t *p_driver);
-static int32_t ec800m_pin_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args);
+static int32_t ec800m_pin_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint32_t size);
 static int32_t ec800m_rst_pin_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
 
 DRIVER_CTL_t g_reset_pin_ec800m_driver = {
@@ -93,7 +93,7 @@ static int32_t ec800m_pin_close(DRIVER_OBJ_t *p_driver)
     return 0;
 }
 
-static int32_t ec800m_pin_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args)
+static int32_t ec800m_pin_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint32_t size)
 {
     return 0;
 }

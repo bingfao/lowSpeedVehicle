@@ -237,7 +237,7 @@ int32_t driver_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t siz
     return ret;
 }
 
-int32_t driver_control(DRIVER_OBJ_t *drv, int cmd, void *args)
+int32_t driver_control(DRIVER_OBJ_t *drv, int cmd, void *args, uint32_t size)
 {
     if (drv == NULL || drv->driver == NULL || drv->driver->control == NULL) {
         return -EINVAL;
@@ -245,7 +245,7 @@ int32_t driver_control(DRIVER_OBJ_t *drv, int cmd, void *args)
     if (!DRIVER_STATES_IS(drv, DRIVER_STATES_OPENED)) {
         return -EAGAIN;
     }
-    return drv->driver->control(drv, cmd, args);
+    return drv->driver->control(drv, cmd, args, size);
 }
 
 int32_t get_driver_status(DRIVER_OBJ_t *drv)

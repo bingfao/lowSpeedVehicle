@@ -140,7 +140,7 @@ static int32_t ec800m_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag);
 static int32_t ec800m_drv_close(DRIVER_OBJ_t *p_driver);
 static int32_t ec800m_drv_send(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buffer, uint32_t size);
 static int32_t ec800m_drv_read(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buffer, uint32_t size);
-static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg);
+static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg, uint32_t size);
 static void ec800m_it_tx_callback(void *arg);
 static void ec800m_it_rx_callback(void *arg);
 static void ec800m_rx_prepare(void);
@@ -312,10 +312,12 @@ static int32_t ec800m_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag)
         log_e("g_ec800m_trans_driver open failed, ret:%d\r\n", ret);
         return ret;
     }
-    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_WRITE_DONE_CALLBACK_ARG, NULL);
-    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_WRITE_DONE_CALLBACK, (void *)ec800m_it_tx_callback);
-    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_READ_DONE_CALLBACK_ARG, NULL);
-    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_READ_DONE_CALLBACK, (void *)ec800m_it_rx_callback);
+    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_WRITE_DONE_CALLBACK_ARG, NULL, 0);
+    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_WRITE_DONE_CALLBACK, (void *)ec800m_it_tx_callback,
+                   sizeof(void *));
+    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_READ_DONE_CALLBACK_ARG, NULL, 0);
+    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_READ_DONE_CALLBACK, (void *)ec800m_it_rx_callback,
+                   sizeof(void *));
     driver_set_opened(p_driver);
 
     return 0;
@@ -494,7 +496,7 @@ static void ec800m_rx_task(void const *argument)
             continue;
         }
         while (timeout > 0) {
-            size = driver_control(g_ec800m_trans_driver, DRV_CMD_GET_RX_SIZE, NULL);
+            size = driver_control(g_ec800m_trans_driver, DRV_CMD_GET_RX_SIZE, NULL, 0);
             size = size > 63 ? 63 : size;
             if (size > 0) {
                 timeout = 100;
@@ -546,10 +548,10 @@ static int32_t ec800m_drv_close(DRIVER_OBJ_t *p_driver)
 {
     int32_t ret = 0;
 
-    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_WRITE_DONE_CALLBACK_ARG, NULL);
-    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_WRITE_DONE_CALLBACK, NULL);
-    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_READ_DONE_CALLBACK_ARG, NULL);
-    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_READ_DONE_CALLBACK, NULL);
+    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_WRITE_DONE_CALLBACK_ARG, NULL, 0);
+    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_WRITE_DONE_CALLBACK, NULL, 0);
+    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_READ_DONE_CALLBACK_ARG, NULL, 0);
+    driver_control(g_ec800m_trans_driver, DRV_CMD_SET_READ_DONE_CALLBACK, NULL, 0);
 
     ret = driver_close(g_ec800m_trans_driver);
     if (ret != 0) {
@@ -751,12 +753,12 @@ static int32_t ec800m_drv_read(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buffe
     return size_read;
 }
 
-static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg)
+static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg, uint32_t size)
 {
     int32_t ret = 0;
     bool ret_bool = false;
     int32_t mode = 0;
-    uint32_t size = 0;
+    uint32_t argsize = 0;
 
     if (p_driver == NULL) {
         return -EINVAL;
@@ -832,9 +834,9 @@ static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg)
                 ret = -EINVAL;
                 break;
             }
-            size = *(uint32_t *)arg;
-            if (size < sizeof(NET_PORT_GNSS_t)) {
-                log_e("size:%d is not equal to NET_PORT_GNSS_t size:%d\r\n", size, sizeof(NET_PORT_GNSS_t));
+            argsize = *(uint32_t *)arg;
+            if (argsize < sizeof(NET_PORT_GNSS_t)) {
+                log_e("size:%d is not equal to NET_PORT_GNSS_t size:%d\r\n", argsize, sizeof(NET_PORT_GNSS_t));
                 return -EINVAL;
             }
             ret = ec800m_device_get_gnss((NET_PORT_GNSS_t *)((uint32_t *)arg + 1));

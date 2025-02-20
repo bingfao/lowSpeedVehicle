@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 15:09:26
- * @LastEditTime: 2025-02-15 15:10:58
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-02-20 10:55:42
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.h
  */
@@ -30,6 +30,7 @@ extern "C" {
  * ****************************************************************************
  */
 #include <stdint.h>
+#include <stdio.h>
 
 #include "driver_com.h"
 #include "time.h"

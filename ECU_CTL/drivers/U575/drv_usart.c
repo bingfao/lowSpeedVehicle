@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:20:51
- * @LastEditTime: 2025-02-05 17:06:22
+ * @LastEditTime: 2025-02-20 10:53:01
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.c
@@ -182,7 +182,7 @@ static int32_t drv_usart_open(DRIVER_OBJ_t *drv, uint32_t oflag);
 static int32_t drv_usart_close(DRIVER_OBJ_t *drv);
 static int32_t drv_usart_read(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
 static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, uint32_t size);
-static int32_t drv_usart_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args);
+static int32_t drv_usart_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint32_t size);
 void uart_it_rx_finish_callback(UART_HandleTypeDef *huart);
 void uart_it_tx_finish_callback(UART_HandleTypeDef *huart);
 static void usart_dma_tx_task(void const *argument);
@@ -503,7 +503,7 @@ static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, ui
     return size;
 }
 
-static int32_t drv_usart_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args)
+static int32_t drv_usart_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint32_t size)
 {
     int32_t ret = 0;
 

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:37:37
- * @LastEditTime: 2025-02-17 10:26:45
+ * @LastEditTime: 2025-02-20 10:30:33
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.c
@@ -148,7 +148,7 @@ static void ecu_unit_task(void const *argument)
     int32_t size = 0;
     // uint32_t tick = 0;
 
-    size = mcu_ctl_get_id(mcuID);
+    size = mcu_ctl_get_id(mcuID, sizeof(mcuID));
     if (size < 0) {
         log_e("Get MCU ID failed\r\n");
     } else {

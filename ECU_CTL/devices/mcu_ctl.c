@@ -72,7 +72,7 @@ int32_t mcu_ctl_init(void)
     return ret;
 }
 
-int32_t mcu_ctl_get_id(uint8_t *id)
+int32_t mcu_ctl_get_id(uint8_t *id, uint8_t len)
 {
     int32_t ret = 0;
 
@@ -80,7 +80,7 @@ int32_t mcu_ctl_get_id(uint8_t *id)
         log_e("mcu_ctl not inited \r\n");
         return -1;
     }
-    ret = driver_control(g_mcu_drv, DRV_CMD_GET_ID, id);
+    ret = driver_control(g_mcu_drv, DRV_CMD_GET_ID, id, len);
 
     return ret;
 }
@@ -94,7 +94,7 @@ int32_t mcu_ctl_reset(void)
         return -1;
     }
     log_d("mcu reset\r\n");
-    driver_control(g_mcu_drv, MCU_CTL_CMD_RESET, NULL);
+    driver_control(g_mcu_drv, MCU_CTL_CMD_RESET, NULL, 0);
 
     return ret;
 }
@@ -107,7 +107,7 @@ int32_t mcu_ctl_get_run_bank(uint32_t *bank)
         log_e("mcu_ctl not inited \r\n");
         return -1;
     }
-    ret = driver_control(g_mcu_drv, MCU_CTL_GET_RUN_BANK, bank);
+    ret = driver_control(g_mcu_drv, MCU_CTL_GET_RUN_BANK, bank, sizeof(uint32_t));
     if (ret != 0) {
         log_e("mcu_ctl get run bank failed \r\n");
     }
@@ -123,7 +123,7 @@ int32_t mcu_ctl_set_run_bank(uint32_t bank)
         log_e("mcu_ctl not inited \r\n");
         return -1;
     }
-    ret = driver_control(g_mcu_drv, MCU_CTL_SET_RUN_BANK, &bank);
+    ret = driver_control(g_mcu_drv, MCU_CTL_SET_RUN_BANK, &bank, sizeof(uint32_t));
     if (ret != 0) {
         log_e("mcu_ctl set run bank failed \r\n");
     }

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-06 17:48:00
- * @LastEditTime: 2025-02-08 10:58:56
+ * @LastEditTime: 2025-02-20 10:26:17
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ex_flash.c
@@ -79,19 +79,19 @@ int32_t ex_flash_init(void)
         log_e("driver %s open failed\r\n", EX_FLASH_DRV_NAME);
         return ret;
     }
-    ret = driver_control(g_ex_flash_drv, DRV_CMD_GET_BUFFER_TOTAL_SIZE, &g_ex_flash_size);
+    ret = driver_control(g_ex_flash_drv, DRV_CMD_GET_BUFFER_TOTAL_SIZE, &g_ex_flash_size, sizeof(g_ex_flash_size));
     if (ret != 0 || g_ex_flash_size == 0) {
         log_e("driver %s get buffer size failed, ret:%d, size:%d\r\n", EX_FLASH_DRV_NAME, ret, g_ex_flash_size);
         return ret;
     }
     log_d("ex_flash size: %d bytes\r\n", g_ex_flash_size);
-    ret = driver_control(g_ex_flash_drv, DRV_CMD_GET_BUFFER_BLOCK_SIZE, &g_ex_sector_size);
+    ret = driver_control(g_ex_flash_drv, DRV_CMD_GET_BUFFER_BLOCK_SIZE, &g_ex_sector_size, sizeof(g_ex_sector_size));
     if (ret != 0 || g_ex_sector_size == 0) {
         log_e("driver %s get sector size failed, ret:%d, size:%d\r\n", EX_FLASH_DRV_NAME, ret, g_ex_sector_size);
         return ret;
     }
     log_d("ex_flash sector size: %d bytes\r\n", g_ex_sector_size);
-    ret = driver_control(g_ex_flash_drv, DRV_CMD_SET_DATA_MODE, &ex_flash_mode);
+    ret = driver_control(g_ex_flash_drv, DRV_CMD_SET_DATA_MODE, &ex_flash_mode, sizeof(ex_flash_mode));
     if (ret != 0) {
         log_e("driver %s set data mode :%d failed\r\n", EX_FLASH_DRV_NAME, ex_flash_mode);
         return ret;
@@ -160,7 +160,7 @@ int32_t ex_flash_erase(uint32_t addr, uint32_t len)
     }
     erase_info[0] = addr;
     erase_info[1] = len;
-    ret = driver_control(g_ex_flash_drv, DRV_CMD_ERASE_BUFFER, &erase_info);
+    ret = driver_control(g_ex_flash_drv, DRV_CMD_ERASE_BUFFER, &erase_info, sizeof(erase_info));
     if (ret != 0) {
         log_e("driver %s erase buffer failed\r\n", EX_FLASH_DRV_NAME);
     }

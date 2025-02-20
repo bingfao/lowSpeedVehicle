@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-06 09:58:02
- * @LastEditTime: 2025-02-08 09:57:25
+ * @LastEditTime: 2025-02-20 10:58:35
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_w25q128.c
@@ -66,7 +66,7 @@ static int32_t w25q128_drv_open(DRIVER_OBJ_t *p_driver, uint32_t oflag);
 static int32_t w25q128_drv_close(DRIVER_OBJ_t *p_driver);
 static int32_t w25q128_drv_read(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buffer, uint32_t size);
 static int32_t w25q128_drv_write(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buffer, uint32_t size);
-static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *args);
+static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *args, uint32_t size);
 
 /* w25q128 driver interface */
 static int32_t ospi_w25qxx_auto_polling_mem_ready(void);
@@ -180,11 +180,11 @@ static int32_t w25q128_drv_write(DRIVER_OBJ_t *p_driver, uint32_t pos, void *buf
     return size;
 }
 
-static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *args)
+static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *args, uint32_t size)
 {
     W25Q128_PRIV_t *p_priv = (W25Q128_PRIV_t *)p_driver->driver->drv_priv;
     uint32_t address = 0;
-    uint32_t size = 0;
+    uint32_t erasesize = 0;
     uint32_t *data = (uint32_t *)args;
 
     if (p_priv->open_flag == 0) {
@@ -197,8 +197,8 @@ static int32_t w25q128_drv_control(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *a
                 return -EINVAL;
             }
             address = *(uint32_t *)args;
-            size = *((uint32_t *)args + 1);
-            if (ospi_w25qxx_erase_buffer(address, size) != 0) {
+            erasesize = *((uint32_t *)args + 1);
+            if (ospi_w25qxx_erase_buffer(address, erasesize) != 0) {
                 return -EIO;
             }
             break;
