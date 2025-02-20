@@ -2384,6 +2384,9 @@
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\ex_flash.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\devices\gnss_port.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\devices\lfs_port.c</name>
             </file>
             <file>

@@ -49,6 +49,8 @@ typedef struct
     char date[16];
     char time[16];
     uint8_t md5[16];
+    char mcu_name[16];
+    uint32_t start_rom_addr;
 } INFO_HEAD_t;
 #pragma pack(pop)
 
@@ -74,6 +76,22 @@ typedef struct
 #endif
 
 #define INFO_HEAD_NAME          "EBike_ECU"
+
+#if defined(STM32U575xx)
+#define MCU_NAME                "STM32U575xx"
+#define MCU_START_ADDR          0x08000000
+#elif defined(STM32F407xx)
+#define MCU_NAME                "STM32F407xx"
+#if defined(_BANK_2_)
+#define MCU_START_ADDR          0x08040000
+#else
+#define MCU_START_ADDR          0x08004000
+#endif
+#else
+#define MCU_NAME                "Unknown"
+#define MCU_START_ADDR          0x00000000
+#endif
+
 /*
  * ****************************************************************************
  * ******** Exported variables                                         ********
