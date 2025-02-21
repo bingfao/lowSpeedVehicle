@@ -43,12 +43,12 @@ typedef struct
 #pragma pack(push, 1)
 typedef struct
 {
+    uint8_t md5[16];   // the md5 value of the firmware file must in the head.
     SOFT_VERSION_t version;
     uint8_t reserve[3];
     char name[32];
     char date[16];
     char time[16];
-    uint8_t md5[16];
     char mcu_name[16];
     uint32_t start_rom_addr;
 } INFO_HEAD_t;

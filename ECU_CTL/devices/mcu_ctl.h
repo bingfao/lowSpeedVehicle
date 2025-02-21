@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-30 15:05:50
- * @LastEditTime: 2025-02-20 10:54:06
+ * @LastEditTime: 2025-02-20 23:53:41
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\mcu_ctl.h
@@ -22,8 +22,7 @@
  * ============================================================================
  */
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 /*
  * ****************************************************************************
@@ -39,13 +38,13 @@ extern "C"
  * ****************************************************************************
  */
 
-typedef enum
-{
+typedef enum {
     MCU_CTL_CMD_NONE = DRV_CMD_MCU_OPERATION_BASE,
     MCU_CTL_CMD_RESET,
     MCU_CTL_GET_RUN_BANK,
     MCU_CTL_SET_RUN_BANK,
     MCU_CTL_FLASH_ERASE,
+    MCU_CTL_GET_UPGRADE_FLASH_ADDR,
 } MCU_CTL_CMD_t;
 
 /*
@@ -76,6 +75,10 @@ int32_t mcu_ctl_get_id(uint8_t *id, uint8_t len);
 int32_t mcu_ctl_reset(void);
 int32_t mcu_ctl_get_run_bank(uint32_t *bank);
 int32_t mcu_ctl_set_run_bank(uint32_t bank);
+int32_t mcu_ctl_flash_get_upgrade_addr(uint32_t addr);
+int32_t mcu_ctl_flash_erase(uint32_t addr, uint32_t len);
+int32_t mcu_ctl_flash_write(uint32_t addr, uint8_t *data, uint32_t len);
+int32_t mcu_ctl_flash_read(uint32_t addr, uint8_t *data, uint32_t len);
 /* ************************************************************************* */
 #ifdef __cplusplus
 }
@@ -86,4 +89,3 @@ int32_t mcu_ctl_set_run_bank(uint32_t bank);
  * End File
  * ****************************************************************************
  */
-

@@ -41,14 +41,14 @@ const char *logo =
 
 #pragma location = ".infohead"
 const INFO_HEAD_t g_info_head = {
-    {VERSION_MAJOR, VERSION_MINOR, VERSION_SUB, VERSION_BUILD, VERSION_RELEASE},
-    {0},
-    INFO_HEAD_NAME,
-    __DATE__,
-    __TIME__,
-    {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
-    MCU_NAME,
-    MCU_START_ADDR
+    .md5 = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
+    .version = {VERSION_MAJOR, VERSION_MINOR, VERSION_SUB, VERSION_BUILD, VERSION_RELEASE},
+    .reserve = {0, 0, 0},
+    .name = INFO_HEAD_NAME,
+    .date = __DATE__,
+    .time = __TIME__,
+    .mcu_name = MCU_NAME,
+    .start_rom_addr = MCU_START_ADDR,
 };
 /*
  * ****************************************************************************
