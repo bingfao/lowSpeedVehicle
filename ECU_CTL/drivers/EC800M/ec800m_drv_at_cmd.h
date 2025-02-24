@@ -5,8 +5,8 @@
  * ****************************************************************************
  */
 
-#ifndef __MP32GM51_HAL_XXXX_H
-#define __MP32GM51_HAL_XXXX_H
+#ifndef __EC800M_DRV_AT_CMD_H
+#define __EC800M_DRV_AT_CMD_H
 /*
  * ============================================================================
  * If building with a C++ compiler, make all of the definitions in this header
@@ -90,7 +90,7 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-#endif /*__EC800M_DRV_AT_CMD_h */
+#endif /*__EC800M_DRV_AT_CMD_H */
 /*
  * ****************************************************************************
  * End File

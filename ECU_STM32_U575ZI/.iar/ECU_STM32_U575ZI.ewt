@@ -3090,6 +3090,9 @@
                 <name>$PROJ_DIR$\..\..\ECU_CTL\app\net_unit.c</name>
             </file>
             <file>
+                <name>$PROJ_DIR$\..\..\ECU_CTL\app\upgrade_unit.c</name>
+            </file>
+            <file>
                 <name>$PROJ_DIR$\..\..\ECU_CTL\app\version.c</name>
             </file>
         </group>
@@ -3240,6 +3243,12 @@
                 <name>soft_aes</name>
                 <file>
                     <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\soft_aes\aes.c</name>
+                </file>
+            </group>
+            <group>
+                <name>ymodem</name>
+                <file>
+                    <name>$PROJ_DIR$\..\..\ECU_CTL\middlewares\ymodem\ymodem.c</name>
                 </file>
             </group>
             <file>

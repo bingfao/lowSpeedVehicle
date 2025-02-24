@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-23 10:36:17
- * @LastEditTime: 2025-02-21 09:24:50
+ * @LastEditTime: 2025-02-24 14:53:44
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_mcu.c
@@ -82,7 +82,7 @@ static int32_t flash_erase(uint32_t start_addr, uint32_t end_addr);
 static int32_t drv_mcu_erase_inter_flash(uint32_t start_addr, uint32_t size);
 static int32_t drv_mcu_write_inter_flash(uint32_t start_addr, uint32_t *data, uint32_t size);
 static int32_t drv_mcu_read_inter_flash(uint32_t start_addr, uint32_t *data, uint32_t size);
-static int32_t drv_mcu_get_upgrade_flash_addr(uint32_t *addr);
+static int32_t drv_mcu_get_upgrade_flash_area(uint32_t *addr);
 
 DRIVER_CTL_t g_mcu_driver = {
     .init = mcu_drv_init,
@@ -226,10 +226,10 @@ static bool erase_address_is_valid(uint32_t start_addr, uint32_t end_addr)
     }
     // only support erase in bank 2 (0x81000000, 0x81FFFFFF)
     if (start_addr > g_flash_area[1].end_addr || end_addr < g_flash_area[1].str_addr) {
-        return true;
+        return false;
     }
 
-    return false;
+    return true;
 }
 
 static bool flash_is_erased(uint32_t start_addr, uint32_t end_addr)
@@ -353,16 +353,16 @@ static int32_t flash_erase(uint32_t start_addr, uint32_t end_addr)
 
 static int32_t drv_mcu_erase_inter_flash(uint32_t start_addr, uint32_t size)
 {
-    if (erase_address_is_valid(start_addr, start_addr + size) == false) {
+    if (erase_address_is_valid(start_addr, start_addr + size - 1) == false) {
         log_e("invalid erase address or size: 0x%x, 0x%x", start_addr, size);
 
         return -EINVAL;
     }
     // check if the flash is already erased, the read addr is the virtual address when run bank is 2
-    if (flash_is_erased(start_addr, start_addr + size) == true) {
+    if (flash_is_erased(start_addr, start_addr + size -1) == true) {
         return 0;
     }
-    return flash_erase(start_addr, start_addr + size);
+    return flash_erase(start_addr, start_addr + size - 1);
 }
 
 static int32_t drv_mcu_write_inter_flash(uint32_t start_addr, uint32_t *data, uint32_t size)
@@ -428,9 +428,10 @@ static int32_t drv_mcu_read_inter_flash(uint32_t start_addr, uint32_t *data, uin
     return (int32_t)size;
 }
 
-static int32_t drv_mcu_get_upgrade_flash_addr(uint32_t *addr)
+static int32_t drv_mcu_get_upgrade_flash_area(uint32_t *area)
 {
-    *addr = FLASH_BASE + FLASH_BANK_SIZE;
+    area[0] = FLASH_BASE + FLASH_BANK_SIZE;
+    area[1] = FLASH_BANK_SIZE;
     return 0;
 }
 
@@ -457,8 +458,8 @@ static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint
         case DRV_MCU_CTL_FLASH_ERASE:
             ret = drv_mcu_erase_inter_flash(*(uint32_t *)args, *((uint32_t *)args + 1));  // start_addr, end_addr
             break;
-        case DRV_MCU_CTL_GET_UPGRADE_FLASH_ADDR:
-            ret = drv_mcu_get_upgrade_flash_addr((uint32_t *)args);
+        case MCU_CTL_GET_UPGRADE_FLASH_AREA:
+            ret = drv_mcu_get_upgrade_flash_area((uint32_t *)args);
             break;
         default:
             return -EINVAL;

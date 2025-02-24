@@ -1,10 +1,10 @@
 /*
  * @Author: your name
- * @Date: 2024-10-30 15:05:50
- * @LastEditTime: 2025-02-23 19:53:59
+ * @Date: 2025-02-23 10:38:13
+ * @LastEditTime: 2025-02-24 09:26:19
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
- * @FilePath: \ebike_ECU\ECU_CTL\devices\mcu_ctl.h
+ * @FilePath: \ebike_ECU\ECU_CTL\app\upgrade_unit.h
  */
 
 /*
@@ -13,8 +13,8 @@
  * ****************************************************************************
  */
 
-#ifndef __MCU_CTL_H
-#define __MCU_CTL_H
+#ifndef __UPGRADE_UNIT_H
+#define __UPGRADE_UNIT_H
 /*
  * ============================================================================
  * If building with a C++ compiler, make all of the definitions in this header
@@ -29,29 +29,34 @@ extern "C" {
  * ******** Includes                                                   ********
  * ****************************************************************************
  */
-#include <stdint.h>
+#include "stdint.h"
 
-#include "driver_com.h"
 /*
  * ****************************************************************************
  * ******** Exported Types                                             ********
  * ****************************************************************************
  */
 
-typedef enum {
-    MCU_CTL_CMD_NONE = DRV_CMD_MCU_OPERATION_BASE,
-    MCU_CTL_CMD_RESET,
-    MCU_CTL_GET_RUN_BANK,
-    MCU_CTL_SET_RUN_BANK,
-    MCU_CTL_FLASH_ERASE,
-    MCU_CTL_GET_UPGRADE_FLASH_AREA,
-} MCU_CTL_CMD_t;
-
 /*
  * ****************************************************************************
  * ******** Exported constants                                         ********
  * ****************************************************************************
  */
+#define UPGRADE_START_SOURCE_SHELL_SERIAL 0x01  // use shell port to start upgrade
+#define UPGRADE_START_SOURCE_BLE_UART     0x02  // use ble uart port to start upgrade
+#define UPGRADE_START_SOURCE_OTA_MODE     0x03  // use ota mode to start upgrade
+
+#define UPGRADE_DEST_MCU                  0x00  // upgrade MCU, ECU upgrade
+#define UPGRADE_DEST_BMS                  0x01  // upgrade BMS
+#define UPGRADE_DEST_MOTOR_CONTROL        0x02  // upgrade Motor Control
+
+#define UPGRADE_STATUS_IDLE               0x00  // upgrade idle
+#define UPGRADE_STATUS_START              0x01  // upgrade start
+#define UPGRADE_STATUS_ONGOING            0x02  // upgrade ongoing
+#define UPGRADE_STATUS_STOP               0x03  // upgrade stop
+#define UPGRADE_STATUS_TIMEOUT            0x04  // upgrade success
+#define UPGRADE_STATUS_SUCCESS            0x05  // upgrade success
+#define UPGRADE_STATUS_FAIL               0x06  // upgrade fail
 
 /*
  * ****************************************************************************
@@ -70,20 +75,14 @@ typedef enum {
  * ******** Exported Function                                          ********
  * ****************************************************************************
  */
-int32_t mcu_ctl_init(void);
-int32_t mcu_ctl_get_id(uint8_t *id, uint8_t len);
-int32_t mcu_ctl_reset(void);
-int32_t mcu_ctl_get_run_bank(uint32_t *bank);
-int32_t mcu_ctl_set_run_bank(uint32_t bank);
-int32_t mcu_ctl_flash_get_upgrade_area(uint32_t *addr, uint32_t *size);
-int32_t mcu_ctl_flash_erase(uint32_t addr, uint32_t len);
-int32_t mcu_ctl_flash_write(uint32_t addr, uint8_t *data, uint32_t len);
-int32_t mcu_ctl_flash_read(uint32_t addr, uint8_t *data, uint32_t len);
+int32_t upgrade_unit_init(void);
+int32_t upgrade_mcu_ymodem_start(uint8_t src, uint8_t dest);
+
 /* ************************************************************************* */
 #ifdef __cplusplus
 }
 #endif
-#endif /*__MCU_CTL_H */
+#endif /*__UPGRADE_UNIT_H */
 /*
  * ****************************************************************************
  * End File

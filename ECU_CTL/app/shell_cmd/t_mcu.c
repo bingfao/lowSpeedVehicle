@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-02-14 15:13:00
- * @LastEditTime: 2025-02-20 20:17:38
+ * @LastEditTime: 2025-02-24 21:22:36
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\app\shell_cmd\t_mcu copy.c
@@ -17,9 +17,10 @@
 #include "main.h"
 #include "mcu_ctl.h"
 #include "shell.h"
-#include "shell_port.h"
 #include "shell_cmd_group.h"
+#include "shell_port.h"
 #include "stdlib.h"
+#include "upgrade_unit.h"
 #include "util.h"
 #include "version.h"
 
@@ -54,8 +55,7 @@ static int set_mcu_run_bank_handler(int argc, char *argv[])
 static int mcu_start_ymodem_handler(int argc, char *argv[])
 {
     log_d("ymodem start");
-    elog_stop();
-    shell_port_stop();
+    upgrade_mcu_ymodem_start(UPGRADE_START_SOURCE_SHELL_SERIAL, UPGRADE_DEST_MCU);
 
     return 0;
 }

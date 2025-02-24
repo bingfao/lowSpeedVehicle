@@ -41,5 +41,7 @@ size_t console_write(const uint8_t *data, size_t size);
  *            >0: 成功读取到的数据量
  */
 size_t console_read(uint8_t *data, size_t size);
+size_t console_read_timeout_1000(uint8_t *data, size_t size);
+int32_t console_exit_read(void);
 
 #endif //IMPELLAACTUATOR_CONSOLE_H

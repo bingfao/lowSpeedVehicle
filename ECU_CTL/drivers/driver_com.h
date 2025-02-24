@@ -78,6 +78,8 @@ typedef enum {
     DRV_CMD_GET_BUFFER_TOTAL_SIZE,        // get size of driver buffer
     DRV_CMD_GET_BUFFER_BLOCK_SIZE,        // get size of driver minimum block unit
     DRV_CMD_SET_DATA_MODE,                // set data mode
+    DRV_CMD_CLEAR_READ_BLOCKING_SEM,      // clean read blocking sem
+    DRV_CMD_CLEAR_WRITE_BLOCKING_SEM,     // clean write blocking sem
     DRV_CMD_MAX,
 } DRV_CMD_t;
 

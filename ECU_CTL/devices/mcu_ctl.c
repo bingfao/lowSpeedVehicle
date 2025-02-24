@@ -131,18 +131,22 @@ int32_t mcu_ctl_set_run_bank(uint32_t bank)
     return ret;
 }
 
-int32_t  mcu_ctl_flash_get_upgrade_addr(uint32_t addr)
+int32_t mcu_ctl_flash_get_upgrade_area(uint32_t *addr, uint32_t *size)
 {
     int32_t ret = 0;
+    uint32_t data[2] = {0};
 
     if (g_mcu_ctl_inited_flg != 1) {
         log_e("mcu_ctl not inited \r\n");
         return -1;
     }
-    ret = driver_control(g_mcu_drv, MCU_CTL_GET_UPGRADE_FLASH_ADDR, &addr, sizeof(uint32_t));
+    ret = driver_control(g_mcu_drv, MCU_CTL_GET_UPGRADE_FLASH_AREA, data, sizeof(data));
     if (ret != 0) {
-        log_e("mcu_ctl flash get upgrade addr failed \r\n");
+        log_e("mcu_ctl flash get upgrade area failed \r\n");
+        return ret;
     }
+    *addr = data[0];
+    *size = data[1];
 
     return ret;
 }

@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-22 16:38:10
- * @LastEditTime: 2024-10-22 17:32:55
+ * @LastEditTime: 2025-02-23 10:39:52
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ECU_CTL\app\ecu_unit.h
@@ -13,8 +13,8 @@
  * ****************************************************************************
  */
 
-#ifndef __MP32GM51_HAL_XXXX_H
-#define __MP32GM51_HAL_XXXX_H
+#ifndef __ECU_UNIT_H
+#define __ECU_UNIT_H
 /*
  * ============================================================================
  * If building with a C++ compiler, make all of the definitions in this header
@@ -67,7 +67,7 @@ int32_t ecu_unit_start(void);
 #ifdef __cplusplus
 }
 #endif
-#endif /*__MP32GM51_HAL_XXXX_H */
+#endif /*__ECU_UNIT_H */
 /*
  * ****************************************************************************
  * End File

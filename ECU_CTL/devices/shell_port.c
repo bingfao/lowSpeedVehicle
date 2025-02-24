@@ -85,6 +85,7 @@ int32_t shell_port_init(void)
 int32_t shell_port_stop(void)
 {
     vTaskSuspend(g_shell_port_thread.thread_handle);
+    console_exit_read();
     return 0;
 }
 

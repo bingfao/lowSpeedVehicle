@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-25 14:20:51
- * @LastEditTime: 2025-02-20 10:53:01
+ * @LastEditTime: 2025-02-24 08:42:36
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\drv_usart.c
@@ -186,6 +186,7 @@ static int32_t drv_usart_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, ui
 void uart_it_rx_finish_callback(UART_HandleTypeDef *huart);
 void uart_it_tx_finish_callback(UART_HandleTypeDef *huart);
 static void usart_dma_tx_task(void const *argument);
+static int32_t drv_usart_release_rx_sem(DRV_USART_OBJ_t *usart_obj);
 
 DRIVER_CTL_t g_usart_ctl[DRV_USART_NUM_MAX] = {
     {
@@ -503,6 +504,24 @@ static int32_t drv_usart_write(DRIVER_OBJ_t *drv, uint32_t pos, void *buffer, ui
     return size;
 }
 
+static int32_t drv_usart_release_rx_sem(DRV_USART_OBJ_t *usart_obj)
+{
+    BaseType_t ret = 0;
+
+    // release rx sem if othere task is waiting for rx data.
+    xSemaphoreGive(usart_obj->tx_sem.xSemHandle);
+    vTaskDelay(10);
+    // if other task not waiting for rx data, eliminate effects release rx sem, in next operstion.
+    do {
+        ret = xSemaphoreTake(usart_obj->rx_sem.xSemHandle, 100);
+        if (ret != pdTRUE) {
+            break;
+        }
+    } while (ret == pdTRUE);
+
+    return 0;
+}
+
 static int32_t drv_usart_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint32_t size)
 {
     int32_t ret = 0;
@@ -528,6 +547,9 @@ static int32_t drv_usart_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, ui
             break;
         case DRV_USART_CMD_GET_RX_DATA_SIZE:
             ret = RingBuffer_GetCount(&usart_obj->rx_ring_buff);
+            break;
+        case DRV_USART_CMD_CLEAR_READ_BLOCKING_SEM:
+            ret = drv_usart_release_rx_sem(usart_obj);
             break;
         default:
             return -EINVAL;

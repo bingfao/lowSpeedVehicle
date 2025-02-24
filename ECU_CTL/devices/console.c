@@ -49,7 +49,33 @@ size_t console_read(uint8_t *data, size_t size)
         return 0;
     }
 
-    return (int)size;
+    return (int)ret;
+}
+
+size_t console_read_timeout_1000(uint8_t *data, size_t size)
+{
+    int32_t ret = 0;
+    if (active == false) {
+        return -1;
+    }
+    ret = driver_read(g_console_trans_driver, DEV_RXTX_POS_BLOCKING_1000, data, size);
+    if (ret <= 0) {
+        return 0;
+    }
+
+    return (int)ret;
+}
+
+int32_t console_exit_read(void)
+{
+    int32_t ret = 0;
+
+    if (active == false) {
+        return -1;
+    }
+    ret = driver_control(g_console_trans_driver, DRV_CMD_CLEAR_READ_BLOCKING_SEM, NULL, 0);
+
+    return ret;
 }
 
 void console_init(void)
