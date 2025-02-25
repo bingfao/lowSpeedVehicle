@@ -44,6 +44,8 @@ typedef struct
 typedef struct
 {
     uint8_t md5[16];   // the md5 value of the firmware file must in the head.
+    uint32_t bin_size;     // the size of the firmware file. the size must be set after download.
+    uint32_t reserve_ff[3]; // reserve 12 bytes, 0xFFFFFFFF * 3.
     SOFT_VERSION_t version;
     uint8_t reserve[3];
     char name[32];
