@@ -179,6 +179,10 @@ static int32_t ec800m_device_utc_str_analysis(void *args, char *str);
 static int32_t ec800m_device_get_utc(struct tm *local_time);
 static int32_t ec800m_device_gnss_qgpsloc_str_analysis(void *args, char *str);
 static int32_t ec800m_device_get_gnss(NET_PORT_GNSS_t *gnss_location);
+static int32_t ec800m_device_set_traffic_statistics_recoder_period(uint32_t seconds);
+static int32_t ec800m_device_get_traffic_statistics_ack(void *args, char *str);
+static int32_t ec800m_device_get_traffic_statistics(uint32_t *tx_rx_bytes);
+static int32_t ec800m_device_clr_traffic_statistics(void);
 
 DRIVER_CTL_t g_ec800m_driver = {
     .init = ec800m_drv_init,
@@ -840,6 +844,19 @@ static int32_t ec800m_dev_ctl(DRIVER_OBJ_t *p_driver, uint32_t cmd, void *arg, u
                 return -EINVAL;
             }
             ret = ec800m_device_get_gnss((NET_PORT_GNSS_t *)((uint32_t *)arg + 1));
+        case DRV_EC800M_CMD_SET_QAUGDCNT:
+            if (arg == NULL) {
+                ret = -EINVAL;
+                break;
+            }
+            ret = ec800m_device_set_traffic_statistics_recoder_period(*(uint32_t *)arg);
+            break;
+        case DRV_EC800M_CMD_GET_QGDCNT:
+            ret = ec800m_device_get_traffic_statistics((uint32_t *)arg);
+            break;
+        case DRV_EC800M_CMD_CLR_FLOW:
+            ret = ec800m_device_clr_traffic_statistics();
+            break;
         default:
             break;
     }
@@ -1574,6 +1591,147 @@ static int32_t ec800m_device_get_gnss(NET_PORT_GNSS_t *gnss_location)
         }
     }
     log_d("ec800m_device_get_utc fail\r\n");
+
+    return -ETIME;
+}
+
+static int32_t ec800m_device_set_traffic_statistics_recoder_period(uint32_t seconds)
+{
+    AT_CMP_STR_NODE_t at_str_ack[2] = {0};
+    int8_t rx_queue_num = 0;
+    char cmd[20] = {0};
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
+
+    at_com_clr_cmp_str(&g_ec800m_at_com);
+    at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_ACK_OK, NULL, ec800m_device_ack_ok);
+    at_com_add_cmp_str(&g_ec800m_at_com, &at_str_ack[0]);
+    memset(g_ec800m_inter_tran_buf, 0, sizeof(g_ec800m_inter_tran_buf));
+    g_ec800m_inter_tran_buf_index = 0;
+    sprintf(cmd, "%s%d\r\n", EC800M_AT_CMD_SET_QAUGDCNT, seconds);
+    at_com_send_str(&g_ec800m_at_com, cmd, strlen(cmd), 2000);  // send AT+QAUGDCNT=
+    rx_queue_num = 1;
+    while (rx_queue_num > 0) {
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
+        if (res != pdPASS) {
+            log_e("ec800m set traffic statistics recoder period time out\r\n");
+            return -ETIME;
+        }
+        rx_queue_num--;
+        switch (msg) {
+            case EC800M_AT_ACK_QUEUE_OK:
+                return 0;
+            default:
+                break;
+        }
+    }
+
+    return -ETIME;
+}
+
+static int32_t ec800m_device_get_traffic_statistics_ack(void *args, char *str)
+{
+    uint32_t tx_bytes = 0;
+    uint32_t rx_bytes = 0;
+    int32_t ret = 0;
+
+
+    if (str == NULL) {
+        log_e("str is NULL\r\n");
+        return -EINVAL;
+    }
+
+    ret = sscanf(str, "+QGDCNT: %d,%d", &tx_bytes, &rx_bytes);
+    if (ret != 2) {
+        log_e("traffic statistics str analysis failed, ret:%d (%s)\r\n", ret, str);
+        return -EINVAL;
+    }
+    *(uint32_t *)&g_ec800m_inter_tran_buf[0] = tx_bytes;
+    *(uint32_t *)&g_ec800m_inter_tran_buf[4] = rx_bytes;
+    g_ec800m_inter_tran_buf_index = 8;
+    log_d("traffic statistics str analysis success, tx_bytes:%d, rx_bytes:%d\r\n", tx_bytes, rx_bytes);
+    ret = ec800m_device_ack_message_send(EC800M_AT_ACK_QUEUE_OK);
+
+    return ret;
+}
+
+static int32_t ec800m_device_get_traffic_statistics(uint32_t *tx_rx_bytes)
+{
+    AT_CMP_STR_NODE_t at_str_ack[2] = {0};
+    int8_t rx_queue_num = 0;
+    char cmd[20] = {0};
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
+    uint32_t tx_bytes = 0;
+    uint32_t rx_bytes = 0;
+
+    if (tx_rx_bytes == NULL) {
+        log_e("tx_rx_bytes is NULL\r\n");
+        return -EINVAL;
+    }
+    at_com_clr_cmp_str(&g_ec800m_at_com);
+    at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_CMD_GET_QGDCNT_ACK, NULL, ec800m_device_get_traffic_statistics_ack);
+    at_com_add_cmp_str(&g_ec800m_at_com, &at_str_ack[0]);
+    memset(g_ec800m_inter_tran_buf, 0, sizeof(g_ec800m_inter_tran_buf));
+    g_ec800m_inter_tran_buf_index = 0;
+    sprintf(cmd, "%s\r\n", EC800M_AT_CMD_GET_QGDCNT);
+    at_com_send_str(&g_ec800m_at_com, cmd, strlen(cmd), 2000);  // send AT+QGDCNT?
+    rx_queue_num = 1;
+    while (rx_queue_num > 0) {
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
+        if (res != pdPASS) {
+            log_e("ec800m get traffic statistics time out\r\n");
+            return -ETIME;
+        }
+        rx_queue_num--;
+        switch (msg) {
+            case EC800M_AT_ACK_QUEUE_OK:
+                if (g_ec800m_inter_tran_buf_index != 8) {
+                    log_e("ec800m get traffic statistics buffer size error\r\n");
+                    return -EINVAL;
+                }
+                tx_bytes = *(uint32_t *)(&g_ec800m_inter_tran_buf[0]);
+                rx_bytes = *(uint32_t *)(&g_ec800m_inter_tran_buf[4]);
+                *tx_rx_bytes = tx_bytes + rx_bytes;
+                return 0;
+            default:
+                break;
+        }
+    }
+
+    return -ETIME;
+}
+
+static int32_t ec800m_device_clr_traffic_statistics(void)
+{
+    AT_CMP_STR_NODE_t at_str_ack[2] = {0};
+    int8_t rx_queue_num = 0;
+    char cmd[20] = {0};
+    BaseType_t res = pdFAIL;
+    uint32_t msg;
+
+    at_com_clr_cmp_str(&g_ec800m_at_com);
+    at_com_set_cmp_str(&at_str_ack[0], EC800M_AT_ACK_OK, NULL, ec800m_device_ack_ok);
+    at_com_add_cmp_str(&g_ec800m_at_com, &at_str_ack[0]);
+    memset(g_ec800m_inter_tran_buf, 0, sizeof(g_ec800m_inter_tran_buf));
+    g_ec800m_inter_tran_buf_index = 0;
+    sprintf(cmd, "%s\r\n", EC800M_AT_CMD_SET_QGDCNT_0);
+    at_com_send_str(&g_ec800m_at_com, cmd, strlen(cmd), 2000);  // send AT+QGDCNT?
+    rx_queue_num = 1;
+    while (rx_queue_num > 0) {
+        res = xQueueReceive(g_ec800m_rx_queue_handle, &msg, 2000);
+        if (res != pdPASS) {
+            log_e("ec800m get traffic statistics time out\r\n");
+            return -ETIME;
+        }
+        rx_queue_num--;
+        switch (msg) {
+            case EC800M_AT_ACK_QUEUE_OK:
+                return 0;
+            default:
+                break;
+        }
+    }
 
     return -ETIME;
 }

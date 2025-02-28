@@ -68,6 +68,11 @@ extern "C" {
 
 #define EC800M_AT_CMD_GET_GNSS_QGPSLOC       "AT+QGPSLOC=2"
 #define EC800M_AT_CMD_GET_GNSS_QGPSLOC_ACK   "+QGPSLOC:"
+
+#define EC800M_AT_CMD_SET_QAUGDCNT           "AT+QAUGDCNT="  // set the traffic statistics record time
+#define EC800M_AT_CMD_GET_QGDCNT             "AT+QGDCNT?"    // get the traffic statistics
+#define EC800M_AT_CMD_GET_QGDCNT_ACK         "+QGDCNT:"
+#define EC800M_AT_CMD_SET_QGDCNT_0           "AT+QGDCNT=0"  // clear the traffic statistics
 /*
  * ****************************************************************************
  * ******** Exported macro                                             ********

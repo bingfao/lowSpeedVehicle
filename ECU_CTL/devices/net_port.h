@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 15:09:26
- * @LastEditTime: 2025-02-20 10:55:42
+ * @LastEditTime: 2025-02-28 14:22:18
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.h
@@ -53,6 +53,9 @@ typedef enum {
     NET_PORT_CMD_SET_DIS_STATE,
     NET_PORT_CMD_GET_UTC_TIME,
     NET_PORT_CMD_GET_GNSS,
+    NET_PORT_CMD_SET_TRAFFIC_STATISTICS_RECODER_PERIOD,  // set traffic statistics recoder period
+    NET_PORT_CMD_GET_TRAFFIC_STATISTICS,                 // get traffic statistics
+    NET_PORT_CMD_CLR_TRAFFIC_STATISTICS,                 // clear traffic statistics
     NET_PORT_CMD_TCP_MAX
 } NET_PORT_CMD_t;
 
@@ -61,7 +64,7 @@ typedef struct
     float latitude;
     float longitude;
     float altitude;
-    float hdop;             // Horizontal Dilution of Precision
+    float hdop;  // Horizontal Dilution of Precision
     uint8_t hour;
     uint8_t minute;
     uint8_t second;
@@ -114,7 +117,9 @@ int32_t net_port_socket_refresh(void);
 int32_t net_port_tcp_reconnect(void);
 int32_t net_port_get_utc(struct tm *tm_time);
 int32_t net_port_get_gnss(NET_PORT_GNSS_t *gnss);
-
+int32_t net_port_set_traffic_statistics_recoder_period(uint32_t seconds);
+int32_t net_port_get_flow(uint32_t *tx_rx_bytes);
+int32_t net_port_clr_flow(void);
 
 /* ************************************************************************* */
 #ifdef __cplusplus

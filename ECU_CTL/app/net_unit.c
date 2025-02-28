@@ -53,6 +53,8 @@ USER_THREAD_OBJ_t g_net_unit_thread;
 static int32_t net_unit_prepare(void);
 static void net_unit_task(void const *argument);
 static void net_upload_data(int32_t ticks_used);
+static void net_unit_set_flow_read_period(uint32_t period_s);
+static void net_unit_flow_need_clear_check(uint32_t ticks_used);
 
 /*
  * ****************************************************************************
@@ -99,6 +101,8 @@ static void net_unit_task(void const *argument)
     log_d("NET_UNIT task running...\r\n");
     while (1) {
         net_upload_data(1000);
+        net_unit_flow_need_clear_check(1000);
+        net_unit_set_flow_read_period(60);
         vTaskDelay(1000);
     }
 }
@@ -133,6 +137,51 @@ static void net_upload_data(int32_t ticks_used)
     } else {
         timeout -= ticks_used;
     }
+}
+
+static void net_unit_set_flow_read_period(uint32_t period_s)
+{
+    static uint8_t set_flow_read_period_flag = 0;
+    int32_t ret = 0;
+
+    if (set_flow_read_period_flag == 0) {
+        ret = net_port_set_traffic_statistics_recoder_period(period_s);
+        if (ret == 0) {
+            log_i("net_port_set_traffic_statistics_recoder_period: %d, success\r\n", period_s);
+            set_flow_read_period_flag = 1;
+        }
+    }
+}
+
+#define NET_FLOW_NEED_CLEAR_CHECK_INTERVAL_MS 60000  // 60s
+static void net_unit_flow_need_clear_check(uint32_t ticks_used)
+{
+    static uint8_t flow_has_clear_flg = 1;
+    static int32_t timeout = 10000;
+    struct tm local_time = {0};
+    long nsec = 0;
+    int32_t ret = 0;
+
+    if (timeout > 0) {
+        timeout -= ticks_used;
+        return;
+    }
+    utc_get_local_time(&local_time, &nsec);
+    if (flow_has_clear_flg == 0 && local_time.tm_mday == 1) {  // 1st day of month the flow need clear
+        ret = net_port_clr_flow();
+        if (ret == 0) {
+            log_i("net_port_clr_flow [SUCCESS]\r\n");
+            flow_has_clear_flg = 1;
+        } else {
+            log_e("net_port_clr_flow [FAILED]\r\n");
+        }
+
+    } else {
+        if (local_time.tm_mday > 15) {  // 15th day of month the flow can be cleared
+            flow_has_clear_flg = 0;
+        }
+    }
+    timeout = NET_FLOW_NEED_CLEAR_CHECK_INTERVAL_MS;
 }
 
 /*

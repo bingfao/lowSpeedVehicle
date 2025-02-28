@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2025-02-20 10:59:08
+ * @LastEditTime: 2025-02-28 15:20:40
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -302,6 +302,66 @@ int32_t net_port_get_gnss(NET_PORT_GNSS_t *gnss)
         return -EIO;
     }
     memcpy(gnss, (uint32_t *)data + 1, sizeof(NET_PORT_GNSS_t));
+
+    return 0;
+}
+
+int32_t net_port_set_traffic_statistics_recoder_period(uint32_t seconds)
+{
+    int32_t ret = 0;
+    uint32_t temp_data = seconds;
+
+    if (seconds > 86400) {
+        temp_data = 86400;  // max value is 86400s (one day)
+    }
+    if (g_driver == NULL) {
+        log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
+        return -ENODEV;
+    }
+    ret = driver_control(g_driver, NET_PORT_CMD_SET_TRAFFIC_STATISTICS_RECODER_PERIOD, &temp_data, 4);
+    if (ret != 0) {
+        log_e("get set traffic statistics recoder period failed \r\n");
+        return -EIO;
+    }
+
+    return 0;
+}
+
+int32_t net_port_get_flow(uint32_t *tx_rx_bytes)
+{
+    int32_t ret = 0;
+    uint32_t total_flow = 0;
+
+    if (g_driver == NULL) {
+        log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
+        return -ENODEV;
+    }
+    ret = driver_control(g_driver, NET_PORT_CMD_GET_TRAFFIC_STATISTICS, &total_flow, 4);
+    if (ret != 0) {
+        log_e("get flow failed \r\n");
+        return -EIO;
+    }
+    *tx_rx_bytes = total_flow;
+    log_d("get flow: %d \r\n", total_flow);
+
+    return 0;
+}
+
+int32_t net_port_clr_flow(void)
+{
+    int32_t ret = 0;
+
+    if (g_driver == NULL) {
+        log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
+        return -ENODEV;
+    }
+    ret = driver_control(g_driver, NET_PORT_CMD_CLR_TRAFFIC_STATISTICS, NULL, 0);
+    if (ret != 0) {
+        log_e("clear flow failed \r\n");
+        return -EIO;
+    } else {
+        log_i("net_port_clear flow [SUCCESS] \r\n");
+    }
 
     return 0;
 }

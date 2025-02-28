@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:34
- * @LastEditTime: 2025-02-18 11:07:40
+ * @LastEditTime: 2025-02-28 14:13:10
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.c
@@ -24,6 +24,7 @@
 #include "elog.h"
 #include "error_code.h"
 #include "fault.h"
+#include "net_port.h"
 #include "ota_file_manage.h"
 #include "shell_port.h"
 #include "user_crc.h"
@@ -784,10 +785,16 @@ int32_t net_agreement_device_state_upload_ack(void *obj, uint8_t *data, uint32_t
 
 int32_t net_agreement_device_traffic_report_package(void *obj, uint8_t *data, uint32_t *len)
 {
+    int32_t ret = 0;
+    uint32_t flow = 0;
+
     memset(data, 0, 6);
     data[0] = (uint8_t)ebike_get_device_type();
     data[1] = 0x01;
-    *(uint32_t *)&data[2] = 0x02;
+    ret = net_port_get_flow(&flow);
+    if ( ret == 0) {
+        *(uint32_t *)&data[2] = flow / 1024;  // unit is KB
+    }
     *len = 6;
 
     return 0;

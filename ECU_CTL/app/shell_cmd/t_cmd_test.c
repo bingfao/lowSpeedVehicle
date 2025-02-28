@@ -176,6 +176,38 @@ static int t_gnss_info(int argc, char *argv[])
     return 0;
 }
 
+#define CMD_EXPLAIN_T_FLOW_INFO "ebike_cmd t_flow_info: Get flow info"
+static int t_flow_info(int argc, char *argv[])
+{
+    int32_t ret = 0;
+    uint32_t tx_rx_bytes = 0;
+
+    ret = net_port_get_flow(&tx_rx_bytes);
+    if (ret == 0) {
+        log_i("flow get success\r\n");
+        log_i("tx_rx_bytes = %d\r\n", tx_rx_bytes);
+    } else {
+        log_e("flow get failed\r\n");
+    }
+
+    return 0;
+}
+
+#define CMD_EXPLAIN_v "ebike_cmd t_flow_clr: clear flow info"
+static int t_clr_flow(int argc, char *argv[])
+{
+    int32_t ret = 0;
+
+    ret = net_port_clr_flow();
+    if (ret == 0) {
+        log_i("clear flow success\r\n");
+    } else {
+        log_e("clear flow failed\r\n");
+    }
+
+    return 0;
+}
+
 ShellCommand ebike_ctl[] = {
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_ebike_register, t_ebike_register, ebike register to server),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_ebike_state_upload, t_ebike_state_upload, ebike state upload to server),
@@ -185,6 +217,8 @@ ShellCommand ebike_ctl[] = {
                          write utc time : t_write_utc<year><month><day><hour><minute><second>),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_sync_utc, t_sync_utc, sync UTC : t_sync_utc),
     SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_gnss_info, t_gnss_info, get gnss : t_gnss_info),
+    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_flow_info, t_flow_info, CMD_EXPLAIN_T_FLOW_INFO),
+    SHELL_CMD_GROUP_ITEM(SHELL_TYPE_CMD_MAIN, t_flow_clr, t_clr_flow, CMD_EXPLAIN_v),
     SHELL_CMD_GROUP_END()};
 
 SHELL_EXPORT_CMD_GROUP(SHELL_CMD_TYPE(SHELL_TYPE_CMD_MAIN), ebike_cmd, ebike_ctl, ebike_cmd);
