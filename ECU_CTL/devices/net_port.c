@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2025-02-28 15:20:40
+ * @LastEditTime: 2025-03-04 09:19:01
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -58,6 +58,9 @@ char g_tcp_host[64] = {0};
 char g_tcp_port[16] = {0};
 int8_t g_net_driver_init_flag = 0;
 int8_t g_net_driver_need_connect_flag = 0;
+
+uint32_t g_net_port_tx_bytes = 0;
+uint32_t g_net_port_rx_bytes = 0;
 
 /*
  * ****************************************************************************
@@ -225,6 +228,7 @@ int32_t net_port_send(const uint8_t *buf, uint32_t len)
         log_e("send failed \r\n");
         return -EIO;
     }
+    g_net_port_tx_bytes += ret;
 
     return ret;
 }
@@ -245,6 +249,8 @@ int32_t net_port_recv(uint8_t *buf, uint32_t len)
     if (ret < 0) {
         log_e("recv failed \r\n");
         return -EIO;
+    } else {
+        g_net_port_rx_bytes += ret;
     }
 
     return ret;
@@ -327,7 +333,7 @@ int32_t net_port_set_traffic_statistics_recoder_period(uint32_t seconds)
     return 0;
 }
 
-int32_t net_port_get_flow(uint32_t *tx_rx_bytes)
+int32_t net_port_get_flow_total(uint32_t *tx_rx_bytes)
 {
     int32_t ret = 0;
     uint32_t total_flow = 0;
@@ -341,8 +347,38 @@ int32_t net_port_get_flow(uint32_t *tx_rx_bytes)
         log_e("get flow failed \r\n");
         return -EIO;
     }
+    log_d("EC800M_get_flow_total: %d \r\n", total_flow);
+    total_flow = g_net_port_rx_bytes + g_net_port_tx_bytes;
     *tx_rx_bytes = total_flow;
-    log_d("get flow: %d \r\n", total_flow);
+
+    return 0;
+}
+
+int32_t net_port_get_flow(uint32_t *tx_bytes, uint32_t *rx_bytes)
+{
+    int32_t ret = 0;
+    uint32_t total_flow = 0;
+
+    if (g_driver == NULL) {
+        log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
+        return -ENODEV;
+    }
+    ret = driver_control(g_driver, NET_PORT_CMD_GET_TRAFFIC_STATISTICS, &total_flow, 4);
+    if (ret != 0) {
+        log_e("get flow failed \r\n");
+        return -EIO;
+    }
+    log_d("EC800M_get_flow_total: %d \r\n", total_flow);
+    *tx_bytes = g_net_port_tx_bytes;
+    *rx_bytes = g_net_port_rx_bytes;
+
+    return 0;
+}
+
+int32_t net_port_set_flow(uint32_t tx_bytes, uint32_t rx_bytes)
+{
+    g_net_port_tx_bytes = tx_bytes;
+    g_net_port_rx_bytes = rx_bytes;
 
     return 0;
 }
@@ -362,6 +398,8 @@ int32_t net_port_clr_flow(void)
     } else {
         log_i("net_port_clear flow [SUCCESS] \r\n");
     }
+    g_net_port_rx_bytes = 0;
+    g_net_port_tx_bytes = 0;
 
     return 0;
 }

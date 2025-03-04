@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:47:34
- * @LastEditTime: 2025-02-28 14:13:10
+ * @LastEditTime: 2025-03-03 22:58:07
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\middlewares\net_agreement\net_agreement.c
@@ -791,7 +791,7 @@ int32_t net_agreement_device_traffic_report_package(void *obj, uint8_t *data, ui
     memset(data, 0, 6);
     data[0] = (uint8_t)ebike_get_device_type();
     data[1] = 0x01;
-    ret = net_port_get_flow(&flow);
+    ret = net_port_get_flow_total(&flow);
     if ( ret == 0) {
         *(uint32_t *)&data[2] = flow / 1024;  // unit is KB
     }

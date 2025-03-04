@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2025-02-03 15:21:50
- * @LastEditTime: 2025-02-04 11:32:40
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-03-03 20:20:13
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\bk_sram_config.h
  */
@@ -40,6 +40,7 @@ extern "C" {
 
 typedef enum {
     BK_CFG_UTC_SEC_NSEC = 0,
+    BK_CFG_NETWORK_FLOW = 1,
     BK_CFG_MAX,
 } BK_CFG_TYPE_t;
 
@@ -71,7 +72,8 @@ int32_t bk_config_init(void);
 bool bk_config_is_init(void);
 int32_t bk_config_utc_sec_nsec_read(uint8_t *data);
 int32_t bk_config_utc_sec_nsec_write(uint8_t *data);
-
+int32_t bk_config_network_flow_read(uint32_t *tx_bytes, uint32_t *rx_bytes);
+int32_t bk_config_network_flow_write(uint32_t tx_bytes, uint32_t rx_bytes);
 
 /* ************************************************************************* */
 #ifdef __cplusplus

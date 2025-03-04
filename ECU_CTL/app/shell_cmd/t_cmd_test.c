@@ -182,7 +182,7 @@ static int t_flow_info(int argc, char *argv[])
     int32_t ret = 0;
     uint32_t tx_rx_bytes = 0;
 
-    ret = net_port_get_flow(&tx_rx_bytes);
+    ret = net_port_get_flow_total(&tx_rx_bytes);
     if (ret == 0) {
         log_i("flow get success\r\n");
         log_i("tx_rx_bytes = %d\r\n", tx_rx_bytes);

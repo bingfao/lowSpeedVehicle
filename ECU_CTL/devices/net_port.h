@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 15:09:26
- * @LastEditTime: 2025-02-28 14:22:18
+ * @LastEditTime: 2025-03-03 23:05:03
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.h
@@ -118,7 +118,9 @@ int32_t net_port_tcp_reconnect(void);
 int32_t net_port_get_utc(struct tm *tm_time);
 int32_t net_port_get_gnss(NET_PORT_GNSS_t *gnss);
 int32_t net_port_set_traffic_statistics_recoder_period(uint32_t seconds);
-int32_t net_port_get_flow(uint32_t *tx_rx_bytes);
+int32_t net_port_get_flow_total(uint32_t *tx_rx_bytes);
+int32_t net_port_get_flow(uint32_t *tx_bytes, uint32_t *rx_bytes);
+int32_t net_port_set_flow(uint32_t tx_bytes, uint32_t rx_bytes);
 int32_t net_port_clr_flow(void);
 
 /* ************************************************************************* */

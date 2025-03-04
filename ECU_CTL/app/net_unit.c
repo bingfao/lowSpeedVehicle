@@ -12,6 +12,7 @@
 #include <error_code.h>
 #include <task.h>
 
+#include "bk_config.h"
 #include "ebike_manage.h"
 #include "elog.h"
 #include "net_port.h"
@@ -53,6 +54,7 @@ USER_THREAD_OBJ_t g_net_unit_thread;
 static int32_t net_unit_prepare(void);
 static void net_unit_task(void const *argument);
 static void net_upload_data(int32_t ticks_used);
+static void net_unit_flow_prepare(void);
 static void net_unit_set_flow_read_period(uint32_t period_s);
 static void net_unit_flow_need_clear_check(uint32_t ticks_used);
 
@@ -91,6 +93,7 @@ static int32_t net_unit_prepare(void)
     // int32_t ret = 0;
     ebike_manage_init();
     ota_file_thread_init();
+    net_unit_flow_prepare();
     return 0;
 }
 
@@ -153,6 +156,23 @@ static void net_unit_set_flow_read_period(uint32_t period_s)
     }
 }
 
+static void net_unit_flow_prepare(void)
+{
+    int32_t ret = 0;
+    uint32_t tx_bytes = 0;
+    uint32_t rx_bytes = 0;
+
+    ret = bk_config_network_flow_read(&tx_bytes, &rx_bytes);
+    if (ret < 0) {
+        log_w("bk_config_network_flow_read failed\r\n");
+        return;
+    }
+    log_d("last flow: tx_bytes: %d, rx_bytes: %d\r\n", tx_bytes, rx_bytes);
+    net_port_set_flow(tx_bytes, rx_bytes);
+
+    return;
+}
+
 #define NET_FLOW_NEED_CLEAR_CHECK_INTERVAL_MS 60000  // 60s
 static void net_unit_flow_need_clear_check(uint32_t ticks_used)
 {
@@ -161,12 +181,19 @@ static void net_unit_flow_need_clear_check(uint32_t ticks_used)
     struct tm local_time = {0};
     long nsec = 0;
     int32_t ret = 0;
+    uint32_t tx_bytes = 0;
+    uint32_t rx_bytes = 0;
 
     if (timeout > 0) {
         timeout -= ticks_used;
         return;
     }
     utc_get_local_time(&local_time, &nsec);
+    ret = net_port_get_flow(&tx_bytes, &rx_bytes);
+    if (ret == 0) {
+        bk_config_network_flow_write(tx_bytes, rx_bytes);
+    }
+    log_d("net_port_get_flow_total: %d\r\n", tx_bytes + rx_bytes);
     if (flow_has_clear_flg == 0 && local_time.tm_mday == 1) {  // 1st day of month the flow need clear
         ret = net_port_clr_flow();
         if (ret == 0) {
