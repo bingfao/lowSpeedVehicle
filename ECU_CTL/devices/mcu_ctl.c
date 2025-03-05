@@ -151,6 +151,44 @@ int32_t mcu_ctl_flash_get_upgrade_area(uint32_t *addr, uint32_t *size)
     return ret;
 }
 
+int32_t mcu_ctl_flash_get_md5_addr_offset(uint32_t *offset)
+{
+    int32_t ret = 0;
+    uint32_t data = 0;
+
+    if (g_mcu_ctl_inited_flg != 1) {
+        log_e("mcu_ctl not inited \r\n");
+        return -1;
+    }
+    ret = driver_control(g_mcu_drv, MCU_CTL_GET_MD5_ADDR_OFFSET, &data, sizeof(data));
+    if (ret != 0) {
+        log_e("mcu_ctl flash get md5 addr offset failed \r\n");
+        return ret;
+    }
+    *offset = data;
+
+    return ret;
+}
+
+int32_t mcu_ctl_flash_get_flile_size_addr_offset(uint32_t *offset)
+{
+    int32_t ret = 0;
+    uint32_t data = 0;
+
+    if (g_mcu_ctl_inited_flg != 1) {
+        log_e("mcu_ctl not inited \r\n");
+        return -1;
+    }
+    ret = driver_control(g_mcu_drv, MCU_CTL_GET_FSIZE_ADDR_OFFSET, &data, sizeof(data));
+    if (ret != 0) {
+        log_e("mcu_ctl flash get file size addr offset failed \r\n");
+        return ret;
+    }
+    *offset = data;
+
+    return ret;
+}
+
 int32_t mcu_ctl_flash_erase(uint32_t addr, uint32_t len)
 {
     int32_t ret = 0;

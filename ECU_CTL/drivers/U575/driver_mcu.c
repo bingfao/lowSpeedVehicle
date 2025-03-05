@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2025-01-23 10:36:17
- * @LastEditTime: 2025-02-24 14:53:44
+ * @LastEditTime: 2025-02-25 21:59:03
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_mcu.c
@@ -460,6 +460,14 @@ static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint
             break;
         case MCU_CTL_GET_UPGRADE_FLASH_AREA:
             ret = drv_mcu_get_upgrade_flash_area((uint32_t *)args);
+            break;
+        case DRV_MCU_CTL_GET_MD5_ADDR_OFFSET:
+            *(uint32_t *)args = DRV_MCU_MD5_ADDR_OFFSET;
+            ret = 0;
+            break;
+        case DRV_MCU_CTL_GET_FSIZE_ADDR_OFFSET:
+            *(uint32_t *)args = DRV_MCU_FILE_SIZE_ADDR_OFFSET;
+            ret = 0;
             break;
         default:
             return -EINVAL;
