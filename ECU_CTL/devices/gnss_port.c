@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2025-02-14 21:34:15
- * @LastEditTime: 2025-02-16 22:09:04
- * @LastEditors: stone_honor
+ * @LastEditTime: 2025-03-11 10:40:56
+ * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\gnss_port.c
  */
@@ -139,8 +139,8 @@ int32_t gnss_do_get_location(GNSS_LOCATION_t *location)
 static void gnss_port_monitor_task(void const *argument)
 {
     while (1) {
-        gnss_location_point_store(1000);
         vTaskDelay(1000);
+        gnss_location_point_store(1000);
     }
 }
 

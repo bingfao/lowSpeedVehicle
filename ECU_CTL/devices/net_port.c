@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 14:58:21
- * @LastEditTime: 2025-03-04 09:19:01
+ * @LastEditTime: 2025-03-11 10:39:43
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.c
@@ -61,6 +61,7 @@ int8_t g_net_driver_need_connect_flag = 0;
 
 uint32_t g_net_port_tx_bytes = 0;
 uint32_t g_net_port_rx_bytes = 0;
+USER_MUTEX_OBJ_T g_net_port_tx_mutex = {0};
 
 /*
  * ****************************************************************************
@@ -108,7 +109,7 @@ int32_t net_port_init(void)
         log_e("create net_port_monitor_task failed \r\n");
         return -EIO;
     }
-
+    g_net_port_tx_mutex.mutex_handle = xSemaphoreCreateMutexStatic(&g_net_port_tx_mutex.mutex_buf);
     g_net_driver_init_flag = 1;
 
     return 0;
@@ -211,6 +212,42 @@ bool net_port_is_connected(void)
     return false;
 }
 
+int32_t net_port_tx_get_permission(void)
+{
+    if (g_net_port_tx_mutex.mutex_handle == NULL) {
+        log_e("net port tx mutex not init\r\n");
+        return -EINVAL;
+    }
+    if (xSemaphoreTake(g_net_port_tx_mutex.mutex_handle, 10000) != pdTRUE) {
+        log_e("net port is busy\r\n");
+        return -EBUSY;
+    }
+    return 0;
+}
+
+int32_t net_port_tx_release_permission(void)
+{
+    if (g_net_port_tx_mutex.mutex_handle == NULL) {
+        log_e("net port tx mutex not init\r\n");
+        return -EINVAL;
+    }
+    xSemaphoreGive(g_net_port_tx_mutex.mutex_handle);
+    return 0;
+}
+
+/**
+ * @brief 通过网络端口发送数据
+ *
+ * 此函数用于将指定长度的数据从缓冲区发送到网络端口。
+ * 在发送数据之前，它会检查驱动程序是否可用以及网络端口是否已连接。
+ * 如果发送成功，它会更新发送字节数的统计信息。
+ *
+ * @param buf 指向要发送的数据缓冲区的指针
+ * @param len 要发送的数据长度（以字节为单位）
+ * @return int32_t 发送成功时返回发送的字节数，失败时返回相应的错误码
+ * @note 此函数需要在多线程环境下使用，确保线程安全。使用net_port_tx_get_permission
+ * 和net_port_tx_release_permission函数来确保线程安全。
+ */
 int32_t net_port_send(const uint8_t *buf, uint32_t len)
 {
     int32_t ret = 0;
@@ -264,11 +301,17 @@ int32_t net_port_socket_refresh(void)
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
         return -ENODEV;
     }
+    if (net_port_tx_get_permission() != 0) {
+        return -EBUSY;
+    }
     driver_control(g_driver, NET_PORT_CMD_TCP_REFRESH_STATE, &state, sizeof(int32_t));
     if (state == NET_PORT_TCP_CONNECT_MODE_STRAIGHT_OUT || state == NET_PORT_TCP_CONNECT_MODE_TRANSPARENT ||
         state == NET_PORT_TCP_CONNECT_MODE_DISCONNECT) {
+        net_port_tx_release_permission();
         return state;
     }
+    net_port_tx_release_permission();
+
     return -1;
 }
 
@@ -281,12 +324,17 @@ int32_t net_port_get_utc(struct tm *tm_time)
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
         return -ENODEV;
     }
+    if (net_port_tx_get_permission() != 0) {
+        return -EBUSY;
+    }
     ret = driver_control(g_driver, NET_PORT_CMD_GET_UTC_TIME, &tm_temp, sizeof(struct tm));
     if (ret != 0) {
         log_e("get utc time failed \r\n");
+        net_port_tx_release_permission();
         return -EIO;
     }
     memcpy(tm_time, &tm_temp, sizeof(struct tm));
+    net_port_tx_release_permission();
 
     return ret;
 }
@@ -302,12 +350,17 @@ int32_t net_port_get_gnss(NET_PORT_GNSS_t *gnss)
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
         return -ENODEV;
     }
+    if (net_port_tx_get_permission() != 0) {
+        return -EBUSY;
+    }
     ret = driver_control(g_driver, NET_PORT_CMD_GET_GNSS, data, *size + 4);
     if (ret != 0) {
         log_e("get gnss failed \r\n");
+        net_port_tx_release_permission();
         return -EIO;
     }
     memcpy(gnss, (uint32_t *)data + 1, sizeof(NET_PORT_GNSS_t));
+    net_port_tx_release_permission();
 
     return 0;
 }
@@ -324,11 +377,16 @@ int32_t net_port_set_traffic_statistics_recoder_period(uint32_t seconds)
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
         return -ENODEV;
     }
+    if (net_port_tx_get_permission() != 0) {
+        return -EBUSY;
+    }
     ret = driver_control(g_driver, NET_PORT_CMD_SET_TRAFFIC_STATISTICS_RECODER_PERIOD, &temp_data, 4);
     if (ret != 0) {
         log_e("get set traffic statistics recoder period failed \r\n");
+        net_port_tx_release_permission();
         return -EIO;
     }
+    net_port_tx_release_permission();
 
     return 0;
 }
@@ -342,11 +400,16 @@ int32_t net_port_get_flow_total(uint32_t *tx_rx_bytes)
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
         return -ENODEV;
     }
+    if (net_port_tx_get_permission() != 0) {
+        return -EBUSY;
+    }
     ret = driver_control(g_driver, NET_PORT_CMD_GET_TRAFFIC_STATISTICS, &total_flow, 4);
     if (ret != 0) {
         log_e("get flow failed \r\n");
+        net_port_tx_release_permission();
         return -EIO;
     }
+    net_port_tx_release_permission();
     log_d("EC800M_get_flow_total: %d \r\n", total_flow);
     total_flow = g_net_port_rx_bytes + g_net_port_tx_bytes;
     *tx_rx_bytes = total_flow;
@@ -363,11 +426,16 @@ int32_t net_port_get_flow(uint32_t *tx_bytes, uint32_t *rx_bytes)
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
         return -ENODEV;
     }
+    if (net_port_tx_get_permission() != 0) {
+        return -EBUSY;
+    }
     ret = driver_control(g_driver, NET_PORT_CMD_GET_TRAFFIC_STATISTICS, &total_flow, 4);
     if (ret != 0) {
         log_e("get flow failed \r\n");
+        net_port_tx_release_permission();
         return -EIO;
     }
+    net_port_tx_release_permission();
     log_d("EC800M_get_flow_total: %d \r\n", total_flow);
     *tx_bytes = g_net_port_tx_bytes;
     *rx_bytes = g_net_port_rx_bytes;
@@ -391,13 +459,18 @@ int32_t net_port_clr_flow(void)
         log_d("driver %s not found \r\n", NET_PORT_DRV_NAME);
         return -ENODEV;
     }
+    if (net_port_tx_get_permission() != 0) {
+        return -EBUSY;
+    }
     ret = driver_control(g_driver, NET_PORT_CMD_CLR_TRAFFIC_STATISTICS, NULL, 0);
     if (ret != 0) {
         log_e("clear flow failed \r\n");
+        net_port_tx_release_permission();
         return -EIO;
     } else {
         log_i("net_port_clear flow [SUCCESS] \r\n");
     }
+    net_port_tx_release_permission();
     g_net_port_rx_bytes = 0;
     g_net_port_tx_bytes = 0;
 

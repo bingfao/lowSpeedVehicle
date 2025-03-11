@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-10-24 15:09:26
- * @LastEditTime: 2025-03-03 23:05:03
+ * @LastEditTime: 2025-03-11 09:23:34
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\net_port.h
@@ -111,6 +111,8 @@ int32_t net_port_deinit(void);
 int32_t net_port_tcp_connect(const char *host, const char *port);
 int32_t net_port_tcp_disconnect(void);
 bool net_port_is_connected(void);
+int32_t net_port_tx_get_permission(void);
+int32_t net_port_tx_release_permission(void);
 int32_t net_port_send(const uint8_t *buf, uint32_t len);
 int32_t net_port_recv(uint8_t *buf, uint32_t len);
 int32_t net_port_socket_refresh(void);

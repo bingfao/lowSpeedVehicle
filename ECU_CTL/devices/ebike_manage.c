@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:23
- * @LastEditTime: 2025-02-18 11:29:24
+ * @LastEditTime: 2025-03-11 20:53:59
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.c
@@ -446,10 +446,16 @@ int32_t ebike_device_register_to_server(void)
         return ret;
     }
     do {
+        ret = net_port_tx_get_permission();
+        if (ret < 0) {
+            log_e("net_port_tx_get_permission failed\r\n");
+            continue;
+        }
         ret = net_agreement_send_msg(g_ebike_manage_obj.net_agreement_obj, NET_TX_MSG_ID_REGISTER_DEV,
                                      NET_MSG_TYPE_SEND, data, len);
         if (ret < 0) {
             log_e("net_agreement_send_msg failed\r\n");
+            net_port_tx_release_permission();
             vTaskDelay(1000);
             continue;
         }
@@ -459,18 +465,22 @@ int32_t ebike_device_register_to_server(void)
                 log_d("ebike_device_register success\r\n");
                 g_ebike_manage_obj.register_flg = 1;
                 xSemaphoreGive(g_ebike_mutex);
+                net_port_tx_release_permission();
                 return 0;
             } else if (message == EBIKE_ACK_QUEUE_ERROR) {
                 g_ebike_manage_obj.register_flg = 0;
                 log_e("ebike_device_register failed\r\n");
                 xSemaphoreGive(g_ebike_mutex);
+                net_port_tx_release_permission();
                 return -EIO;
             }
         }
+        net_port_tx_release_permission();
     } while (times-- > 0 && ret < 0);
     log_e("ebike_device_register timeout\r\n");
     net_port_tcp_reconnect();
     g_ebike_manage_obj.register_flg = 0;
+    net_port_tx_release_permission();
     xSemaphoreGive(g_ebike_mutex);
 
     return -ETIMEDOUT;
@@ -499,10 +509,16 @@ int32_t ebike_device_state_upload_to_server(void)
         return ret;
     }
     do {
+        ret = net_port_tx_get_permission();
+        if (ret < 0) {
+            log_e("net_port_tx_get_permission failed\r\n");
+            continue;
+        }
         ret = net_agreement_send_msg(g_ebike_manage_obj.net_agreement_obj, NET_TX_MSG_ID_DEV_STATE, NET_MSG_TYPE_SEND,
                                      data, len);
         if (ret < 0) {
             log_e("net_agreement_send_msg failed\r\n");
+            net_port_tx_release_permission();
             vTaskDelay(1000);
             continue;
         }
@@ -511,18 +527,22 @@ int32_t ebike_device_state_upload_to_server(void)
             if (message == EBIKE_ACK_QUEUE_OK) {
                 log_d("ebike_state_upload success\r\n");
                 xSemaphoreGive(g_ebike_mutex);
+                net_port_tx_release_permission();
                 return 0;
             } else if (message == EBIKE_ACK_QUEUE_ERROR) {
                 log_e("ebike_state_upload failed\r\n");
                 xSemaphoreGive(g_ebike_mutex);
+                net_port_tx_release_permission();
                 return -EIO;
             }
         }
+        net_port_tx_release_permission();
     } while (times-- > 0 && ret < 0);
     log_e("ebike_state_upload timeout\r\n");
     net_port_tcp_reconnect();
     g_ebike_manage_obj.register_flg = 0;
     xSemaphoreGive(g_ebike_mutex);
+    net_port_tx_release_permission();
 
     return -ETIMEDOUT;
 }
@@ -550,10 +570,16 @@ int32_t ebike_device_traffic_report(void)
         return ret;
     }
     do {
+        ret = net_port_tx_get_permission();
+        if (ret < 0) {
+            log_e("net_port_tx_get_permission failed\r\n");
+            continue;
+        }
         ret = net_agreement_send_msg(g_ebike_manage_obj.net_agreement_obj, NET_TX_MSG_ID_DATA_TRAFFIC_REPORT,
                                      NET_MSG_TYPE_SEND, data, len);
         if (ret < 0) {
             log_e("net_agreement_send_msg failed\r\n");
+            net_port_tx_release_permission();
             vTaskDelay(1000);
             continue;
         }
@@ -562,16 +588,20 @@ int32_t ebike_device_traffic_report(void)
             if (message == EBIKE_ACK_QUEUE_OK) {
                 log_d("ebike_traffic_report success\r\n");
                 xSemaphoreGive(g_ebike_mutex);
+                net_port_tx_release_permission();
                 return 0;
             } else if (message == EBIKE_ACK_QUEUE_ERROR) {
                 log_e("ebike_traffic_report failed\r\n");
                 xSemaphoreGive(g_ebike_mutex);
+                net_port_tx_release_permission();
                 return -EIO;
             }
         }
+        net_port_tx_release_permission();
     } while (times-- > 0 && ret < 0);
     log_e("ebike_traffic_report timeout\r\n");
-    xSemaphoreGive(g_ebike_mutex);
+    xSemaphoreGive(g_ebike_mutex);\
+    net_port_tx_release_permission();
 
     return -ETIMEDOUT;
 }
@@ -601,10 +631,16 @@ int32_t ebike_device_file_download_require(uint32_t r_adr, uint16_t r_len)
         return ret;
     }
     do {
+        ret = net_port_tx_get_permission();
+        if (ret < 0) {
+            log_e("net_port_tx_get_permission failed\r\n");
+            continue;
+        }
         ret = net_agreement_send_msg(g_ebike_manage_obj.net_agreement_obj, NET_TX_MSG_ID_FILE_APPLY, NET_MSG_TYPE_SEND,
                                      data, len);
         if (ret < 0) {
             log_e("net_agreement_send_msg failed\r\n");
+            net_port_tx_release_permission();
             vTaskDelay(1000);
             continue;
         }
@@ -613,16 +649,20 @@ int32_t ebike_device_file_download_require(uint32_t r_adr, uint16_t r_len)
             if (message == EBIKE_ACK_QUEUE_OK) {
                 log_d("ebike_file_download_require success\r\n");
                 xSemaphoreGive(g_ebike_mutex);
+                net_port_tx_release_permission();
                 return 0;
             } else if (message == EBIKE_ACK_QUEUE_ERROR) {
                 log_e("ebike_file_download_require failed\r\n");
                 xSemaphoreGive(g_ebike_mutex);
+                net_port_tx_release_permission();
                 return -EIO;
             }
         }
+        net_port_tx_release_permission();
     } while (times-- > 0 && ret < 0);
     log_e("ebike_file_download_require timeout\r\n");
     xSemaphoreGive(g_ebike_mutex);
+    net_port_tx_release_permission();
 
     return -ETIMEDOUT;
 }
