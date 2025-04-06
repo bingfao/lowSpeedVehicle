@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2024-11-07 15:16:23
- * @LastEditTime: 2025-03-11 20:53:59
+ * @LastEditTime: 2025-03-24 14:49:08
  * @LastEditors: DESKTOP-SPAS98O
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\devices\ebike_manage.c
@@ -480,7 +480,6 @@ int32_t ebike_device_register_to_server(void)
     log_e("ebike_device_register timeout\r\n");
     net_port_tcp_reconnect();
     g_ebike_manage_obj.register_flg = 0;
-    net_port_tx_release_permission();
     xSemaphoreGive(g_ebike_mutex);
 
     return -ETIMEDOUT;
@@ -542,7 +541,6 @@ int32_t ebike_device_state_upload_to_server(void)
     net_port_tcp_reconnect();
     g_ebike_manage_obj.register_flg = 0;
     xSemaphoreGive(g_ebike_mutex);
-    net_port_tx_release_permission();
 
     return -ETIMEDOUT;
 }
@@ -601,7 +599,6 @@ int32_t ebike_device_traffic_report(void)
     } while (times-- > 0 && ret < 0);
     log_e("ebike_traffic_report timeout\r\n");
     xSemaphoreGive(g_ebike_mutex);\
-    net_port_tx_release_permission();
 
     return -ETIMEDOUT;
 }
@@ -662,7 +659,6 @@ int32_t ebike_device_file_download_require(uint32_t r_adr, uint16_t r_len)
     } while (times-- > 0 && ret < 0);
     log_e("ebike_file_download_require timeout\r\n");
     xSemaphoreGive(g_ebike_mutex);
-    net_port_tx_release_permission();
 
     return -ETIMEDOUT;
 }
