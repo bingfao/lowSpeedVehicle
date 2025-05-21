@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2025-01-23 10:36:17
- * @LastEditTime: 2025-02-25 21:59:03
- * @LastEditors: DESKTOP-SPAS98O
+ * @LastEditTime: 2025-05-22 10:24:17
+ * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\drivers\U575\driver_mcu.c
  */
@@ -83,6 +83,7 @@ static int32_t drv_mcu_erase_inter_flash(uint32_t start_addr, uint32_t size);
 static int32_t drv_mcu_write_inter_flash(uint32_t start_addr, uint32_t *data, uint32_t size);
 static int32_t drv_mcu_read_inter_flash(uint32_t start_addr, uint32_t *data, uint32_t size);
 static int32_t drv_mcu_get_upgrade_flash_area(uint32_t *addr);
+static int32_t drv_mcu_get_app_flash_area(uint32_t *area);
 
 DRIVER_CTL_t g_mcu_driver = {
     .init = mcu_drv_init,
@@ -107,6 +108,7 @@ DRIVER_CTL_t g_mcu_driver = {
 static int32_t mcu_drv_init(DRIVER_OBJ_t *p_driver)
 {
     drv_mcu_get_run_bank(&g_run_bank);
+    log_d("mcu run bank: %d \r\n", g_run_bank);
 
     return 0;
 }
@@ -435,6 +437,13 @@ static int32_t drv_mcu_get_upgrade_flash_area(uint32_t *area)
     return 0;
 }
 
+static int32_t drv_mcu_get_app_flash_area(uint32_t *area)
+{
+    area[0] = FLASH_BASE;
+    area[1] = FLASH_BANK_SIZE;
+    return 0;
+}
+
 static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint32_t size)
 {
     int32_t ret = 0;
@@ -458,8 +467,11 @@ static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint
         case DRV_MCU_CTL_FLASH_ERASE:
             ret = drv_mcu_erase_inter_flash(*(uint32_t *)args, *((uint32_t *)args + 1));  // start_addr, end_addr
             break;
-        case MCU_CTL_GET_UPGRADE_FLASH_AREA:
+        case DRV_MCU_CTL_GET_UPGRADE_FLASH_AREA:
             ret = drv_mcu_get_upgrade_flash_area((uint32_t *)args);
+            break;
+        case DRV_MCU_CTL_GET_APP_FLASH_AREA:
+            ret = drv_mcu_get_app_flash_area((uint32_t *)args);
             break;
         case DRV_MCU_CTL_GET_MD5_ADDR_OFFSET:
             *(uint32_t *)args = DRV_MCU_MD5_ADDR_OFFSET;
@@ -467,6 +479,10 @@ static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint
             break;
         case DRV_MCU_CTL_GET_FSIZE_ADDR_OFFSET:
             *(uint32_t *)args = DRV_MCU_FILE_SIZE_ADDR_OFFSET;
+            ret = 0;
+            break;
+        case DRV_MCU_CTL_GET_APP_ACTIVE_ADDR:
+            *(uint32_t *)args = DRV_MCU_APP_ACTIVE_ADDR;
             ret = 0;
             break;
         default:

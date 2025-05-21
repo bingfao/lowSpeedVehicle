@@ -131,6 +131,39 @@ int32_t mcu_ctl_set_run_bank(uint32_t bank)
     return ret;
 }
 
+int32_t mcu_ctl_intactivate_app(void)
+{
+    int32_t ret = 0;
+    uint32_t data[2] = {0};
+    uint32_t app_base_addr = 0;
+    uint32_t activate_flg_addr = 0;
+
+    if (g_mcu_ctl_inited_flg!= 1) {
+        log_e("mcu_ctl not inited \r\n");
+        return -1;
+    }
+    ret = driver_control(g_mcu_drv, MCU_CTL_GET_APP_FLASH_AREA, data, sizeof(data));
+    if (ret != 0) {
+        log_e("mcu_ctl flash get app area failed \r\n");
+        return ret;
+    }
+    app_base_addr = data[0];
+    ret = driver_control(g_mcu_drv, MCU_CTL_GET_APP_ACTIVE_ADDR, data, sizeof(data[0]));
+    if (ret != 0) {
+        log_e("mcu_ctl flash get app area failed \r\n");
+        return ret;
+    }
+    activate_flg_addr = data[0];
+    activate_flg_addr += app_base_addr;
+    ret = mcu_ctl_flash_write(activate_flg_addr, 0, 1);
+    if (ret!= 0) {
+        log_e("mcu_ctl flash write failed \r\n");
+        return ret;
+    }
+
+    return 0;
+}
+
 int32_t mcu_ctl_flash_get_upgrade_area(uint32_t *addr, uint32_t *size)
 {
     int32_t ret = 0;
@@ -182,6 +215,25 @@ int32_t mcu_ctl_flash_get_flile_size_addr_offset(uint32_t *offset)
     ret = driver_control(g_mcu_drv, MCU_CTL_GET_FSIZE_ADDR_OFFSET, &data, sizeof(data));
     if (ret != 0) {
         log_e("mcu_ctl flash get file size addr offset failed \r\n");
+        return ret;
+    }
+    *offset = data;
+
+    return ret;
+}
+
+int32_t mcu_ctl_flash_get_app_activate_addr_offset(uint32_t *offset)
+{
+    int32_t ret = 0;
+    uint32_t data = 0;
+
+    if (g_mcu_ctl_inited_flg != 1) {
+        log_e("mcu_ctl not inited \r\n");
+        return -1;
+    }
+    ret = driver_control(g_mcu_drv, MCU_CTL_GET_APP_ACTIVE_ADDR, &data, sizeof(data));
+    if (ret != 0) {
+        log_e("mcu_ctl flash get app activate addr offset failed \r\n");
         return ret;
     }
     *offset = data;

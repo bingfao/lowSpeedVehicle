@@ -87,6 +87,7 @@ static int32_t drv_mcu_erase_inter_flash(uint32_t start_addr, uint32_t size);
 static int32_t drv_mcu_write_inter_flash(uint32_t start_addr, uint32_t *data, uint32_t size);
 static int32_t drv_mcu_read_inter_flash(uint32_t start_addr, uint32_t *data, uint32_t size);
 static int32_t drv_mcu_get_upgrade_flash_area(uint32_t *addr);
+static int32_t drv_mcu_get_app_flash_area(uint32_t *area);
 
 DRIVER_CTL_t g_mcu_driver = {
     .init = mcu_drv_init,
@@ -439,6 +440,19 @@ static int32_t drv_mcu_get_upgrade_flash_area(uint32_t *area)
     return 0;
 }
 
+static int32_t drv_mcu_get_app_flash_area(uint32_t *area)
+{
+    if (g_run_bank == 1) {
+        area[0] = g_flash_area[0].str_addr;
+        area[1] = g_flash_area[0].size;
+    } else {
+        area[0] = g_flash_area[1].str_addr;
+        area[1] = g_flash_area[1].size;
+    }
+
+    return 0;
+}
+
 static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint32_t size)
 {
     int32_t ret = 0;
@@ -462,8 +476,11 @@ static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint
         case DRV_MCU_CTL_FLASH_ERASE:
             ret = drv_mcu_erase_inter_flash(*(uint32_t *)args, *((uint32_t *)args + 1));  // start_addr, end_addr
             break;
-        case MCU_CTL_GET_UPGRADE_FLASH_AREA:
+        case DRV_MCU_CTL_GET_UPGRADE_FLASH_AREA:
             ret = drv_mcu_get_upgrade_flash_area((uint32_t *)args);
+            break;
+        case DRV_MCU_CTL_GET_APP_FLASH_AREA:
+            ret = drv_mcu_get_app_flash_area((uint32_t *)args);
             break;
         case DRV_MCU_CTL_GET_MD5_ADDR_OFFSET:
             *(uint32_t *)args = DRV_MCU_MD5_ADDR_OFFSET;
@@ -471,6 +488,10 @@ static int32_t drv_mcu_control(DRIVER_OBJ_t *drv, uint32_t cmd, void *args, uint
             break;
         case DRV_MCU_CTL_GET_FSIZE_ADDR_OFFSET:
             *(uint32_t *)args = DRV_MCU_FILE_SIZE_ADDR_OFFSET;
+            ret = 0;
+            break;
+        case DRV_MCU_CTL_GET_APP_ACTIVE_ADDR:
+            *(uint32_t *)args = DRV_MCU_APP_ACTIVE_ADDR;
             ret = 0;
             break;
         default:

@@ -45,7 +45,9 @@ typedef struct
 {
     uint8_t md5[16];   // the md5 value of the firmware file must in the head.
     uint32_t bin_size;     // the size of the firmware file. the size must be set after download.
-    uint32_t reserve_00[3]; // reserve 12 bytes, 0x00000000 * 3.
+    uint8_t app_activate;  // uint8_t, 0x00: not activate, 0x01: activate.
+    uint8_t reserve_8_0[3]; // reserve 3 byte, 0x00.
+    uint32_t reserve_00[2]; // reserve 8 bytes, 0x00000000 * 2.
     SOFT_VERSION_t version;
     uint8_t reserve[3];
     char name[32];
@@ -85,9 +87,9 @@ typedef struct
 #elif defined(STM32F407xx)
 #define MCU_NAME                "STM32F407xx"
 #if defined(_BANK_2_)
-#define MCU_START_ADDR          0x08040000
+#define MCU_START_ADDR          0x08080000
 #else
-#define MCU_START_ADDR          0x08004000
+#define MCU_START_ADDR          0x08008000
 #endif
 #else
 #define MCU_NAME                "Unknown"

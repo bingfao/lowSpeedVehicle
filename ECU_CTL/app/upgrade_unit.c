@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2025-02-23 10:37:03
- * @LastEditTime: 2025-03-05 14:36:24
- * @LastEditors: DESKTOP-SPAS98O
+ * @LastEditTime: 2025-05-22 11:36:20
+ * @LastEditors: stone_honor
  * @Description: In User Settings Edit
  * @FilePath: \ebike_ECU\ECU_CTL\app\upgrade_unit.c
  */
@@ -41,6 +41,7 @@ typedef struct
     uint32_t flash_write_index;
     uint32_t file_size_addr;  // file size in bin is 0xFFFFFFFF, need tobe changed after download
     uint32_t file_size;
+    uint32_t app_activate_addr;
     uint32_t md5_addr;  // md5 sum of bin file is 16byte(0x00 - 0x0F), need to be changed after download
     MD5_CTX md5_ctx;
     uint8_t md5_sum[16];
@@ -110,6 +111,11 @@ int32_t upgrade_unit_init(void)
         return ret;
     }
     g_upgrade_info.file_size_addr = g_upgrade_info.flash_area_addr + temp;
+    ret = mcu_ctl_flash_get_app_activate_addr_offset(&temp);
+    if (ret < 0) {
+        return ret;
+    }
+    g_upgrade_info.app_activate_addr = g_upgrade_info.flash_area_addr + temp;
 
     ret = ymodem_upgrade_task_init();
     if (ret < 0) {
@@ -242,6 +248,7 @@ static void ymodem_upgrade_task(void const *argument)
     char file_name[64] = {0};
     uint32_t file_size = 0;
     uint8_t cal_md5[16] = {0};
+    uint8_t activate_flg = 1;
 
     log_d("ymodem_upgrade_task run\r\n");
     while (1) {
@@ -272,11 +279,19 @@ static void ymodem_upgrade_task(void const *argument)
                     ret = mcu_ctl_flash_write(g_upgrade_info.md5_addr, cal_md5, sizeof(cal_md5));
                     if (ret < 0) {
                         log_e("APP md5 write failed, ret:%d\r\n", ret);
+                        return;
                     }
                     ret = mcu_ctl_flash_write(g_upgrade_info.file_size_addr, (uint8_t *)&g_upgrade_info.file_size, 4);
                     if (ret < 0) {
                         log_e("APP file size write failed, ret:%d\r\n", ret);
+                        return;
                     }
+                    ret = mcu_ctl_flash_write(g_upgrade_info.app_activate_addr, &activate_flg, 1);
+                    if (ret < 0) {
+                        log_e("APP activite flg write failed, ret:%d\r\n", ret);
+                        return;
+                    }
+                    mcu_ctl_intactivate_app();
                     for (int32_t i = 5; i > 0; i -= 1) {
                         log_d("%d s\r\n", i);
                         vTaskDelay(OS_MS(1000));
